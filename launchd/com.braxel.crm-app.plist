@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.braxel.crm-app</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/bun</string>
+		<string>run</string>
+		<string>--filter=app</string>
+		<string>start</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/samuelestebanmorenorodriguez/Applications/BraxelCRM</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/braxel-crm-app.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/braxel-crm-app.log</string>
+</dict>
+</plist>
