@@ -9,7 +9,9 @@ import {
 import { brief, drainAll, taskAuth } from "../lib/dispatch";
 
 export default defineSchedule({
-	cron: "* * * * *",
+	// Vercel Hobby permits daily cron execution only. Immediate CRM requests use
+	// the authenticated bridge; this schedule is the background safety sweep.
+	cron: "0 8 * * *",
 	async run({ receive, waitUntil, appAuth }) {
 		waitUntil(
 			Promise.all([
