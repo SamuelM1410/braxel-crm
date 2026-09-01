@@ -158,7 +158,10 @@ writeFileSync(
 	JSON.stringify({
 		version: 3,
 		routes: [{ src: "/(.*)", dest: "/api/index" }],
-		crons: [{ path: "/internal/sync/google", schedule: "*/5 * * * *" }],
+		// Gmail/Calendar synchronization is intentionally deployed without a
+		// Vercel cron for now. The agency is not using mailbox automation yet,
+		// and Vercel Hobby only permits one cron execution per day. Reintroduce
+		// an authenticated scheduler when mailbox sync is enabled.
 	}),
 );
 
