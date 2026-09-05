@@ -23,12 +23,15 @@ DIRECT_DATABASE_URL=<direct production Postgres URL>
 BETTER_AUTH_SECRET=<new production secret>
 AGENT_BRIDGE_SECRET=<one shared production secret>
 ALLOWED_SIGN_IN=<approved agency email(s)>
+OPENAI_API_KEY=<server-side OpenAI API key>
+EVE_OPENAI_MODEL=gpt-4.1-mini
 ```
 
-The agent model uses Vercel AI Gateway on Vercel through OIDC. If the selected
-model/provider requires it, configure the provider key in the Vercel AI Gateway
-project; never place it in source code, client-side environment variables or
-GitHub.
+The Eve agent uses OpenAI directly through the server-side `OPENAI_API_KEY`.
+This avoids Vercel AI Gateway billing verification. Never place that key in
+source code, client-side environment variables or GitHub. `EVE_OPENAI_MODEL`
+is optional and lets the agency choose a different compatible OpenAI model
+without a code change.
 
 ## Deployment order
 

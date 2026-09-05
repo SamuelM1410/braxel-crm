@@ -3,13 +3,13 @@ import "@crm/env/load";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { type Prisma, PrismaClient } from "./generated/prisma/client";
 
-const connectionString =
-	process.env.NODE_ENV === "test" ? testDatabase() : liveDatabase();
-
 // Lead OS already owns tables in Supabase's `public` schema. Keep the CRM
 // isolated so its Prisma migrations and runtime queries never collide with
 // n8n's operational data.
 const BRAXEL_SCHEMA = "braxel";
+
+const connectionString =
+	process.env.NODE_ENV === "test" ? testDatabase() : liveDatabase();
 
 function withBraxelSchema(url: string): string {
 	const parsed = new URL(url);
