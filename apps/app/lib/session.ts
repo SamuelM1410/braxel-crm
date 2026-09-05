@@ -5,18 +5,16 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { API_URL } from "@/lib/env";
 
-export const getSession = cache(
-	async (): Promise<Session | null> => {
-		const requestHeaders = await headers();
-		const response = await fetch(`${API_URL}/api/auth/get-session`, {
-			headers: requestHeaders,
-			cache: "no-store",
-		});
+export const getSession = cache(async (): Promise<Session | null> => {
+	const requestHeaders = await headers();
+	const response = await fetch(`${API_URL}/api/auth/get-session`, {
+		headers: requestHeaders,
+		cache: "no-store",
+	});
 
-		if (!response.ok) return null;
-		return (await response.json()) as Session | null;
-	},
-);
+	if (!response.ok) return null;
+	return (await response.json()) as Session | null;
+});
 
 export async function requireSession(): Promise<Session> {
 	const session = await getSession();
