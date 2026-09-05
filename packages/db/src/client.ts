@@ -111,7 +111,10 @@ const logDefinitions: Prisma.LogDefinition[] = [
 
 const createPrismaClient = () => {
 	const client = new PrismaClient({
-		adapter: new PrismaPg({ connectionString }),
+		// PrismaPg does not infer the PostgreSQL namespace from `?schema=` in
+		// the connection string. Supplying it here keeps every CRM runtime query
+		// in `braxel`, leaving the Lead OS/n8n tables in `public` untouched.
+		adapter: new PrismaPg({ connectionString }, { schema: BRAXEL_SCHEMA }),
 		log: logDefinitions,
 	});
 
