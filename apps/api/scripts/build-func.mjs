@@ -169,12 +169,22 @@ console.log(`✓ built ${outDir}`);
 
 const isProductionDeployment = process.env.VERCEL_ENV === "production";
 
-const directDatabaseUrl = !isProductionDeployment
+const configuredDirectDatabaseUrl = !isProductionDeployment
 	? undefined
 	: process.env.DIRECT_DATABASE_URL ||
 		process.env.POSTGRES_URL_NON_POOLING ||
 		process.env.DATABASE_URL_UNPOOLED ||
 		process.env.DATABASE_URL;
+
+// Lead OS uses Supabase's public schema. Prisma is pointed at a dedicated
+// schema so applying the CRM's migrations cannot modify the n8n tables.
+const directDatabaseUrl = configuredDirectDatabaseUrl
+	? (() => {
+			const url = new URL(configuredDirectDatabaseUrl);
+			url.searchParams.set("schema", "braxel");
+			return url.toString();
+		})()
+	: undefined;
 
 if (!process.env.VERCEL) {
 	console.log("• not a Vercel build — skipping migrations");
