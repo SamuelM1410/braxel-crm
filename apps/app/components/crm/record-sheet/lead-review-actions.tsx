@@ -27,7 +27,9 @@ export function LeadReviewActions({
 }) {
 	const trpc = useTRPC();
 	const cache = useCrmCache();
-	const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
+	const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(
+		null,
+	);
 	const [reason, setReason] = useState("");
 	const status = reviewStatus(description);
 	const isReviewLead = /^Lead OS source:/m.test(description ?? "");
@@ -47,7 +49,11 @@ export function LeadReviewActions({
 
 	return (
 		<>
-			<Button size="sm" disabled={review.isPending} onClick={() => setDecision("APPROVED")}>
+			<Button
+				size="sm"
+				disabled={review.isPending}
+				onClick={() => setDecision("APPROVED")}
+			>
 				Approve lead
 			</Button>
 			<Button
@@ -71,7 +77,9 @@ export function LeadReviewActions({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							{decision === "APPROVED" ? "Approve this lead?" : "Reject this lead?"}
+							{decision === "APPROVED"
+								? "Approve this lead?"
+								: "Reject this lead?"}
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{decision === "APPROVED"
@@ -88,9 +96,12 @@ export function LeadReviewActions({
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							variant={decision === "REJECTED" ? "destructive" : "default"}
-							disabled={review.isPending || reason.trim().length < 3 || !decision}
+							disabled={
+								review.isPending || reason.trim().length < 3 || !decision
+							}
 							onClick={() => {
-								if (decision) review.mutate({ id: companyId, decision, reason });
+								if (decision)
+									review.mutate({ id: companyId, decision, reason });
 							}}
 						>
 							{decision === "APPROVED" ? "Approve lead" : "Reject lead"}

@@ -9,8 +9,8 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { z } from "zod";
-import { leadOsDossierSchema } from "./lead-os-dossier";
 import { IntakeService } from "./intake.service";
+import { leadOsDossierSchema } from "./lead-os-dossier";
 
 const leadSchema = z.object({
 	sourceId: z.string().trim().min(1).max(160),

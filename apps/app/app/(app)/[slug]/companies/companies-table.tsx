@@ -1,11 +1,11 @@
 "use client";
 
+import { Badge } from "@crm/ui/components/badge";
 import {
 	DataTable,
 	type DataTableColumn,
 	type DataTableFacet,
 } from "@crm/ui/components/data-table";
-import { Badge } from "@crm/ui/components/badge";
 import { EmptyCellValue } from "@crm/ui/components/empty-cell";
 import {
 	EntityLogo,
@@ -63,7 +63,11 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 		cell: (row) => {
 			const status = row.leadOs?.reviewStatus;
 			if (!status) return <EmptyCellValue />;
-			return <Badge variant={status === "PENDING" ? "secondary" : "outline"}>{status}</Badge>;
+			return (
+				<Badge variant={status === "PENDING" ? "secondary" : "outline"}>
+					{status}
+				</Badge>
+			);
 		},
 	},
 	{
@@ -75,7 +79,8 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 		cell: (row) =>
 			row.leadOs ? (
 				<span className="font-medium tabular-nums">
-					{row.leadOs.evidenceScore} / {row.leadOs.opportunityScore} / {row.leadOs.priorityScore}
+					{row.leadOs.evidenceScore} / {row.leadOs.opportunityScore} /{" "}
+					{row.leadOs.priorityScore}
 				</span>
 			) : (
 				<EmptyCellValue />
@@ -89,7 +94,11 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 		hideBelow: "lg",
 		cell: (row) => {
 			const offer = row.leadOs?.recommendedOffer;
-			return offer ? <span className="truncate">{offer}</span> : <EmptyCellValue />;
+			return offer ? (
+				<span className="truncate">{offer}</span>
+			) : (
+				<EmptyCellValue />
+			);
 		},
 	},
 	{

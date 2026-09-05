@@ -8,9 +8,9 @@ import {
 	UseMiddlewares,
 } from "nestjs-trpc";
 import type { z } from "zod";
+import { LeadReviewService } from "../intake/lead-review.service";
 import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
-import { LeadReviewService } from "../intake/lead-review.service";
 import {
 	companyBulkInput,
 	companyBulkOwnerInput,

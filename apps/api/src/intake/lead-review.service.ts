@@ -30,17 +30,25 @@ export class LeadReviewService {
 			where: { id: companyId },
 			select: { id: true, description: true },
 		});
-		if (!company) throw new NotFoundException(`No company with id ${companyId}.`);
+		if (!company)
+			throw new NotFoundException(`No company with id ${companyId}.`);
 
 		const sourceId = sourceIdFromDescription(company.description);
 		if (!sourceId) {
-			throw new BadRequestException("This company is not a Lead OS review lead.");
+			throw new BadRequestException(
+				"This company is not a Lead OS review lead.",
+			);
 		}
 
 		const response = await fetch(this.webhookUrl(), {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ sourceId, decision, reviewedBy: reviewer, reason }),
+			body: JSON.stringify({
+				sourceId,
+				decision,
+				reviewedBy: reviewer,
+				reason,
+			}),
 		});
 		if (!response.ok) {
 			this.logger.error({
@@ -48,13 +56,20 @@ export class LeadReviewService {
 				companyId,
 				decision,
 			});
-			throw new BadGatewayException("Lead OS could not save this review decision.");
+			throw new BadGatewayException(
+				"Lead OS could not save this review decision.",
+			);
 		}
 
 		await this.db.company.update({
 			where: { id: companyId },
 			data: {
-				description: withReviewDecision(company.description, decision, reviewer, reason),
+				description: withReviewDecision(
+					company.description,
+					decision,
+					reviewer,
+					reason,
+				),
 			},
 		});
 		return { decision };
@@ -80,7 +95,10 @@ function withReviewDecision(
 ) {
 	const lines = (description ?? "").split("\n");
 	const next = lines.filter(
-		(line) => !/^Revisión:|^No contactar:|^Revisado por:|^Motivo de revisión:/.test(line),
+		(line) =>
+			!/^Revisión:|^No contactar:|^Revisado por:|^Motivo de revisión:/.test(
+				line,
+			),
 	);
 	next.push(`Revisión: ${decision}`);
 	next.push(`No contactar: ${decision === "REJECTED" ? "sí" : "no"}`);

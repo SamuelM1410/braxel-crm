@@ -157,7 +157,10 @@ export class CompaniesService {
 
 		const visibleRows = prioritizedLeadView
 			? [...rows]
-					.sort((left, right) => leadOsRank(right.description) - leadOsRank(left.description))
+					.sort(
+						(left, right) =>
+							leadOsRank(right.description) - leadOsRank(left.description),
+					)
 					.slice(skip, skip + take)
 			: rows;
 		const ids = visibleRows.map((row) => row.id);
@@ -664,24 +667,35 @@ function leadOsRank(description: string | null) {
 function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 	if (!description?.includes("Lead OS source:")) return null;
 	const line = (label: string) =>
-		description.match(new RegExp(`^${label}:\\s*(.+)$`, "m"))?.[1]?.trim() ?? "";
+		description.match(new RegExp(`^${label}:\\s*(.+)$`, "m"))?.[1]?.trim() ??
+		"";
 	const dossierLine = description
 		.split("\n")
 		.find((value) => value.startsWith("Dossier Lead OS: "));
 	if (dossierLine) {
 		try {
-			const dossier = JSON.parse(dossierLine.slice("Dossier Lead OS: ".length)) as {
+			const dossier = JSON.parse(
+				dossierLine.slice("Dossier Lead OS: ".length),
+			) as {
 				classification?: { status?: string };
-				scores?: { evidence_quality?: number; commercial_opportunity?: number; contact_priority?: number };
+				scores?: {
+					evidence_quality?: number;
+					commercial_opportunity?: number;
+					contact_priority?: number;
+				};
 				commercial_assessment?: { recommended_offer?: string };
 			};
 			return {
-				stage: line("Etapa Lead OS") || dossier.classification?.status || "RESEARCHED",
+				stage:
+					line("Etapa Lead OS") ||
+					dossier.classification?.status ||
+					"RESEARCHED",
 				reviewStatus: line("Revisión") || "PENDING",
 				evidenceScore: dossier.scores?.evidence_quality ?? 0,
 				opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
 				priorityScore: dossier.scores?.contact_priority ?? 0,
-				recommendedOffer: dossier.commercial_assessment?.recommended_offer ?? null,
+				recommendedOffer:
+					dossier.commercial_assessment?.recommended_offer ?? null,
 			};
 		} catch {}
 	}
@@ -698,8 +712,14 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 
 function legacyOffer(problem: string) {
 	const normalized = problem.toLowerCase();
-	if (normalized.includes("sin web") || normalized.includes("no tiene web")) return "Web de conversión + WhatsApp";
-	if (normalized.includes("web") && (normalized.includes("lenta") || normalized.includes("antigua"))) return "Rediseño web orientado a conversión";
-	if (normalized.includes("seguimiento") || normalized.includes("agenda")) return "Sistema de captación, CRM y seguimiento";
+	if (normalized.includes("sin web") || normalized.includes("no tiene web"))
+		return "Web de conversión + WhatsApp";
+	if (
+		normalized.includes("web") &&
+		(normalized.includes("lenta") || normalized.includes("antigua"))
+	)
+		return "Rediseño web orientado a conversión";
+	if (normalized.includes("seguimiento") || normalized.includes("agenda"))
+		return "Sistema de captación, CRM y seguimiento";
 	return problem ? "Diagnóstico comercial y automatización por fases" : null;
 }

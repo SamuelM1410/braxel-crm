@@ -60,12 +60,12 @@ import { hasCompanyLinks } from "@/lib/social-links";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
-import { QuickAddContact, QuickAddDeal } from "./quick-add";
-import { LeadReviewActions } from "./lead-review-actions";
 import {
 	descriptionWithoutLeadDossier,
 	LeadDossierPanel,
 } from "./lead-dossier-panel";
+import { LeadReviewActions } from "./lead-review-actions";
+import { QuickAddContact, QuickAddDeal } from "./quick-add";
 import { RecordActions } from "./record-actions";
 import {
 	AddRow,

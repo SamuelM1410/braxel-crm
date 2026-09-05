@@ -10,7 +10,13 @@ import { CompanyDirectoryService } from "./company-directory.service";
 import { FaviconService } from "./favicon.service";
 
 @Module({
-	imports: [FieldsModule, TrpcModule, AgentModule, CurrencyModule, IntakeModule],
+	imports: [
+		FieldsModule,
+		TrpcModule,
+		AgentModule,
+		CurrencyModule,
+		IntakeModule,
+	],
 	providers: [
 		CompaniesService,
 		CompanyDirectoryService,
