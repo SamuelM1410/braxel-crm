@@ -8,7 +8,9 @@ import { API_URL } from "@/lib/env";
 export const getSession = cache(async (): Promise<Session | null> => {
 	const requestHeaders = await headers();
 	const response = await fetch(`${API_URL}/api/auth/get-session`, {
-		headers: requestHeaders,
+		// `headers()` returns an immutable Next.js object in production. `fetch`
+		// normalizes request headers internally, so pass it a mutable copy instead.
+		headers: new Headers(requestHeaders),
 		cache: "no-store",
 	});
 
