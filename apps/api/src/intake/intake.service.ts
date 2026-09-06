@@ -11,6 +11,10 @@ type IntakeLead = {
 	niche?: string | null;
 	phone?: string | null;
 	email?: string | null;
+	instagramUrl?: string | null;
+	facebookUrl?: string | null;
+	tiktokUrl?: string | null;
+	whatsappUrl?: string | null;
 	contactName?: string | null;
 	contactRole?: string | null;
 	score?: number | null;
@@ -69,9 +73,13 @@ export class IntakeService {
 							website: clean(lead.websiteUrl),
 							city: clean(lead.city),
 							industry: clean(lead.niche),
-							phone: clean(lead.phone),
-							email: clean(lead.email),
-							description,
+						phone: clean(lead.phone),
+						email: clean(lead.email),
+						instagramUrl: clean(lead.instagramUrl),
+						facebookUrl: clean(lead.facebookUrl),
+						tiktokUrl: clean(lead.tiktokUrl),
+						whatsappUrl: clean(lead.whatsappUrl),
+						description,
 							source: RecordSource.IMPORT,
 							enrichmentStatus: "SKIPPED",
 						},
@@ -118,6 +126,10 @@ export class IntakeService {
 						firstName,
 						lastName: lastName.join(" ") || null,
 						phone: clean(lead.phone),
+						instagramUrl: clean(lead.instagramUrl),
+						facebookUrl: clean(lead.facebookUrl),
+						tiktokUrl: clean(lead.tiktokUrl),
+						whatsappUrl: clean(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -128,6 +140,10 @@ export class IntakeService {
 						lastName: lastName.join(" ") || null,
 						email,
 						phone: clean(lead.phone),
+						instagramUrl: clean(lead.instagramUrl),
+						facebookUrl: clean(lead.facebookUrl),
+						tiktokUrl: clean(lead.tiktokUrl),
+						whatsappUrl: clean(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -147,6 +163,10 @@ export class IntakeService {
 						lastName: lastName.join(" ") || null,
 						email,
 						phone: clean(lead.phone),
+						instagramUrl: clean(lead.instagramUrl),
+						facebookUrl: clean(lead.facebookUrl),
+						tiktokUrl: clean(lead.tiktokUrl),
+						whatsappUrl: clean(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -182,6 +202,10 @@ function companyData(
 		industry: clean(lead.niche),
 		phone: clean(lead.phone),
 		email: clean(lead.email),
+		instagramUrl: clean(lead.instagramUrl),
+		facebookUrl: clean(lead.facebookUrl),
+		tiktokUrl: clean(lead.tiktokUrl),
+		whatsappUrl: clean(lead.whatsappUrl),
 		description,
 		source: RecordSource.IMPORT,
 		enrichmentStatus: "SKIPPED" as const,
