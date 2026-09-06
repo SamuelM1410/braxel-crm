@@ -65,6 +65,11 @@ export type CompanyHistory = {
 		location: string | null;
 		description: string | null;
 		linkedinUrl: string | null;
+		instagramUrl: string | null;
+		facebookUrl: string | null;
+		tiktokUrl: string | null;
+		whatsappUrl: string | null;
+		phone: string | null;
 		enrichmentStatus: string;
 	};
 	people: CompanyPerson[];
@@ -107,6 +112,11 @@ export async function readCompanyHistory(
 			country: true,
 			description: true,
 			linkedinUrl: true,
+			instagramUrl: true,
+			facebookUrl: true,
+			tiktokUrl: true,
+			whatsappUrl: true,
+			phone: true,
 			enrichmentStatus: true,
 		},
 	});
@@ -250,6 +260,11 @@ export async function readCompanyHistory(
 			location: [company.city, company.country].filter(Boolean).join(", "),
 			description: company.description,
 			linkedinUrl: company.linkedinUrl,
+			instagramUrl: company.instagramUrl,
+			facebookUrl: company.facebookUrl,
+			tiktokUrl: company.tiktokUrl,
+			whatsappUrl: company.whatsappUrl,
+			phone: company.phone,
 			enrichmentStatus: company.enrichmentStatus,
 		},
 		people: people.map((person) => ({

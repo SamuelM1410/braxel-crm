@@ -386,6 +386,35 @@ function CompanyOverview({ company }: { company: Company }) {
 								onSave={(email) => save({ email })}
 							/>
 							<InlineField
+								label="Instagram"
+								value={company.instagramUrl}
+								type="url"
+								saving={isSaving("instagramUrl")}
+								onSave={(instagramUrl) => save({ instagramUrl })}
+							/>
+							<InlineField
+								label="Facebook"
+								value={company.facebookUrl}
+								type="url"
+								saving={isSaving("facebookUrl")}
+								onSave={(facebookUrl) => save({ facebookUrl })}
+							/>
+							<InlineField
+								label="TikTok"
+								value={company.tiktokUrl}
+								type="url"
+								saving={isSaving("tiktokUrl")}
+								onSave={(tiktokUrl) => save({ tiktokUrl })}
+							/>
+							<InlineField
+								label="WhatsApp"
+								value={company.whatsappUrl}
+								type="url"
+								placeholder="https://wa.me/…"
+								saving={isSaving("whatsappUrl")}
+								onSave={(whatsappUrl) => save({ whatsappUrl })}
+							/>
+							<InlineField
 								label="City"
 								value={company.city}
 								saving={isSaving("city")}

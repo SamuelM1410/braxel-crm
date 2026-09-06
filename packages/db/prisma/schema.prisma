@@ -300,6 +300,10 @@ model Company {
   linkedinUrl String?
   twitterUrl  String?
   githubUrl   String?
+  instagramUrl String?
+  facebookUrl  String?
+  tiktokUrl    String?
+  whatsappUrl  String?
   pricingUrl  String?
   careersUrl  String?
 
@@ -353,6 +357,10 @@ model Contact {
   linkedinUrl String?
   twitterUrl  String?
   githubUrl   String?
+  instagramUrl String?
+  facebookUrl  String?
+  tiktokUrl    String?
+  whatsappUrl  String?
   imageUrl    String?
 
   socialsCheckedAt DateTime?

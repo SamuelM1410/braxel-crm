@@ -32,6 +32,10 @@ const companyUpdateInput = z.object({
 	phone: z.string().optional(),
 	email: z.string().optional(),
 	linkedinUrl: z.string().optional(),
+	instagramUrl: z.string().optional(),
+	facebookUrl: z.string().optional(),
+	tiktokUrl: z.string().optional(),
+	whatsappUrl: z.string().optional(),
 	ownerId: z.string().nullable().optional(),
 	fields: recordFieldValues.optional(),
 });

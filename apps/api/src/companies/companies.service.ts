@@ -223,6 +223,10 @@ export class CompaniesService {
 				linkedinUrl: true,
 				twitterUrl: true,
 				githubUrl: true,
+				instagramUrl: true,
+				facebookUrl: true,
+				tiktokUrl: true,
+				whatsappUrl: true,
 				pricingUrl: true,
 				careersUrl: true,
 				enrichmentStatus: true,
@@ -371,6 +375,14 @@ export class CompaniesService {
 		if (input.linkedinUrl !== undefined) {
 			data.linkedinUrl = blankToNull(input.linkedinUrl);
 		}
+		if (input.instagramUrl !== undefined)
+			data.instagramUrl = blankToNull(input.instagramUrl);
+		if (input.facebookUrl !== undefined)
+			data.facebookUrl = blankToNull(input.facebookUrl);
+		if (input.tiktokUrl !== undefined)
+			data.tiktokUrl = blankToNull(input.tiktokUrl);
+		if (input.whatsappUrl !== undefined)
+			data.whatsappUrl = blankToNull(input.whatsappUrl);
 		if (input.ownerId !== undefined) {
 			data.owner = input.ownerId
 				? { connect: { id: input.ownerId } }

@@ -367,6 +367,36 @@ function ContactOverview({ contact }: { contact: Contact }) {
 						{...agentProps("linkedinUrl")}
 					/>
 					<InlineField
+						label="Instagram"
+						value={contact.instagramUrl}
+						type="url"
+						saving={isSaving("instagramUrl")}
+						onSave={(instagramUrl) => save({ instagramUrl })}
+						{...agentProps("instagramUrl")}
+					/>
+					<InlineField
+						label="Facebook"
+						value={contact.facebookUrl}
+						type="url"
+						saving={isSaving("facebookUrl")}
+						onSave={(facebookUrl) => save({ facebookUrl })}
+					/>
+					<InlineField
+						label="TikTok"
+						value={contact.tiktokUrl}
+						type="url"
+						saving={isSaving("tiktokUrl")}
+						onSave={(tiktokUrl) => save({ tiktokUrl })}
+					/>
+					<InlineField
+						label="WhatsApp"
+						value={contact.whatsappUrl}
+						type="url"
+						placeholder="https://wa.me/…"
+						saving={isSaving("whatsappUrl")}
+						onSave={(whatsappUrl) => save({ whatsappUrl })}
+					/>
+					<InlineField
 						label="X"
 						value={contact.twitterUrl}
 						type="url"

@@ -211,6 +211,7 @@ export async function companyPreamble(
 		company.description
 			? "There is already a description on the record."
 			: "There is no description on the record yet.",
+		"When recommending outreach, rank verified direct phone/WhatsApp first, then verified business social inbox, named decision-maker LinkedIn, and finally business email. Never claim a channel exists unless read_company_history shows it.",
 		"",
 		"Start with `read_company_history` on this company id — it returns the people, the deals, the correspondence and the notes in one free call.",
 		"",

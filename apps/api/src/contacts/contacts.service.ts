@@ -179,6 +179,10 @@ export class ContactsService {
 				linkedinUrl: true,
 				twitterUrl: true,
 				githubUrl: true,
+				instagramUrl: true,
+				facebookUrl: true,
+				tiktokUrl: true,
+				whatsappUrl: true,
 				imageUrl: true,
 				enrichmentStatus: true,
 				enrichmentError: true,
@@ -415,6 +419,14 @@ export class ContactsService {
 		if (input.githubUrl !== undefined) {
 			data.githubUrl = blankToNull(input.githubUrl);
 		}
+		if (input.instagramUrl !== undefined)
+			data.instagramUrl = blankToNull(input.instagramUrl);
+		if (input.facebookUrl !== undefined)
+			data.facebookUrl = blankToNull(input.facebookUrl);
+		if (input.tiktokUrl !== undefined)
+			data.tiktokUrl = blankToNull(input.tiktokUrl);
+		if (input.whatsappUrl !== undefined)
+			data.whatsappUrl = blankToNull(input.whatsappUrl);
 		if (input.companyId !== undefined) {
 			data.company = input.companyId
 				? { connect: { id: input.companyId } }
