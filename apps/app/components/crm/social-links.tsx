@@ -21,15 +21,21 @@ function SocialLinks({
 	if (rows.length === 0) return null;
 
 	return (
-		<div className="flex flex-wrap items-center gap-2">
-			{rows.map((link) => (
-				<Button key={String(link.key)} asChild variant="outline" size="sm">
-					<a href={link.href} target="_blank" rel="noreferrer noopener">
-						<Icon icon={link.icon} data-icon="inline-start" />
-						{link.label}
-					</a>
-				</Button>
-			))}
+		<div className="flex flex-col gap-2">
+			<p className="text-muted-foreground text-xs">
+				Canales encontrados en fuentes públicas. Verifica el responsable y la
+				preferencia antes de contactar.
+			</p>
+			<div className="flex flex-wrap items-center gap-2">
+				{rows.map((link) => (
+					<Button key={String(link.key)} asChild variant="outline" size="sm">
+						<a href={link.href} target="_blank" rel="noreferrer noopener">
+							<Icon icon={link.icon} data-icon="inline-start" />
+							{link.label}
+						</a>
+					</Button>
+				))}
+			</div>
 		</div>
 	);
 }
