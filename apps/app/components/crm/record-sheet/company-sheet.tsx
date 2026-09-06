@@ -331,7 +331,18 @@ function CompanyOverview({ company }: { company: Company }) {
 		<DetailSheetBody>
 			<DetailSheetSplit>
 				<DetailSheetMain>
-					<LeadDossierPanel description={company.description} />
+					<LeadDossierPanel
+						description={company.description}
+						channels={{
+							phone: company.phone,
+							email: company.email,
+							whatsappUrl: company.whatsappUrl,
+							instagramUrl: company.instagramUrl,
+							facebookUrl: company.facebookUrl,
+							tiktokUrl: company.tiktokUrl,
+							linkedinUrl: company.linkedinUrl,
+						}}
+					/>
 					{descriptionWithoutLeadDossier(company.description) ? (
 						<DetailSheetSection title="About">
 							<DetailSheetProse>

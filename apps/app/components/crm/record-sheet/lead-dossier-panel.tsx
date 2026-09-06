@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@crm/ui/components/badge";
+import { Button } from "@crm/ui/components/button";
 import {
 	Card,
 	CardAction,
@@ -44,14 +45,27 @@ type Dossier = {
 	guardrails: string[];
 };
 
+type ContactChannels = {
+	phone: string | null;
+	email: string | null;
+	whatsappUrl: string | null;
+	instagramUrl: string | null;
+	facebookUrl: string | null;
+	tiktokUrl: string | null;
+	linkedinUrl: string | null;
+};
+
 export function LeadDossierPanel({
 	description,
+	channels,
 }: {
 	description: string | null;
+	channels: ContactChannels;
 }) {
 	const dossier = parseDossier(description);
 	if (!dossier) return null;
 	const assessment = completeAssessment(dossier);
+	const contact = recommendedContact(channels);
 
 	return (
 		<Card>
@@ -92,10 +106,24 @@ export function LeadDossierPanel({
 					title="2. Plan de implementación"
 					values={assessment.implementation_plan}
 				/>
+				<div className="rounded-md border p-3">
+					<p className="font-medium text-sm">3. Canal y siguiente acción</p>
+					<p className="mt-1 text-sm">{contact.reason}</p>
+					<p className="mt-1 text-muted-foreground text-sm">
+						{contact.nextAction}
+					</p>
+					{contact.href ? (
+						<Button asChild className="mt-3" size="sm" variant="outline">
+							<a href={contact.href} target={contact.external ? "_blank" : undefined} rel={contact.external ? "noreferrer noopener" : undefined}>
+								Abrir {contact.label}
+							</a>
+						</Button>
+					) : null}
+				</div>
 				{assessment.call_opener ? (
 					<div className="flex flex-col gap-1">
 						<p className="font-medium text-sm">
-							3. Apertura sugerida para la llamada
+							4. Apertura sugerida
 						</p>
 						<p className="text-muted-foreground text-sm">
 							{assessment.call_opener}
@@ -103,12 +131,12 @@ export function LeadDossierPanel({
 					</div>
 				) : null}
 				<DossierList
-					title="4. Preguntas de descubrimiento"
+					title="5. Preguntas de descubrimiento"
 					values={assessment.discovery_questions ?? []}
 				/>
 				{assessment.objection_handling?.length ? (
 					<div className="flex flex-col gap-2">
-						<p className="font-medium text-sm">5. Objeciones probables</p>
+						<p className="font-medium text-sm">6. Objeciones probables</p>
 						{assessment.objection_handling.map((item) => (
 							<div
 								key={item.objection}
@@ -121,7 +149,7 @@ export function LeadDossierPanel({
 					</div>
 				) : null}
 				<DossierList
-					title="6. Información que falta confirmar"
+					title="7. Información que falta confirmar"
 					values={
 						dossier.missing_evidence.length
 							? dossier.missing_evidence
@@ -131,14 +159,14 @@ export function LeadDossierPanel({
 					}
 				/>
 				<div className="flex flex-col gap-1">
-					<p className="font-medium text-sm">7. Presencia observada</p>
+					<p className="font-medium text-sm">8. Presencia observada</p>
 					<p className="text-muted-foreground text-sm">
 						{presenceSummary(dossier.digital_presence)}
 					</p>
 				</div>
 				{dossier.evidence.length > 0 ? (
 					<div className="flex flex-col gap-2">
-						<p className="font-medium text-sm">8. Evidencia verificable</p>
+						<p className="font-medium text-sm">9. Evidencia verificable</p>
 						{dossier.evidence.map((item) => (
 							<a
 								key={`${item.claim}-${item.source}`}
@@ -155,6 +183,24 @@ export function LeadDossierPanel({
 			</CardContent>
 		</Card>
 	);
+}
+
+function recommendedContact(channels: ContactChannels) {
+	if (channels.whatsappUrl)
+		return { label: "WhatsApp", href: channels.whatsappUrl, external: true, reason: "WhatsApp fue encontrado como canal comercial público. Verifica que sea el número correcto y que el contacto sea apropiado.", nextAction: "Revisa el dossier y aprueba manualmente el primer mensaje antes de enviarlo." };
+	if (channels.phone)
+		return { label: "llamada", href: `tel:${channels.phone}`, external: false, reason: "Hay teléfono público disponible; una llamada humana es el canal prioritario cuando el lead tiene alta prioridad.", nextAction: "Prepara la apertura sugerida y llama solo después de validar responsable y horario." };
+	if (channels.instagramUrl)
+		return { label: "Instagram", href: channels.instagramUrl, external: true, reason: "Instagram fue encontrado como presencia comercial pública, pero no confirma que un DM sea el canal preferido.", nextAction: "Revisa el perfil, confirma actividad comercial y aprueba manualmente un DM breve si procede." };
+	if (channels.facebookUrl)
+		return { label: "Facebook", href: channels.facebookUrl, external: true, reason: "Facebook fue encontrado como presencia comercial pública. Falta verificar quién administra la página.", nextAction: "Valida actividad y responsable antes de iniciar una conversación." };
+	if (channels.linkedinUrl)
+		return { label: "LinkedIn", href: channels.linkedinUrl, external: true, reason: "LinkedIn es útil para confirmar empresa o responsable, aunque no garantiza una respuesta.", nextAction: "Confirma el decisor y prepara una nota personalizada para aprobación humana." };
+	if (channels.email)
+		return { label: "email", href: `mailto:${channels.email}`, external: false, reason: "Solo hay email público; es una ruta secundaria si no existe teléfono o canal comercial más directo.", nextAction: "Revisa y aprueba el correo personalizado; no usar secuencias automáticas sin política de entregabilidad." };
+	if (channels.tiktokUrl)
+		return { label: "TikTok", href: channels.tiktokUrl, external: true, reason: "TikTok evidencia presencia comercial, pero normalmente no es el primer canal de cierre B2B.", nextAction: "Úsalo para investigar oferta y actividad; busca un canal directo antes de contactar." };
+	return { label: "investigación", href: null, external: false, reason: "No hay un canal directo verificado en el CRM.", nextAction: "Investiga sitio oficial, Google Business o responsable antes de intentar contacto." };
 }
 
 function completeAssessment(
