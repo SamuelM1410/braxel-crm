@@ -6,6 +6,10 @@ loadRootEnv();
 const apiUrl =
 	process.env.API_URL ??
 	process.env.NEXT_PUBLIC_API_URL ??
+	// Vercel must never ship the localhost development fallback to real users.
+	// This also protects a build if a project variable was added after the build
+	// was queued and therefore was not injected into that particular bundle.
+	(process.env.VERCEL ? "https://braxel-api.vercel.app" : undefined) ??
 	"http://localhost:3001";
 
 const allowedDevOrigins = (process.env.APP_URL ?? "")
