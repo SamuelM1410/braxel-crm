@@ -14,6 +14,10 @@ const connectionString =
 function withBraxelSchema(url: string): string {
 	const parsed = new URL(url);
 	parsed.searchParams.set("schema", BRAXEL_SCHEMA);
+	// Prisma's adapter-level `schema` scopes generated queries, but raw SQL still
+	// follows PostgreSQL's connection search_path. Eve's durable queues use raw
+	// locking queries, so pin the namespace at connection startup as well.
+	parsed.searchParams.set("options", `-c search_path=${BRAXEL_SCHEMA}`);
 	return parsed.toString();
 }
 
