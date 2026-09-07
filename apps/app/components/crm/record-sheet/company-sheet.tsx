@@ -334,6 +334,7 @@ function CompanyOverview({ company }: { company: Company }) {
 					<LeadDossierPanel
 						description={company.description}
 						channels={{
+							website: company.website,
 							phone: company.phone,
 							email: company.email,
 							whatsappUrl: company.whatsappUrl,

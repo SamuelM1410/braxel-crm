@@ -46,6 +46,7 @@ type Dossier = {
 };
 
 type ContactChannels = {
+	website: string | null;
 	phone: string | null;
 	email: string | null;
 	whatsappUrl: string | null;
@@ -200,6 +201,8 @@ function recommendedContact(channels: ContactChannels) {
 		return { label: "email", href: `mailto:${channels.email}`, external: false, reason: "Solo hay email público; es una ruta secundaria si no existe teléfono o canal comercial más directo.", nextAction: "Revisa y aprueba el correo personalizado; no usar secuencias automáticas sin política de entregabilidad." };
 	if (channels.tiktokUrl)
 		return { label: "TikTok", href: channels.tiktokUrl, external: true, reason: "TikTok evidencia presencia comercial, pero normalmente no es el primer canal de cierre B2B.", nextAction: "Úsalo para investigar oferta y actividad; busca un canal directo antes de contactar." };
+	if (channels.website)
+		return { label: "sitio web", href: channels.website, external: true, reason: "No se encontró un canal directo. El sitio oficial puede contener página de contacto, formulario, WhatsApp o un teléfono que aún no fue confirmado.", nextAction: "Revisa Contacto, Nosotros y el footer del sitio; registra cualquier canal público encontrado antes de contactar." };
 	return { label: "investigación", href: null, external: false, reason: "No hay un canal directo verificado en el CRM.", nextAction: "Investiga sitio oficial, Google Business o responsable antes de intentar contacto." };
 }
 
