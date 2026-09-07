@@ -34,6 +34,7 @@ import {
 	savingValue,
 } from "@/components/crm/inline-field";
 import { OwnerCell } from "@/components/crm/owner-cell";
+import { OutreachEmail } from "@/components/crm/outreach-email";
 import { CompanySocials } from "@/components/crm/social-links";
 import { DealStageMenu } from "@/components/crm/stage-change";
 import { Timeline } from "@/components/crm/timeline/timeline";
@@ -434,6 +435,12 @@ function CompanyOverview({ company }: { company: Company }) {
 							El envío automático se habilita únicamente después de interés o
 							autorización documentada.
 						</p>
+						<OutreachEmail
+							companyId={company.id}
+							recipient={company.email ?? company.primaryContact?.email ?? null}
+							approved={Boolean(company.outreachApprovedAt)}
+							stage={company.salesStage}
+						/>
 					</DetailSheetSection>
 					<DetailSheetSection
 						title="Details"
