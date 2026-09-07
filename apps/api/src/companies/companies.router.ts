@@ -53,8 +53,11 @@ export class CompaniesRouter {
 	}
 
 	@Mutation({ input: companyUpdateArgs })
-	async update(@Input() input: z.infer<typeof companyUpdateArgs>) {
-		return this.companies.update(input.id, input.data);
+	async update(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof companyUpdateArgs>,
+	) {
+		return this.companies.update(input.id, input.data, ctx.user.id);
 	}
 
 	@Mutation({ input: companyIdInput })

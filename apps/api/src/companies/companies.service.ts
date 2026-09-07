@@ -369,7 +369,7 @@ export class CompaniesService {
 		return { id: company.id, name: company.name, domain: company.domain };
 	}
 
-	async update(id: string, input: CompanyUpdateInput) {
+	async update(id: string, input: CompanyUpdateInput, actingUserId?: string) {
 		const data: Prisma.CompanyUpdateInput = {};
 
 		if (input.name !== undefined) data.name = input.name.trim();
@@ -413,7 +413,9 @@ export class CompaniesService {
 		}
 		if (input.outreachApproved !== undefined) {
 			data.outreachApprovedAt = input.outreachApproved ? new Date() : null;
-			data.outreachApprovedById = input.outreachApproved ? "system" : null;
+			data.outreachApprovedById = input.outreachApproved
+				? (actingUserId ?? null)
+				: null;
 		}
 		if (input.ownerId !== undefined) {
 			data.owner = input.ownerId

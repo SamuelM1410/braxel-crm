@@ -418,6 +418,18 @@ function CompanyOverview({ company }: { company: Company }) {
 								onSave={(salesNotes) => save({ salesNotes })}
 							/>
 						</DetailSheetProperties>
+						<Button
+							className="mt-3 w-full"
+							variant={company.outreachApprovedAt ? "outline" : "default"}
+							disabled={isSaving("outreachApproved")}
+							onClick={() =>
+								save({ outreachApproved: !company.outreachApprovedAt })
+							}
+						>
+							{company.outreachApprovedAt
+								? "Seguimiento aprobado — retirar aprobación"
+								: "Aprobar seguimiento tras interés"}
+						</Button>
 						<p className="mt-3 text-muted-foreground text-xs">
 							El envío automático se habilita únicamente después de interés o
 							autorización documentada.
