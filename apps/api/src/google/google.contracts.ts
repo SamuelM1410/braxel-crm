@@ -20,5 +20,11 @@ export const calendarEventInput = z.object({
 	eventId: z.string(),
 });
 
+export const sendApprovedEmailInput = z.object({
+	companyId: z.string(),
+	subject: z.string().trim().min(1).max(180),
+	body: z.string().trim().min(1).max(12_000),
+});
+
 export type SetAutoCreateInput = z.infer<typeof setAutoCreateInput>;
 export type SuppressDomainInput = z.infer<typeof suppressDomainInput>;

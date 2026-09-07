@@ -12,6 +12,9 @@ export type MailboxProviderId = (typeof MAILBOX_PROVIDER_IDS)[number];
 export const IDENTITY_SCOPES = ["openid", "email", "profile"] as const;
 
 export const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+// Requested only for human-approved post-call follow-up. Discovery or an email
+// address in the CRM never authorizes sending.
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 export const CALENDAR_SCOPE =
 	"https://www.googleapis.com/auth/calendar.readonly";
 export const OUTLOOK_MAIL_SCOPE = "Mail.Read";

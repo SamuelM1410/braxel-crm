@@ -10,6 +10,7 @@ import { GmailSyncService } from "./gmail-sync.service";
 import { GoogleRouter } from "./google.router";
 import { GoogleConnectionService } from "./google-connection.service";
 import { GoogleSyncService } from "./google-sync.service";
+import { OutreachEmailService } from "./outreach-email.service";
 
 @Module({
 	imports: [TrpcModule, MailboxModule, AgentModule],
@@ -20,6 +21,7 @@ import { GoogleSyncService } from "./google-sync.service";
 		GmailSyncService,
 		GoogleSyncService,
 		GoogleConnectionService,
+		OutreachEmailService,
 		ConversationService,
 		GoogleRouter,
 	],

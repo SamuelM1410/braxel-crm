@@ -3,7 +3,7 @@
 import Launch from "@carbon/icons-react/es/Launch";
 import Warning from "@carbon/icons-react/es/Warning";
 import { authClient } from "@crm/auth/client";
-import { SYNC_SCOPES } from "@crm/auth/scopes";
+import { GMAIL_SEND_SCOPE, SYNC_SCOPES } from "@crm/auth/scopes";
 import {
 	Alert,
 	AlertAction,
@@ -149,7 +149,7 @@ function ConnectGoogle({
 
 		const { error } = await authClient.linkSocial({
 			provider: "google",
-			scopes: [...SYNC_SCOPES],
+			scopes: [...SYNC_SCOPES, GMAIL_SEND_SCOPE],
 			callbackURL: `${origin}/${slug}/settings/connections/google`,
 			errorCallbackURL: `${origin}/${slug}/settings/connections/google?provider=google`,
 		});
@@ -167,8 +167,8 @@ function ConnectGoogle({
 					</div>
 				</CardTitle>
 				<CardDescription>
-					Read-only Gmail and Calendar. Only conversations with companies in the
-					CRM are stored.
+					Gmail and Calendar stay read-only by default. Sending is available only
+					after a rep approves a qualified follow-up inside the CRM.
 				</CardDescription>
 
 				<CardAction>

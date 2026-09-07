@@ -13,12 +13,14 @@ import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { ConversationService } from "./conversation.service";
 import {
 	calendarEventInput,
+	sendApprovedEmailInput,
 	setAutoCreateInput,
 	suppressDomainInput,
 	threadInput,
 } from "./google.contracts";
 import { GoogleConnectionService } from "./google-connection.service";
 import { GoogleSyncService } from "./google-sync.service";
+import { OutreachEmailService } from "./outreach-email.service";
 
 @Router({ alias: "google" })
 @UseMiddlewares(AuthMiddleware)
@@ -29,6 +31,8 @@ export class GoogleRouter {
 		@Inject(GoogleSyncService) private readonly sync: GoogleSyncService,
 		@Inject(ConversationService)
 		private readonly conversations: ConversationService,
+		@Inject(OutreachEmailService)
+		private readonly outreach: OutreachEmailService,
 	) {}
 
 	@Query()
@@ -50,6 +54,14 @@ export class GoogleRouter {
 	async syncNow(@Ctx() ctx: AuthedTrpcContext) {
 		await this.sync.runForUser(ctx.user.id);
 		return this.connection.status(ctx.user.id);
+	}
+
+	@Mutation({ input: sendApprovedEmailInput })
+	async sendApprovedEmail(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof sendApprovedEmailInput>,
+	) {
+		return this.outreach.sendApproved(ctx.user.id, input);
 	}
 
 	@Mutation({ input: setAutoCreateInput })

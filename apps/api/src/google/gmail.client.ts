@@ -87,4 +87,13 @@ export class GmailClient {
 			format: "full",
 		});
 	}
+
+	async send(
+		accessToken: string,
+		raw: string,
+	): Promise<MailboxResult<GmailMessage>> {
+		return this.api.post<GmailMessage>(`${BASE}/messages/send`, accessToken, {
+			raw,
+		});
+	}
 }
