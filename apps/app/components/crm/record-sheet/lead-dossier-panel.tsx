@@ -115,7 +115,11 @@ export function LeadDossierPanel({
 					</p>
 					{contact.href ? (
 						<Button asChild className="mt-3" size="sm" variant="outline">
-							<a href={contact.href} target={contact.external ? "_blank" : undefined} rel={contact.external ? "noreferrer noopener" : undefined}>
+							<a
+								href={contact.href}
+								target={contact.external ? "_blank" : undefined}
+								rel={contact.external ? "noreferrer noopener" : undefined}
+							>
 								Abrir {contact.label}
 							</a>
 						</Button>
@@ -123,9 +127,7 @@ export function LeadDossierPanel({
 				</div>
 				{assessment.call_opener ? (
 					<div className="flex flex-col gap-1">
-						<p className="font-medium text-sm">
-							4. Apertura sugerida
-						</p>
+						<p className="font-medium text-sm">4. Apertura sugerida</p>
 						<p className="text-muted-foreground text-sm">
 							{assessment.call_opener}
 						</p>
@@ -188,22 +190,93 @@ export function LeadDossierPanel({
 
 function recommendedContact(channels: ContactChannels) {
 	if (channels.whatsappUrl)
-		return { label: "WhatsApp", href: channels.whatsappUrl, external: true, reason: "WhatsApp fue encontrado como canal comercial público. Verifica que sea el número correcto y que el contacto sea apropiado.", nextAction: "Revisa el dossier y aprueba manualmente el primer mensaje antes de enviarlo." };
+		return {
+			label: "WhatsApp",
+			href: channels.whatsappUrl,
+			external: true,
+			reason:
+				"WhatsApp fue encontrado como canal comercial público. Verifica que sea el número correcto y que el contacto sea apropiado.",
+			nextAction:
+				"Revisa el dossier y aprueba manualmente el primer mensaje antes de enviarlo.",
+		};
 	if (channels.phone)
-		return { label: "llamada", href: `tel:${channels.phone}`, external: false, reason: "Hay teléfono público disponible; una llamada humana es el canal prioritario cuando el lead tiene alta prioridad.", nextAction: "Prepara la apertura sugerida y llama solo después de validar responsable y horario." };
+		return {
+			label: "llamada",
+			href: `tel:${channels.phone}`,
+			external: false,
+			reason:
+				"Hay teléfono público disponible; una llamada humana es el canal prioritario cuando el lead tiene alta prioridad.",
+			nextAction:
+				"Prepara la apertura sugerida y llama solo después de validar responsable y horario.",
+		};
 	if (channels.instagramUrl)
-		return { label: "Instagram", href: channels.instagramUrl, external: true, reason: "Instagram fue encontrado como presencia comercial pública, pero no confirma que un DM sea el canal preferido.", nextAction: "Revisa el perfil, confirma actividad comercial y aprueba manualmente un DM breve si procede." };
+		return {
+			label: "Instagram",
+			href: channels.instagramUrl,
+			external: true,
+			reason:
+				"Instagram fue encontrado como presencia comercial pública, pero no confirma que un DM sea el canal preferido.",
+			nextAction:
+				"Revisa el perfil, confirma actividad comercial y aprueba manualmente un DM breve si procede.",
+		};
 	if (channels.facebookUrl)
-		return { label: "Facebook", href: channels.facebookUrl, external: true, reason: "Facebook fue encontrado como presencia comercial pública. Falta verificar quién administra la página.", nextAction: "Valida actividad y responsable antes de iniciar una conversación." };
+		return {
+			label: "Facebook",
+			href: channels.facebookUrl,
+			external: true,
+			reason:
+				"Facebook fue encontrado como presencia comercial pública. Falta verificar quién administra la página.",
+			nextAction:
+				"Valida actividad y responsable antes de iniciar una conversación.",
+		};
 	if (channels.linkedinUrl)
-		return { label: "LinkedIn", href: channels.linkedinUrl, external: true, reason: "LinkedIn es útil para confirmar empresa o responsable, aunque no garantiza una respuesta.", nextAction: "Confirma el decisor y prepara una nota personalizada para aprobación humana." };
+		return {
+			label: "LinkedIn",
+			href: channels.linkedinUrl,
+			external: true,
+			reason:
+				"LinkedIn es útil para confirmar empresa o responsable, aunque no garantiza una respuesta.",
+			nextAction:
+				"Confirma el decisor y prepara una nota personalizada para aprobación humana.",
+		};
 	if (channels.email)
-		return { label: "email", href: `mailto:${channels.email}`, external: false, reason: "Solo hay email público; es una ruta secundaria si no existe teléfono o canal comercial más directo.", nextAction: "Revisa y aprueba el correo personalizado; no usar secuencias automáticas sin política de entregabilidad." };
+		return {
+			label: "email",
+			href: `mailto:${channels.email}`,
+			external: false,
+			reason:
+				"Solo hay email público; es una ruta secundaria si no existe teléfono o canal comercial más directo.",
+			nextAction:
+				"Revisa y aprueba el correo personalizado; no usar secuencias automáticas sin política de entregabilidad.",
+		};
 	if (channels.tiktokUrl)
-		return { label: "TikTok", href: channels.tiktokUrl, external: true, reason: "TikTok evidencia presencia comercial, pero normalmente no es el primer canal de cierre B2B.", nextAction: "Úsalo para investigar oferta y actividad; busca un canal directo antes de contactar." };
+		return {
+			label: "TikTok",
+			href: channels.tiktokUrl,
+			external: true,
+			reason:
+				"TikTok evidencia presencia comercial, pero normalmente no es el primer canal de cierre B2B.",
+			nextAction:
+				"Úsalo para investigar oferta y actividad; busca un canal directo antes de contactar.",
+		};
 	if (channels.website)
-		return { label: "sitio web", href: channels.website, external: true, reason: "No se encontró un canal directo. El sitio oficial puede contener página de contacto, formulario, WhatsApp o un teléfono que aún no fue confirmado.", nextAction: "Revisa Contacto, Nosotros y el footer del sitio; registra cualquier canal público encontrado antes de contactar." };
-	return { label: "investigación", href: null, external: false, reason: "No hay un canal directo verificado en el CRM.", nextAction: "Investiga sitio oficial, Google Business o responsable antes de intentar contacto." };
+		return {
+			label: "sitio web",
+			href: channels.website,
+			external: true,
+			reason:
+				"No se encontró un canal directo. El sitio oficial puede contener página de contacto, formulario, WhatsApp o un teléfono que aún no fue confirmado.",
+			nextAction:
+				"Revisa Contacto, Nosotros y el footer del sitio; registra cualquier canal público encontrado antes de contactar.",
+		};
+	return {
+		label: "investigación",
+		href: null,
+		external: false,
+		reason: "No hay un canal directo verificado en el CRM.",
+		nextAction:
+			"Investiga sitio oficial, Google Business o responsable antes de intentar contacto.",
+	};
 }
 
 function completeAssessment(

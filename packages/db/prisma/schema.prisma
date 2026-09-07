@@ -175,6 +175,32 @@ enum DealStage {
   CLOSED_LOST
 }
 
+// A company-level operating state for the outbound motion. This is deliberately
+// separate from DealStage: a lead may be called or nurtured before a deal exists.
+enum SalesSequenceStage {
+  DISCOVERED
+  CALL_PENDING
+  INTERESTED
+  FOLLOW_UP_ACTIVE
+  QUALIFIED
+  CLOSING_CALL_BOOKED
+  PROPOSAL_SENT
+  PAYMENT_PENDING
+  WON
+  LOST
+  PAUSED
+}
+
+enum ContactChannel {
+  PHONE
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  EMAIL
+  WEBSITE
+}
+
 enum ActivityType {
   NOTE
   CALL
@@ -307,6 +333,16 @@ model Company {
   pricingUrl  String?
   careersUrl  String?
 
+  // Sales orchestration is human-gated. A discovered public channel is never
+  // enough to enable automated outreach on its own.
+  salesStage              SalesSequenceStage @default(DISCOVERED)
+  preferredContactChannel ContactChannel?
+  firstCallOutcome        String?
+  outreachApprovedAt      DateTime?
+  outreachApprovedById    String?
+  nextSalesActionAt       DateTime?
+  salesNotes              String?
+
   ownerId          String?
   owner            User?    @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   primaryContactId String?  @unique
@@ -334,6 +370,7 @@ model Company {
   @@index([ownerId])
   @@index([name])
   @@index([lastActivityAt])
+  @@index([salesStage, nextSalesActionAt])
   @@map("company")
 }
 

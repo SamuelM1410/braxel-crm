@@ -318,7 +318,7 @@ function CompanyOverview({ company }: { company: Company }) {
 		}),
 	);
 
-	const save = (data: Record<string, string | null>) =>
+	const save = (data: Record<string, string | boolean | null>) =>
 		update.mutate({ id: company.id, data });
 
 	const saveFields = (fields: Record<string, FieldValueJson>) =>
@@ -356,6 +356,73 @@ function CompanyOverview({ company }: { company: Company }) {
 				</DetailSheetMain>
 
 				<DetailSheetRail>
+					<DetailSheetSection title="Seguimiento comercial">
+						<DetailSheetProperties columns={1}>
+							<InlineSelectField
+								label="Estado"
+								value={company.salesStage}
+								options={[
+									{ value: "DISCOVERED", label: "Descubierto" },
+									{ value: "CALL_PENDING", label: "Llamada fría pendiente" },
+									{ value: "INTERESTED", label: "Interesado" },
+									{ value: "FOLLOW_UP_ACTIVE", label: "Seguimiento activo" },
+									{ value: "QUALIFIED", label: "Calificado" },
+									{
+										value: "CLOSING_CALL_BOOKED",
+										label: "Llamada de cierre agendada",
+									},
+									{ value: "PROPOSAL_SENT", label: "Propuesta enviada" },
+									{ value: "PAYMENT_PENDING", label: "Pago pendiente" },
+									{ value: "WON", label: "Ganado" },
+									{ value: "LOST", label: "Perdido" },
+									{ value: "PAUSED", label: "Pausado" },
+								]}
+								saving={isSaving("salesStage")}
+								onSave={(salesStage) => save({ salesStage })}
+							/>
+							<InlineSelectField
+								label="Canal recomendado"
+								value={company.preferredContactChannel ?? "UNSET"}
+								options={[
+									{ value: "UNSET", label: "Pendiente de verificar" },
+									{ value: "PHONE", label: "Llamada" },
+									{ value: "WHATSAPP", label: "WhatsApp" },
+									{ value: "INSTAGRAM", label: "Instagram" },
+									{ value: "FACEBOOK", label: "Facebook" },
+									{ value: "LINKEDIN", label: "LinkedIn" },
+									{ value: "EMAIL", label: "Email" },
+									{ value: "WEBSITE", label: "Formulario web" },
+								]}
+								saving={isSaving("preferredContactChannel")}
+								onSave={(preferredContactChannel) =>
+									save({
+										preferredContactChannel:
+											preferredContactChannel === "UNSET"
+												? null
+												: preferredContactChannel,
+									})
+								}
+							/>
+							<InlineField
+								label="Resultado de llamada"
+								value={company.firstCallOutcome}
+								placeholder="Ej. pidió propuesta para el jueves"
+								saving={isSaving("firstCallOutcome")}
+								onSave={(firstCallOutcome) => save({ firstCallOutcome })}
+							/>
+							<InlineField
+								label="Notas / siguiente paso"
+								value={company.salesNotes}
+								placeholder="Qué autorizó y qué sigue"
+								saving={isSaving("salesNotes")}
+								onSave={(salesNotes) => save({ salesNotes })}
+							/>
+						</DetailSheetProperties>
+						<p className="mt-3 text-muted-foreground text-xs">
+							El envío automático se habilita únicamente después de interés o
+							autorización documentada.
+						</p>
+					</DetailSheetSection>
 					<DetailSheetSection
 						title="Details"
 						action={<FieldsCog kind="company" />}

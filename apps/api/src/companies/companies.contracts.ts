@@ -36,6 +36,37 @@ const companyUpdateInput = z.object({
 	facebookUrl: z.string().optional(),
 	tiktokUrl: z.string().optional(),
 	whatsappUrl: z.string().optional(),
+	salesStage: z
+		.enum([
+			"DISCOVERED",
+			"CALL_PENDING",
+			"INTERESTED",
+			"FOLLOW_UP_ACTIVE",
+			"QUALIFIED",
+			"CLOSING_CALL_BOOKED",
+			"PROPOSAL_SENT",
+			"PAYMENT_PENDING",
+			"WON",
+			"LOST",
+			"PAUSED",
+		])
+		.optional(),
+	preferredContactChannel: z
+		.enum([
+			"PHONE",
+			"WHATSAPP",
+			"INSTAGRAM",
+			"FACEBOOK",
+			"LINKEDIN",
+			"EMAIL",
+			"WEBSITE",
+		])
+		.nullable()
+		.optional(),
+	firstCallOutcome: z.string().max(2000).optional(),
+	salesNotes: z.string().max(5000).optional(),
+	nextSalesActionAt: z.string().datetime().nullable().optional(),
+	outreachApproved: z.boolean().optional(),
 	ownerId: z.string().nullable().optional(),
 	fields: recordFieldValues.optional(),
 });

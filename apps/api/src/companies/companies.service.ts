@@ -227,6 +227,12 @@ export class CompaniesService {
 				facebookUrl: true,
 				tiktokUrl: true,
 				whatsappUrl: true,
+				salesStage: true,
+				preferredContactChannel: true,
+				firstCallOutcome: true,
+				outreachApprovedAt: true,
+				nextSalesActionAt: true,
+				salesNotes: true,
 				pricingUrl: true,
 				careersUrl: true,
 				enrichmentStatus: true,
@@ -277,7 +283,14 @@ export class CompaniesService {
 			throw new NotFoundException(`No company with id ${id}.`);
 		}
 
-		const { deals, primaryContact, enrichedAt, createdAt, ...rest } = company;
+		const {
+			deals,
+			primaryContact,
+			enrichedAt,
+			createdAt,
+			nextSalesActionAt,
+			...rest
+		} = company;
 
 		return {
 			...rest,
@@ -285,6 +298,7 @@ export class CompaniesService {
 			queued: await this.queue.isQueued({ companyId: id }),
 			createdAt: createdAt.toISOString(),
 			enrichedAt: enrichedAt?.toISOString() ?? null,
+			nextSalesActionAt: nextSalesActionAt?.toISOString() ?? null,
 			primaryContactId: primaryContact?.id ?? null,
 			primaryContact,
 			reportingCurrency: await this.conversion.reportingCurrency(),
@@ -383,6 +397,24 @@ export class CompaniesService {
 			data.tiktokUrl = blankToNull(input.tiktokUrl);
 		if (input.whatsappUrl !== undefined)
 			data.whatsappUrl = blankToNull(input.whatsappUrl);
+		if (input.salesStage !== undefined) data.salesStage = input.salesStage;
+		if (input.preferredContactChannel !== undefined) {
+			data.preferredContactChannel = input.preferredContactChannel;
+		}
+		if (input.firstCallOutcome !== undefined) {
+			data.firstCallOutcome = blankToNull(input.firstCallOutcome);
+		}
+		if (input.salesNotes !== undefined)
+			data.salesNotes = blankToNull(input.salesNotes);
+		if (input.nextSalesActionAt !== undefined) {
+			data.nextSalesActionAt = input.nextSalesActionAt
+				? new Date(input.nextSalesActionAt)
+				: null;
+		}
+		if (input.outreachApproved !== undefined) {
+			data.outreachApprovedAt = input.outreachApproved ? new Date() : null;
+			data.outreachApprovedById = input.outreachApproved ? "system" : null;
+		}
 		if (input.ownerId !== undefined) {
 			data.owner = input.ownerId
 				? { connect: { id: input.ownerId } }
