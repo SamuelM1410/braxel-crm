@@ -70,6 +70,12 @@ export type CompanyHistory = {
 		tiktokUrl: string | null;
 		whatsappUrl: string | null;
 		phone: string | null;
+		salesStage: string;
+		preferredContactChannel: string | null;
+		firstCallOutcome: string | null;
+		outreachApprovedAt: string | null;
+		nextSalesActionAt: string | null;
+		salesNotes: string | null;
 		enrichmentStatus: string;
 	};
 	people: CompanyPerson[];
@@ -117,6 +123,12 @@ export async function readCompanyHistory(
 			tiktokUrl: true,
 			whatsappUrl: true,
 			phone: true,
+			salesStage: true,
+			preferredContactChannel: true,
+			firstCallOutcome: true,
+			outreachApprovedAt: true,
+			nextSalesActionAt: true,
+			salesNotes: true,
 			enrichmentStatus: true,
 		},
 	});
@@ -265,6 +277,12 @@ export async function readCompanyHistory(
 			tiktokUrl: company.tiktokUrl,
 			whatsappUrl: company.whatsappUrl,
 			phone: company.phone,
+			salesStage: company.salesStage,
+			preferredContactChannel: company.preferredContactChannel,
+			firstCallOutcome: company.firstCallOutcome,
+			outreachApprovedAt: company.outreachApprovedAt?.toISOString() ?? null,
+			nextSalesActionAt: company.nextSalesActionAt?.toISOString() ?? null,
+			salesNotes: company.salesNotes,
 			enrichmentStatus: company.enrichmentStatus,
 		},
 		people: people.map((person) => ({
