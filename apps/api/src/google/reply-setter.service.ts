@@ -28,6 +28,7 @@ export class ReplySetterService {
 				body: true,
 				subject: true,
 				fromEmail: true,
+				rfcMessageId: true,
 				thread: {
 					select: {
 						id: true,
@@ -128,8 +129,8 @@ export class ReplySetterService {
 				from: profile.data.emailAddress,
 				subject: replySubject(message.subject),
 				body: draft,
+				inReplyTo: message.rfcMessageId,
 			}),
-			message.thread.rootMessageId,
 		);
 		if (result.outcome !== "ok")
 			return this.handoff(
@@ -243,6 +244,7 @@ function mime(input: {
 	from: string;
 	subject: string;
 	body: string;
+	inReplyTo?: string;
 }) {
 	const h = (v: string) => v.replace(/[\r\n]+/g, " ").trim();
 	return Buffer.from(
@@ -250,6 +252,12 @@ function mime(input: {
 			`To: ${h(input.to)}`,
 			`From: ${h(input.from)}`,
 			`Subject: ${h(input.subject)}`,
+			...(input.inReplyTo
+				? [
+						`In-Reply-To: ${h(input.inReplyTo)}`,
+						`References: ${h(input.inReplyTo)}`,
+					]
+				: []),
 			"MIME-Version: 1.0",
 			'Content-Type: text/plain; charset="UTF-8"',
 			"",
