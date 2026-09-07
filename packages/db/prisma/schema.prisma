@@ -367,6 +367,7 @@ model Company {
   deals          Deal[]
   activities     Activity[]
   emailThreads   EmailThread[]
+  socialThreads  SocialThread[]
   calendarEvents CalendarEvent[]
   fieldValues    FieldValue[]
   createdAt      DateTime            @default(now())
@@ -428,6 +429,7 @@ model Contact {
   deals           DealContact[]
   activities      Activity[]
   emailThreads    EmailThread[]
+  socialThreads   SocialThread[]
   calendarEvents  CalendarEvent[]
   eventAttendance CalendarAttendee[]
   fieldValues     FieldValue[]
@@ -1173,6 +1175,12 @@ enum EmailDirection {
   OUTBOUND
 }
 
+enum SocialChannel {
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+}
+
 model MailboxSync {
   id     String @id @default(cuid())
   userId String
@@ -1243,6 +1251,48 @@ model EmailMessage {
 
   @@index([threadId, sentAt])
   @@map("emailMessage")
+}
+
+// Messages received through accounts explicitly connected by the CRM owner.
+// A public profile URL is never enough to create or send a SocialMessage.
+model SocialThread {
+  id                  String        @id @default(cuid())
+  channel             SocialChannel
+  externalThreadId    String
+  externalSenderId    String
+  externalRecipientId String?
+  companyId           String?
+  company             Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contactId           String?
+  contact             Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  firstMessageAt      DateTime
+  lastMessageAt       DateTime
+  messageCount        Int           @default(0)
+  messages            SocialMessage[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@unique([channel, externalThreadId])
+  @@index([companyId, lastMessageAt])
+  @@index([contactId, lastMessageAt])
+  @@map("socialThread")
+}
+
+model SocialMessage {
+  id                String       @id @default(cuid())
+  threadId          String
+  thread            SocialThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  externalMessageId String
+  direction         EmailDirection
+  senderId          String
+  body              String?
+  raw               Json
+  sentAt            DateTime
+  createdAt         DateTime     @default(now())
+
+  @@unique([threadId, externalMessageId])
+  @@index([threadId, sentAt])
+  @@map("socialMessage")
 }
 
 model CalendarEvent {
