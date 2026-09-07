@@ -15,6 +15,7 @@ import {
 	calendarEventInput,
 	sendApprovedEmailInput,
 	setAutoCreateInput,
+	setEmailAssistantInput,
 	suppressDomainInput,
 	threadInput,
 } from "./google.contracts";
@@ -62,6 +63,14 @@ export class GoogleRouter {
 		@Input() input: z.infer<typeof sendApprovedEmailInput>,
 	) {
 		return this.outreach.sendApproved(ctx.user.id, input);
+	}
+
+	@Mutation({ input: setEmailAssistantInput })
+	async setEmailAssistant(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof setEmailAssistantInput>,
+	) {
+		return this.outreach.setReplyAssistant(ctx.user.id, input);
 	}
 
 	@Mutation({ input: setAutoCreateInput })

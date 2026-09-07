@@ -167,8 +167,8 @@ function ConnectGoogle({
 					</div>
 				</CardTitle>
 				<CardDescription>
-					Gmail and Calendar stay read-only by default. Sending is available only
-					after a rep approves a qualified follow-up inside the CRM.
+					Gmail and Calendar stay read-only by default. Sending is available
+					only after a rep approves a qualified follow-up inside the CRM.
 				</CardDescription>
 
 				<CardAction>

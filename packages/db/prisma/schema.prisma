@@ -340,6 +340,11 @@ model Company {
   firstCallOutcome        String?
   outreachApprovedAt      DateTime?
   outreachApprovedById    String?
+  // The reply assistant is opt-in per company. It never starts outreach: it
+  // may only reply inside an existing inbound email thread after approval.
+  emailAssistantEnabled   Boolean   @default(false)
+  emailAssistantEnabledAt DateTime?
+  emailAssistantLastReplyAt DateTime?
   nextSalesActionAt       DateTime?
   salesNotes              String?
 

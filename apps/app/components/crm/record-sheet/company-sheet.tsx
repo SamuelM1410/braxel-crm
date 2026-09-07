@@ -33,8 +33,8 @@ import {
 	InlineSelectField,
 	savingValue,
 } from "@/components/crm/inline-field";
-import { OwnerCell } from "@/components/crm/owner-cell";
 import { OutreachEmail } from "@/components/crm/outreach-email";
+import { OwnerCell } from "@/components/crm/owner-cell";
 import { CompanySocials } from "@/components/crm/social-links";
 import { DealStageMenu } from "@/components/crm/stage-change";
 import { Timeline } from "@/components/crm/timeline/timeline";
@@ -318,6 +318,15 @@ function CompanyOverview({ company }: { company: Company }) {
 			onError: (error) => toast.error(error.message),
 		}),
 	);
+	const replyAssistant = useMutation(
+		trpc.google.setEmailAssistant.mutationOptions({
+			onSuccess: () => {
+				cache.company(company.id, { settle: "record" });
+				toast.success("Configuración del reply setter actualizada");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
 
 	const save = (data: Record<string, string | boolean | null>) =>
 		update.mutate({ id: company.id, data });
@@ -431,9 +440,25 @@ function CompanyOverview({ company }: { company: Company }) {
 								? "Seguimiento aprobado — retirar aprobación"
 								: "Aprobar seguimiento tras interés"}
 						</Button>
+						<Button
+							className="mt-2 w-full"
+							variant={company.emailAssistantEnabled ? "default" : "outline"}
+							disabled={replyAssistant.isPending || !company.outreachApprovedAt}
+							onClick={() =>
+								replyAssistant.mutate({
+									companyId: company.id,
+									enabled: !company.emailAssistantEnabled,
+								})
+							}
+						>
+							{company.emailAssistantEnabled
+								? "Eve responde en este hilo — desactivar"
+								: "Activar Eve solo para respuestas entrantes"}
+						</Button>
 						<p className="mt-3 text-muted-foreground text-xs">
-							El envío automático se habilita únicamente después de interés o
-							autorización documentada.
+							Eve nunca inicia mensajes: solo responde un hilo existente tras tu
+							aprobación, y pausa ante opt-out, precio, contrato o una situación
+							ambigua.
 						</p>
 						<OutreachEmail
 							companyId={company.id}

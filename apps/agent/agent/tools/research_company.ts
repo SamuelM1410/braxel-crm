@@ -29,6 +29,20 @@ const RESEARCH_SCHEMA = {
 			items: { type: "string" },
 			description: "Recent announcements, funding, or launches.",
 		},
+		contactChannels: {
+			type: "object",
+			description:
+				"Only public business contact details found on the official website. Leave unknown values empty; never infer handles or numbers.",
+			properties: {
+				phone: { type: "string" },
+				email: { type: "string" },
+				whatsappUrl: { type: "string" },
+				instagramUrl: { type: "string" },
+				facebookUrl: { type: "string" },
+				tiktokUrl: { type: "string" },
+				linkedinUrl: { type: "string" },
+			},
+		},
 	},
 	required: ["positioning"],
 } as const;
@@ -36,7 +50,9 @@ const RESEARCH_SCHEMA = {
 const RESEARCH_INSTRUCTIONS =
 	"Read this company's marketing site and answer as a salesperson preparing " +
 	"for a first call. Be specific and factual; leave a field empty rather than " +
-	"guessing.";
+	"guessing. Also inspect headers, footer and contact pages for public business " +
+	"contact details. Do not use search engines, do not visit social profiles, and " +
+	"do not invent a WhatsApp URL from a phone number.";
 
 export default defineTool({
 	description:
@@ -110,7 +126,10 @@ export default defineTool({
 
 		await db.company.update({
 			where: { id: companyId },
-			data: { lastActivityAt: new Date() },
+			data: {
+				lastActivityAt: new Date(),
+				...publicChannels(result.data),
+			},
 		});
 
 		return { written: true as const, activityId: activity.id };
@@ -154,4 +173,24 @@ function formatBrief(data: unknown): string {
 	}
 
 	return lines.join("\n\n");
+}
+
+function publicChannels(data: unknown) {
+	if (typeof data !== "object" || data === null) return {};
+	const channels = (data as { contactChannels?: unknown }).contactChannels;
+	if (typeof channels !== "object" || channels === null) return {};
+	const values = channels as Record<string, unknown>;
+	const clean = (key: string) =>
+		typeof values[key] === "string" && values[key].trim()
+			? values[key].trim().slice(0, 500)
+			: undefined;
+	return {
+		...(clean("phone") ? { phone: clean("phone") } : {}),
+		...(clean("email") ? { email: clean("email") } : {}),
+		...(clean("whatsappUrl") ? { whatsappUrl: clean("whatsappUrl") } : {}),
+		...(clean("instagramUrl") ? { instagramUrl: clean("instagramUrl") } : {}),
+		...(clean("facebookUrl") ? { facebookUrl: clean("facebookUrl") } : {}),
+		...(clean("tiktokUrl") ? { tiktokUrl: clean("tiktokUrl") } : {}),
+		...(clean("linkedinUrl") ? { linkedinUrl: clean("linkedinUrl") } : {}),
+	};
 }

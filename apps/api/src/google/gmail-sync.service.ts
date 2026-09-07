@@ -24,6 +24,7 @@ import {
 	plainTextBody,
 	rootMessageId,
 } from "./gmail-mime";
+import { ReplySetterService } from "./reply-setter.service";
 
 const MAX_MESSAGES_PER_TICK = 120;
 
@@ -46,6 +47,7 @@ export class GmailSyncService {
 		private readonly tokens: MailboxTokenService,
 		private readonly state: SyncStateService,
 		private readonly threads: ThreadWriterService,
+		private readonly replySetter: ReplySetterService,
 	) {}
 
 	async sync(row: MailboxSync): Promise<GmailSyncOutcome> {
@@ -225,7 +227,14 @@ export class GmailSyncService {
 				parsed,
 				context,
 			);
-			if (stored) written += 1;
+			if (stored) {
+				written += 1;
+				const saved = await this.db.emailMessage.findFirst({
+					where: { gmailMessageId: id },
+					select: { id: true },
+				});
+				if (saved) void this.replySetter.consider(row.userId, saved.id);
+			}
 		}
 
 		return { written, remaining };

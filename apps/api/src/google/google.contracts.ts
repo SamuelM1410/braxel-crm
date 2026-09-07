@@ -26,5 +26,10 @@ export const sendApprovedEmailInput = z.object({
 	body: z.string().trim().min(1).max(12_000),
 });
 
+export const setEmailAssistantInput = z.object({
+	companyId: z.string(),
+	enabled: z.boolean(),
+});
+
 export type SetAutoCreateInput = z.infer<typeof setAutoCreateInput>;
 export type SuppressDomainInput = z.infer<typeof suppressDomainInput>;

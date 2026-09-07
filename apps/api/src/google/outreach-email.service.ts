@@ -126,6 +126,36 @@ export class OutreachEmailService {
 			gmailMessageId: sent.data.id ?? null,
 		};
 	}
+
+	async setReplyAssistant(
+		_userId: string,
+		input: { companyId: string; enabled: boolean },
+	) {
+		const company = await this.db.company.findUnique({
+			where: { id: input.companyId },
+			select: { id: true, outreachApprovedAt: true, salesStage: true },
+		});
+		if (!company) throw new NotFoundException("Company not found.");
+		if (input.enabled && !company.outreachApprovedAt) {
+			throw new BadRequestException(
+				"Approve this company's outreach before enabling its reply assistant.",
+			);
+		}
+		if (input.enabled && !SENDABLE_STAGES.has(company.salesStage)) {
+			throw new BadRequestException(
+				"The reply assistant is available only after a positive or qualified sales outcome.",
+			);
+		}
+		return this.db.company.update({
+			where: { id: company.id },
+			data: {
+				emailAssistantEnabled: input.enabled,
+				emailAssistantEnabledAt: input.enabled ? new Date() : null,
+				...(input.enabled ? {} : { emailAssistantLastReplyAt: null }),
+			},
+			select: { id: true, emailAssistantEnabled: true },
+		});
+	}
 }
 
 function encodeMessage(input: {
