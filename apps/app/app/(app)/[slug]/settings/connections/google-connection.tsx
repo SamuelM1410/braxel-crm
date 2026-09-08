@@ -126,6 +126,18 @@ function GoogleUnavailable() {
 const CONNECT_ERRORS: Record<string, string> = {
 	"email_doesn't_match":
 		"That Google account has a different email address to the one you sign in with, so it cannot be attached to your account. Connect the Google account that matches your sign-in address.",
+	invalid_code:
+		"Google approved the request, but Braxel could not exchange its one-time code. In Vercel → braxel-api, verify that GOOGLE_CLIENT_SECRET belongs to the same Google client ID, then try again once.",
+	account_already_linked_to_different_user:
+		"This Google mailbox is already connected to a different Braxel user. Disconnect it from that user first, or use another mailbox.",
+	unable_to_link_account:
+		"Braxel could not save this Google connection. Please try once more; if it repeats, contact support with this error.",
+	unable_to_get_user_info:
+		"Google did not return the account information Braxel needs. Reconnect and approve the requested permissions.",
+	email_not_found:
+		"Google did not share an email address for this account. Use a standard Google Workspace or Gmail mailbox.",
+	no_code:
+		"Google returned without an authorization code. Start the connection again and complete it in the same browser tab.",
 };
 
 function ConnectGoogle({
