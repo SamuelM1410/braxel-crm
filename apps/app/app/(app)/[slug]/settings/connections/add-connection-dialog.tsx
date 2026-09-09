@@ -1,5 +1,6 @@
 "use client";
 
+import LogoFacebook from "@carbon/icons-react/es/LogoFacebook";
 import Plug from "@carbon/icons-react/es/Plug";
 import DocusignLogo from "@crm/ui/components/brand-logos/docusign";
 import GoogleLogo from "@crm/ui/components/brand-logos/google";
@@ -41,6 +42,14 @@ export function AddConnectionDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col border-y px-2 py-2">
+					{!connected.includes("Meta Business") ? (
+						<CatalogRow
+							logo={LogoFacebook}
+							name="Meta Business"
+							description="Facebook Pages and Instagram professional messages"
+							href={`/${slug}/settings/connections/meta`}
+						/>
+					) : null}
 					{!connected.includes("Google Workspace") ? (
 						<CatalogRow
 							logo={GoogleLogo}

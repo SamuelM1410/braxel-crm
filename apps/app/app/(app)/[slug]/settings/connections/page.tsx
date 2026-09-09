@@ -1,3 +1,4 @@
+import LogoFacebook from "@carbon/icons-react/es/LogoFacebook";
 import GoogleLogo from "@crm/ui/components/brand-logos/google";
 import MicrosoftLogo from "@crm/ui/components/brand-logos/microsoft";
 import SlackLogo from "@crm/ui/components/brand-logos/slack";
@@ -30,12 +31,27 @@ async function ConnectionsSettingsPageContent({
 	const [{ slug }, query] = await Promise.all([params, searchParams]);
 	const queryClient = getServerQueryClient();
 	const trpc = getServerTrpc();
-	const [google, microsoft, slack] = await Promise.all([
+	const [google, microsoft, slack, meta] = await Promise.all([
 		queryClient.fetchQuery(trpc.google.status.queryOptions()),
 		queryClient.fetchQuery(trpc.microsoft.status.queryOptions()),
 		queryClient.fetchQuery(trpc.slack.status.queryOptions()),
+		queryClient.fetchQuery(trpc.meta.status.queryOptions()),
 	]);
 	const rows = [
+		...(meta.connected
+			? [
+					{
+						name: "Meta Business",
+						status: "Connected",
+						bringsIn: "Facebook and Instagram messages",
+						sends: meta.replyAssistantEnabled
+							? "Eve replies to inbound conversations"
+							: "Nothing while Eve is off",
+						href: `/${slug}/settings/connections/meta`,
+						logo: LogoFacebook,
+					},
+				]
+			: []),
 		...(google.linked
 			? [
 					{
@@ -115,6 +131,12 @@ async function ConnectionsSettingsPageContent({
 						</p>
 					</div>
 					<div className="flex flex-col divide-y rounded-lg border bg-card px-(--spacing-block-inline)">
+						<StarterRow
+							logo={LogoFacebook}
+							name="Meta Business"
+							description="Receive Facebook and Instagram business messages"
+							href={`/${slug}/settings/connections/meta`}
+						/>
 						<StarterRow
 							logo={GoogleLogo}
 							name="Google Workspace"

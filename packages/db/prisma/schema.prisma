@@ -41,6 +41,7 @@ model User {
   conversationSubmissions AgentConversationSubmission[] @relation("ConversationSubmissionAuthor")
   conversationFeedback    AgentConversationFeedback[]   @relation("ConversationFeedbackAuthor")
   slackMemberMatch        SlackMemberMatch?
+  metaConnection          MetaConnection?
 
   members     Member[]
   invitations Invitation[]
@@ -1293,6 +1294,52 @@ model SocialMessage {
   @@unique([threadId, externalMessageId])
   @@index([threadId, sentAt])
   @@map("socialMessage")
+}
+
+model MetaConnection {
+  id                    String     @id @default(cuid())
+  userId                String     @unique
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metaUserId            String
+  displayName           String?
+  encryptedAccessToken  String
+  tokenExpiresAt        DateTime?
+  replyAssistantEnabled Boolean    @default(false)
+  connectedAt           DateTime   @default(now())
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  pages                 MetaPage[]
+
+  @@index([metaUserId])
+  @@map("metaConnection")
+}
+
+model MetaPage {
+  id                         String         @id @default(cuid())
+  connectionId               String
+  connection                 MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  pageId                     String         @unique
+  name                       String
+  encryptedPageAccessToken   String
+  instagramBusinessAccountId String?        @unique
+  instagramUsername          String?
+  enabled                    Boolean        @default(true)
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+
+  @@index([connectionId, enabled])
+  @@map("metaPage")
+}
+
+model MetaOAuthState {
+  id        String   @id
+  userId    String
+  returnUrl String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("metaOAuthState")
 }
 
 model CalendarEvent {

@@ -58,6 +58,27 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	META_APP_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	META_APP_SECRET?: string;
+
+	@IsOptional()
+	@IsString()
+	META_WEBHOOK_VERIFY_TOKEN?: string;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(32)
+	META_TOKEN_ENCRYPTION_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	META_GRAPH_VERSION?: string;
+
+	@IsOptional()
+	@IsString()
 	MICROSOFT_CLIENT_ID?: string;
 
 	@IsOptional()
