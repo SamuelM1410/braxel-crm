@@ -66,10 +66,6 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
-	META_LOGIN_CONFIG_ID?: string;
-
-	@IsOptional()
-	@IsString()
 	META_WEBHOOK_VERIFY_TOKEN?: string;
 
 	@IsOptional()
