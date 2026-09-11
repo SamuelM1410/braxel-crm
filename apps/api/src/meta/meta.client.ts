@@ -38,10 +38,15 @@ export class MetaClient {
 		url.searchParams.set("redirect_uri", this.callbackUrl());
 		url.searchParams.set("state", state);
 		url.searchParams.set("response_type", "code");
-		url.searchParams.set(
-			"scope",
-			["pages_show_list", "pages_manage_metadata", "pages_messaging"].join(","),
-		);
+		const loginConfigId = this.loginConfigId();
+		if (loginConfigId) url.searchParams.set("config_id", loginConfigId);
+		else
+			url.searchParams.set(
+				"scope",
+				["pages_show_list", "pages_manage_metadata", "pages_messaging"].join(
+					",",
+				),
+			);
 		return url.toString();
 	}
 
@@ -110,6 +115,9 @@ export class MetaClient {
 	}
 	private appSecret() {
 		return this.config.get("META_APP_SECRET", { infer: true }) ?? "";
+	}
+	private loginConfigId() {
+		return this.config.get("META_LOGIN_CONFIG_ID", { infer: true }) ?? "";
 	}
 	private base(path: string) {
 		return `https://graph.facebook.com/${this.version()}/${path}`;
