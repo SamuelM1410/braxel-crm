@@ -45,6 +45,7 @@ export class MetaClient {
 				"pages_read_engagement",
 				"pages_manage_metadata",
 				"pages_messaging",
+				"business_management",
 			].join(","),
 		);
 		return url.toString();
@@ -70,6 +71,14 @@ export class MetaClient {
 	}
 	async pages(token: string) {
 		const result = await this.get<{ data?: Page[] }>("me/accounts", {
+			fields: "id,name,access_token,instagram_business_account{id,username}",
+			access_token: token,
+		});
+		return result.data ?? [];
+	}
+
+	async assignedPages(token: string) {
+		const result = await this.get<{ data?: Page[] }>("me/assigned_pages", {
 			fields: "id,name,access_token,instagram_business_account{id,username}",
 			access_token: token,
 		});

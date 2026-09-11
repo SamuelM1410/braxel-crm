@@ -69,10 +69,16 @@ export class MetaConnectionService {
 		if (!state || state.expiresAt < new Date())
 			throw new BadRequestException("Meta connection expired. Start again.");
 		const token = await this.client.exchange(code);
-		const [me, pages] = await Promise.all([
+		const [me, pages, assignedPages] = await Promise.all([
 			this.client.me(token.access_token),
 			this.client.pages(token.access_token),
+			this.client.assignedPages(token.access_token),
 		]);
+		const discoveredPages = [
+			...new Map(
+				[...pages, ...assignedPages].map((page) => [page.id, page]),
+			).values(),
+		];
 		const connection = await this.db.metaConnection.upsert({
 			where: { userId: state.userId },
 			create: {
@@ -94,7 +100,7 @@ export class MetaConnectionService {
 				connectedAt: new Date(),
 			},
 		});
-		for (const page of pages) {
+		for (const page of discoveredPages) {
 			await this.db.metaPage.upsert({
 				where: { pageId: page.id },
 				create: {
