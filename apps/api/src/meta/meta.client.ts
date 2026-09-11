@@ -40,13 +40,7 @@ export class MetaClient {
 		url.searchParams.set("response_type", "code");
 		url.searchParams.set(
 			"scope",
-			[
-				"pages_show_list",
-				"pages_manage_metadata",
-				"pages_messaging",
-				"instagram_basic",
-				"instagram_manage_messages",
-			].join(","),
+			["pages_show_list", "pages_manage_metadata", "pages_messaging"].join(","),
 		);
 		return url.toString();
 	}
