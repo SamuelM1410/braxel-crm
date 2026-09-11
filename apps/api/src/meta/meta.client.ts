@@ -40,7 +40,12 @@ export class MetaClient {
 		url.searchParams.set("response_type", "code");
 		url.searchParams.set(
 			"scope",
-			["pages_show_list", "pages_manage_metadata", "pages_messaging"].join(","),
+			[
+				"pages_show_list",
+				"pages_read_engagement",
+				"pages_manage_metadata",
+				"pages_messaging",
+			].join(","),
 		);
 		return url.toString();
 	}
