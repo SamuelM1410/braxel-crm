@@ -48,10 +48,6 @@ export class MetaClient {
 				"business_management",
 			].join(","),
 		);
-		const configId =
-			this.config.get("META_LOGIN_CONFIG_ID", { infer: true }) ??
-			this.config.get("META_CONFIG_ID", { infer: true });
-		if (configId) url.searchParams.set("config_id", configId);
 		return url.toString();
 	}
 
