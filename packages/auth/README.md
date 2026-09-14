@@ -71,7 +71,7 @@ CLI loads `auth.ts` directly. See
 [`docs/environment.md`](../../docs/environment.md).
 
 Create an OAuth client in the Google Cloud console and add
-`<API_URL>/api/auth/callback/google` — `http://localhost:3001/api/auth/callback/google`
+`<APP_URL>/api/auth/callback/google` — `http://localhost:3000/api/auth/callback/google`
 in development — as an authorised redirect URI.
 
 `ALLOWED_SIGN_IN` decides who may sign in, and an empty value admits nobody. It

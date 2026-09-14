@@ -67,14 +67,12 @@ list fails closed.** Parsed on demand. `packages/auth/src/workspace.ts`.
   Running the API from the repo root fixes the watch and breaks Nest, which
   resolves its tsconfig paths from the current directory and then cannot build
   its dependency graph. There is no fix in the dev script today.
-- **`APP_URL`** (`:3000`) is also the trusted-origin and `callbackURL` allow-list.
-- **Every OAuth `redirect_uri` is built from `API_URL`, never `APP_URL`.** Better
-  Auth serves `/api/auth/*` at `baseURL`, and `baseURL` is `apiUrl`. A redirect
-  built from `APP_URL` points at the web app, where `/api/auth/callback` does not
-  exist, and the provider rejects it with "redirect_uri did not match". This is
-  invisible until someone sets `APP_URL` to a tunnel or a LAN host, at which
-  point the redirect silently becomes that host. `ssoCallbackBase()` is the
-  pattern; `slackRedirectUri` in `auth.ts` once was not.
+- **`APP_URL`** (`:3000`) is also the trusted-origin, `callbackURL` allow-list,
+  and the Google callback origin. The app proxy preserves the OAuth state cookie.
+- **Google uses `APP_URL` for its OAuth `redirect_uri`.** The app proxy serves
+  `/api/auth/*` on the browser origin. This keeps the OAuth state cookie on the
+  same host during the Google callback. Slack uses `API_URL` because its OAuth
+  flow does not pass through the app proxy.
 - **`AUTH_COOKIE_DOMAIN`** only for API and app on different subdomains of one parent.
 - **`AGENT_URL`** is the agent's deployment, server-side only, and **must include the
   scheme** — validated at boot, or it throws when a task is queued instead.
