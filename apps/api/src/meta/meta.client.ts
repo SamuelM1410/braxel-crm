@@ -38,15 +38,18 @@ export class MetaClient {
 		url.searchParams.set("redirect_uri", this.callbackUrl());
 		url.searchParams.set("state", state);
 		url.searchParams.set("response_type", "code");
-		url.searchParams.set(
-			"scope",
-			[
-				"pages_show_list",
-				"pages_read_engagement",
-				"pages_manage_metadata",
-				"pages_messaging",
-			].join(","),
-		);
+		const configId = this.config.get("META_LOGIN_CONFIG_ID", { infer: true });
+		if (configId) url.searchParams.set("config_id", configId);
+		else
+			url.searchParams.set(
+				"scope",
+				[
+					"pages_show_list",
+					"pages_read_engagement",
+					"pages_manage_metadata",
+					"pages_messaging",
+				].join(","),
+			);
 		return url.toString();
 	}
 
