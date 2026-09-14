@@ -72,7 +72,7 @@ export class MetaConnectionService {
 		const [me, pages, assignedPages] = await Promise.all([
 			this.client.me(token.access_token),
 			this.client.pages(token.access_token),
-			this.client.assignedPages(token.access_token),
+			this.client.assignedPages(token.access_token).catch(() => []),
 		]);
 		const discoveredPages = [
 			...new Map(

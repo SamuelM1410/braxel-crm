@@ -24,9 +24,9 @@ export class MetaClient {
 	configured() {
 		return Boolean(
 			this.appId() &&
-			this.appSecret() &&
-			this.config.get("META_WEBHOOK_VERIFY_TOKEN", { infer: true }) &&
-			this.config.get("META_TOKEN_ENCRYPTION_KEY", { infer: true }),
+				this.appSecret() &&
+				this.config.get("META_WEBHOOK_VERIFY_TOKEN", { infer: true }) &&
+				this.config.get("META_TOKEN_ENCRYPTION_KEY", { infer: true }),
 		);
 	}
 
