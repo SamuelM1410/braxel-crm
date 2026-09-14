@@ -45,7 +45,6 @@ export class MetaClient {
 				"pages_read_engagement",
 				"pages_manage_metadata",
 				"pages_messaging",
-				"business_management",
 			].join(","),
 		);
 		return url.toString();
