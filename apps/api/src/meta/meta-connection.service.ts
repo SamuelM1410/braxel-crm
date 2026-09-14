@@ -121,7 +121,9 @@ export class MetaConnectionService {
 					instagramUsername: page.instagram_business_account?.username ?? null,
 				},
 			});
-			await this.client.subscribePage(page.id, page.access_token);
+			await this.client
+				.subscribePage(page.id, page.access_token)
+				.catch(() => undefined);
 		}
 		return state.returnUrl;
 	}
