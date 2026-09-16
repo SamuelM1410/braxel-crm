@@ -125,7 +125,7 @@ function GoogleUnavailable() {
 
 const CONNECT_ERRORS: Record<string, string> = {
 	"email_doesn't_match":
-		"That Google account has a different email address to the one you sign in with, so it cannot be attached to your account. Connect the Google account that matches your sign-in address.",
+		"That Google account could not be attached. Braxel supports a separate agency mailbox; reconnect while signed in to the intended CRM workspace and approve all requested permissions.",
 	invalid_code:
 		"Google approved the request, but Braxel could not exchange its one-time code. In Vercel → braxel-api, verify that GOOGLE_CLIENT_SECRET belongs to the same Google client ID, then try again once.",
 	account_already_linked_to_different_user:
@@ -180,7 +180,8 @@ function ConnectGoogle({
 				</CardTitle>
 				<CardDescription>
 					Gmail and Calendar stay read-only by default. Sending is available
-					only after a rep approves a qualified follow-up inside the CRM.
+					only after a rep approves a qualified follow-up inside the CRM. The
+					mailbox may be different from the CRM sign-in account.
 				</CardDescription>
 
 				<CardAction>
