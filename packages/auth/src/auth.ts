@@ -83,8 +83,8 @@ export const auth = betterAuth({
 			enabled: true,
 			trustedProviders: [GOOGLE_PROVIDER_ID, MICROSOFT_PROVIDER_ID],
 			// CRM owners commonly sign in with a personal account but connect a
-			// separate agency mailbox. The connection remains scoped to the signed-in
-			// CRM user; it does not change that user's login identity.
+			// separate agency mailbox. Keep the mailbox scoped to this CRM user; it
+			// must never replace the user's login identity or workspace membership.
 			allowDifferentEmails: true,
 		},
 	},
