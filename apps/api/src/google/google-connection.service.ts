@@ -56,17 +56,6 @@ export class GoogleConnectionService {
 		]);
 
 		const bySource = new Map(rows.map((row) => [row.source, row]));
-		// Keep the authorization result and the UI status diagnosable without ever
-		// logging access or refresh tokens. Google may return scopes in either the
-		// comma- or space-delimited form; MailboxTokenService normalizes both.
-		this.logger.log({
-			message: "Google connection status inspected",
-			userId,
-			providers: accounts.map((account) => account.providerId),
-			grantedScopes: [...granted],
-			hasRefreshToken,
-		});
-
 		const sources = GOOGLE_SYNC_SOURCES.map((source): SourceStatus => {
 			const row = bySource.get(source);
 			const connected = granted.has(SCOPE_FOR_SOURCE[source]);

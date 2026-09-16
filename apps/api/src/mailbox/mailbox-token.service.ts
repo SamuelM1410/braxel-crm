@@ -32,12 +32,19 @@ export class MailboxTokenService {
 		userId: string,
 		providerId: MailboxProviderId,
 	): Promise<Set<string>> {
-		const account = await this.db.account.findFirst({
+		const accounts = await this.db.account.findMany({
 			where: { userId, providerId },
 			select: { scope: true },
 		});
 
-		return parseScopes(account?.scope);
+		// A user can sign in with one Google identity and connect a separate
+		// agency mailbox. Better Auth stores those as separate account rows, so
+		// never let an identity-only row hide the mailbox scopes from another row.
+		const granted = new Set<string>();
+		for (const account of accounts) {
+			for (const scope of parseScopes(account.scope)) granted.add(scope);
+		}
+		return granted;
 	}
 
 	async isConnected(userId: string, source: SyncSource): Promise<boolean> {
@@ -60,11 +67,11 @@ export class MailboxTokenService {
 		providerId: MailboxProviderId,
 	): Promise<boolean> {
 		const account = await this.db.account.findFirst({
-			where: { userId, providerId },
-			select: { refreshToken: true },
+			where: { userId, providerId, refreshToken: { not: null } },
+			select: { id: true },
 		});
 
-		return Boolean(account?.refreshToken);
+		return Boolean(account);
 	}
 
 	async accessTokenFor(
@@ -81,8 +88,26 @@ export class MailboxTokenService {
 		}
 
 		try {
+			const accounts = await this.db.account.findMany({
+				where: { userId, providerId },
+				select: { id: true, scope: true },
+				orderBy: { updatedAt: "desc" },
+			});
+			const account = accounts.find((candidate) =>
+				parseScopes(candidate.scope).has(SCOPE_FOR_SOURCE[source]),
+			);
+
+			if (!account) {
+				return {
+					outcome: "needs-reconnect",
+					reason: `${label(providerId)} has no account row with the ${source} scope.`,
+				};
+			}
+
 			const { accessToken } = await auth.api.getAccessToken({
-				body: { providerId, userId },
+				// Selecting by the local account id is important when the CRM login
+				// and the connected agency mailbox are both Google accounts.
+				body: { providerId, accountId: account.id, userId },
 			});
 
 			if (!accessToken) {
