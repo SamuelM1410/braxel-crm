@@ -1,5 +1,67 @@
 # Changelog
 
+## [1.14.0](https://github.com/SamuelM1410/braxel-crm/compare/v1.13.0...v1.14.0) (2026-09-18)
+
+
+### Features
+
+* add approved outreach email composer ([1bdea43](https://github.com/SamuelM1410/braxel-crm/commit/1bdea435d7538ef5b5553671f6e3c81b6648f931))
+* add consultative appointment setting playbook ([bee63f8](https://github.com/SamuelM1410/braxel-crm/commit/bee63f8195bf8b8e388e182ce2217141588b5a6e))
+* add human-approved contact playbook ([a2e0ed2](https://github.com/SamuelM1410/braxel-crm/commit/a2e0ed2e54481c8dc39e84fa5faaa4ec5da13065))
+* add human-approved Gmail outreach ([136ef27](https://github.com/SamuelM1410/braxel-crm/commit/136ef278b8b552217e043188861446296ec61ddf))
+* add human-gated Eve email reply setter ([90fecb4](https://github.com/SamuelM1410/braxel-crm/commit/90fecb4e8d713accf3ba18f4a5ceba23f6874d4c))
+* add human-gated sales sequence controls ([a001983](https://github.com/SamuelM1410/braxel-crm/commit/a0019839fdf4e8349c9df7d671305c7789339f7e))
+* add multichannel lead contact paths ([9af39b4](https://github.com/SamuelM1410/braxel-crm/commit/9af39b48e59ced92e65b46bf2f829c68c3f8fcb4))
+* add multichannel social inbox data model ([ba29275](https://github.com/SamuelM1410/braxel-crm/commit/ba292754cd82dcd991bd845bef17d35d07a3b5ad))
+* add public legal pages ([01ef4c8](https://github.com/SamuelM1410/braxel-crm/commit/01ef4c873d1fd5de0d079a2f6751b215a0d57351))
+* connect Meta messaging to Eve ([4892392](https://github.com/SamuelM1410/braxel-crm/commit/489239216a6ead1ef7ac605c10f50874b4abceb9))
+* expose company evidence and contact channels to Eve ([6686540](https://github.com/SamuelM1410/braxel-crm/commit/668654085fed58ca91d1dc7783930fa1a908f0ab))
+* expose Lead OS scores and offers to Eve ([f5ca3db](https://github.com/SamuelM1410/braxel-crm/commit/f5ca3dbe4b2467122f79841a2099181413409e91))
+* gate outreach with human approval ([399a098](https://github.com/SamuelM1410/braxel-crm/commit/399a09856614354770058f2caa708dd26cf624eb))
+* give Eve sales follow-up context ([c9213a0](https://github.com/SamuelM1410/braxel-crm/commit/c9213a018ac4bba61831d1d6fee8a4b993a24a39))
+* import multichannel lead contact paths ([6ff8fc8](https://github.com/SamuelM1410/braxel-crm/commit/6ff8fc8d3e614ed3d7c8044541228ef3dead81d0))
+* prepare Braxel CRM with Lead OS Eve evaluator ([4467a7b](https://github.com/SamuelM1410/braxel-crm/commit/4467a7b198c0735d412ecb5f5ce583c32c24f094))
+* route leads to official website contact evidence ([5619424](https://github.com/SamuelM1410/braxel-crm/commit/56194246b0d0372a569caa0e92f747329439e6a6))
+* route Meta conversations through Eve ([7885660](https://github.com/SamuelM1410/braxel-crm/commit/78856603b290a780108cd1dd3d811edaf9ba6a7b))
+* run Eve with direct OpenAI provider ([32d510a](https://github.com/SamuelM1410/braxel-crm/commit/32d510a42fd66c6d7a95206e89c40264f2f15672))
+* strengthen Eve commercial reply playbook ([2e7b65a](https://github.com/SamuelM1410/braxel-crm/commit/2e7b65a59b8c7c1e9c265c7fbf84b4c8dadd79b1))
+* surface contact channel guidance in Eve ([dfd4123](https://github.com/SamuelM1410/braxel-crm/commit/dfd41237d8eb55fef65d50da7c773072a6a5a0d6))
+
+
+### Fixes
+
+* allow agency mailbox different from CRM login ([9ac7e36](https://github.com/SamuelM1410/braxel-crm/commit/9ac7e36b8bf5199c3501c4ab877b47022b357b85))
+* allow separate agency Gmail mailbox ([01d437a](https://github.com/SamuelM1410/braxel-crm/commit/01d437a4b7e310fcf06da3fedf048e1893ea3d7a))
+* authorize Meta page messaging scopes ([57c8b73](https://github.com/SamuelM1410/braxel-crm/commit/57c8b7384cd006d16e48a9640f3e186372bc2906))
+* complete Meta connection without subscription failure ([70cadc6](https://github.com/SamuelM1410/braxel-crm/commit/70cadc6272547001f151d31cf0e1e2008db8173f))
+* copy immutable Next request headers for session lookup ([bf305fa](https://github.com/SamuelM1410/braxel-crm/commit/bf305fa0a98024504c55b4d7affdee08399cf289))
+* **db:** pin braxel search path for raw queries ([adb23da](https://github.com/SamuelM1410/braxel-crm/commit/adb23da55f4218c16c22970760849de1c3cd86cc))
+* disable hosted mailbox cron on hobby ([eb326fd](https://github.com/SamuelM1410/braxel-crm/commit/eb326fdd4d9ad8ec4b07e3daacecaccb2ce1970a))
+* discover Meta business pages ([a1627ad](https://github.com/SamuelM1410/braxel-crm/commit/a1627ad51f994443717768bd3418fe88845b147d))
+* explain Google connection failures ([a0bbc14](https://github.com/SamuelM1410/braxel-crm/commit/a0bbc1408a0d39d966c190dae9158f4aa69bbcb5))
+* isolate Braxel Prisma schema from Lead OS ([c961f4e](https://github.com/SamuelM1410/braxel-crm/commit/c961f4ece6d2738b08ade45ee069f1f6b4410f0b))
+* keep mailbox migration schema-agnostic ([6f645c5](https://github.com/SamuelM1410/braxel-crm/commit/6f645c52c4d670848f4bea60268b6bd4fb85cb09))
+* keep test database schema aligned ([6cbcc95](https://github.com/SamuelM1410/braxel-crm/commit/6cbcc95f53d68adea7cd2f1857826e284dc45ae4))
+* let Eve list CRM companies without open deals ([8546eda](https://github.com/SamuelM1410/braxel-crm/commit/8546eda72aa792a99a8723cec91d7b1de21e8fe3))
+* make legal pages public ([4b70b13](https://github.com/SamuelM1410/braxel-crm/commit/4b70b137536278b1dcba6a4fd12761a0f2487366))
+* make scheduled work compatible with Vercel Hobby ([435fdd7](https://github.com/SamuelM1410/braxel-crm/commit/435fdd73d1c86cd879a04bb0e1700b276c724012))
+* preserve Gmail reply threading ([eb401a9](https://github.com/SamuelM1410/braxel-crm/commit/eb401a9b0baa495cae27996af0e3743fa7ec2be1))
+* preserve Google OAuth state on web origin ([a50cb2d](https://github.com/SamuelM1410/braxel-crm/commit/a50cb2d1c1aa58ae905605d8f9d7d08543b23ebc))
+* prevent production web from using localhost API ([e67c0de](https://github.com/SamuelM1410/braxel-crm/commit/e67c0de8a22114f74668c62c886bd417bbbf47b2))
+* request Meta page read access ([e8adafc](https://github.com/SamuelM1410/braxel-crm/commit/e8adafc2ca0c114a06ed9bf4fc7affc91b955701))
+* request only required Meta page permissions ([d1cfaaf](https://github.com/SamuelM1410/braxel-crm/commit/d1cfaafc4d3ba71a728d6d84975218f6fba7ecb4))
+* restore Meta business login configuration ([9fbff2f](https://github.com/SamuelM1410/braxel-crm/commit/9fbff2ff99f0fabf524c1f591f0c4675e5831085))
+* support Meta business login config ([e5bf1d7](https://github.com/SamuelM1410/braxel-crm/commit/e5bf1d7706fc0939e84a6d06dbde4d298f003702))
+* support separate Google mailbox account rows ([2742087](https://github.com/SamuelM1410/braxel-crm/commit/2742087211b8d2e261a164a0b25d002f3f720328))
+* target braxel schema with PrismaPg ([9908537](https://github.com/SamuelM1410/braxel-crm/commit/9908537b7118c0342183dc2aecc90a672b1d2512))
+* tolerate unavailable Meta assigned pages ([160a4c3](https://github.com/SamuelM1410/braxel-crm/commit/160a4c336f10553e9cc5707bd0eb760e767ad3af))
+* use Meta business login configuration ([bcb05aa](https://github.com/SamuelM1410/braxel-crm/commit/bcb05aaa9ef1a289963f6cf8a63cc1c88738d182))
+* use Meta business login configuration ([b5fa174](https://github.com/SamuelM1410/braxel-crm/commit/b5fa17434547a6303ca753b7ffb6fff2a7abca60))
+* use Meta login configuration ([26c7aae](https://github.com/SamuelM1410/braxel-crm/commit/26c7aae98ce46813e6c95a64a79c3722d25ec555))
+* use standard Meta OAuth ([be6bebe](https://github.com/SamuelM1410/braxel-crm/commit/be6bebed72eb4020c91849eb65e9c5b9393805ba))
+* use standard Meta OAuth ([e2465bc](https://github.com/SamuelM1410/braxel-crm/commit/e2465bcb99452eb91ffa810f3497e933538219a8))
+* use standard Meta OAuth flow ([4b7a668](https://github.com/SamuelM1410/braxel-crm/commit/4b7a668437d324be532f849acb0225ecd89db448))
+
 ## [1.13.0](https://github.com/trycompai/crm/compare/v1.12.0...v1.13.0) (2026-08-12)
 
 
