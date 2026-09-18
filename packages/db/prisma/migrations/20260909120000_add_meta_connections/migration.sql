@@ -1,4 +1,4 @@
-CREATE TABLE "braxel"."metaConnection" (
+CREATE TABLE "metaConnection" (
   "id" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "metaUserId" TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "braxel"."metaConnection" (
   CONSTRAINT "metaConnection_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "braxel"."metaPage" (
+CREATE TABLE "metaPage" (
   "id" TEXT NOT NULL,
   "connectionId" TEXT NOT NULL,
   "pageId" TEXT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE "braxel"."metaPage" (
   CONSTRAINT "metaPage_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "braxel"."metaOAuthState" (
+CREATE TABLE "metaOAuthState" (
   "id" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
   "returnUrl" TEXT NOT NULL,
@@ -35,14 +35,14 @@ CREATE TABLE "braxel"."metaOAuthState" (
   CONSTRAINT "metaOAuthState_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "metaConnection_userId_key" ON "braxel"."metaConnection"("userId");
-CREATE INDEX "metaConnection_metaUserId_idx" ON "braxel"."metaConnection"("metaUserId");
-CREATE UNIQUE INDEX "metaPage_pageId_key" ON "braxel"."metaPage"("pageId");
-CREATE UNIQUE INDEX "metaPage_instagramBusinessAccountId_key" ON "braxel"."metaPage"("instagramBusinessAccountId");
-CREATE INDEX "metaPage_connectionId_enabled_idx" ON "braxel"."metaPage"("connectionId", "enabled");
-CREATE INDEX "metaOAuthState_expiresAt_idx" ON "braxel"."metaOAuthState"("expiresAt");
+CREATE UNIQUE INDEX "metaConnection_userId_key" ON "metaConnection"("userId");
+CREATE INDEX "metaConnection_metaUserId_idx" ON "metaConnection"("metaUserId");
+CREATE UNIQUE INDEX "metaPage_pageId_key" ON "metaPage"("pageId");
+CREATE UNIQUE INDEX "metaPage_instagramBusinessAccountId_key" ON "metaPage"("instagramBusinessAccountId");
+CREATE INDEX "metaPage_connectionId_enabled_idx" ON "metaPage"("connectionId", "enabled");
+CREATE INDEX "metaOAuthState_expiresAt_idx" ON "metaOAuthState"("expiresAt");
 
-ALTER TABLE "braxel"."metaConnection"
-  ADD CONSTRAINT "metaConnection_userId_fkey" FOREIGN KEY ("userId") REFERENCES "braxel"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "braxel"."metaPage"
-  ADD CONSTRAINT "metaPage_connectionId_fkey" FOREIGN KEY ("connectionId") REFERENCES "braxel"."metaConnection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "metaConnection"
+  ADD CONSTRAINT "metaConnection_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "metaPage"
+  ADD CONSTRAINT "metaPage_connectionId_fkey" FOREIGN KEY ("connectionId") REFERENCES "metaConnection"("id") ON DELETE CASCADE ON UPDATE CASCADE;

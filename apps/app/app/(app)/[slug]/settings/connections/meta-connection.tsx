@@ -22,6 +22,7 @@ export function MetaConnection({ slug }: { slug: string }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const status = useQuery(trpc.meta.status.queryOptions());
+	const threads = useQuery(trpc.meta.threads.queryOptions({ limit: 20 }));
 	const refresh = () =>
 		queryClient.invalidateQueries({ queryKey: trpc.meta.status.queryKey() });
 	const assistant = useMutation(
@@ -140,6 +141,53 @@ export function MetaConnection({ slug }: { slug: string }) {
 							<Link href={`/${slug}/settings/connections`}>Back</Link>
 						</Button>
 					</CardFooter>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Recent conversations</CardTitle>
+						<CardDescription>
+							Inbound Facebook and Instagram messages are routed to Eve for a
+							human-approved draft.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						{threads.isPending ? (
+							<p className="text-muted-foreground text-sm">
+								Loading conversations…
+							</p>
+						) : threads.data?.length ? (
+							<div className="divide-y rounded-md border">
+								{threads.data.map((thread) => {
+									const latest = thread.messages[0];
+									const name = thread.contact
+										? [thread.contact.firstName, thread.contact.lastName]
+												.filter(Boolean)
+												.join(" ")
+										: (thread.company?.name ?? thread.externalSenderId);
+									return (
+										<div key={thread.id} className="space-y-1 p-3">
+											<div className="flex items-center justify-between gap-3">
+												<p className="font-medium text-sm">{name}</p>
+												<span className="text-muted-foreground text-xs">
+													{thread.channel}
+												</span>
+											</div>
+											<p className="line-clamp-2 text-muted-foreground text-sm">
+												{latest?.body ?? "No text message"}
+											</p>
+											<p className="text-muted-foreground text-xs">
+												{new Date(thread.lastMessageAt).toLocaleString()}
+											</p>
+										</div>
+									);
+								})}
+							</div>
+						) : (
+							<p className="text-muted-foreground text-sm">
+								No inbound conversations yet.
+							</p>
+						)}
+					</CardContent>
 				</Card>
 				<Card>
 					<CardHeader>

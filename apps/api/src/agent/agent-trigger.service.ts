@@ -246,6 +246,27 @@ export class AgentTriggerService {
 		});
 	}
 
+	async socialMessageReceived(input: {
+		threadId: string;
+		messageId: string;
+		channel: string;
+		reason: string;
+	}): Promise<void> {
+		await this.enqueue({
+			kind: "social-reply",
+			reason: input.reason,
+			priority: PRIORITY.event,
+			budget: 4,
+			subject: { path: ["messageId"], value: input.messageId },
+			payload: {
+				type: "social.reply",
+				threadId: input.threadId,
+				messageId: input.messageId,
+				channel: input.channel,
+			},
+		});
+	}
+
 	builderConversationQueued(): void {
 		this.pokeRoute("/internal/crm/builder-dispatch");
 	}

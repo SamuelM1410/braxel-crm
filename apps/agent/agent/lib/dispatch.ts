@@ -404,7 +404,20 @@ export function brief(task: LeasedTask): string {
 			? `This is attempt ${task.attempts}; the earlier one did not finish. Carry on from what is already in this thread rather than starting again. `
 			: "";
 
-	return again + work(task.kind, task.reason);
+	const context =
+		task.kind === "social-reply" ? socialReplyContext(task.payload) : "";
+	return again + work(task.kind, task.reason) + context;
+}
+
+function socialReplyContext(payload: LeasedTask["payload"]): string {
+	if (!payload || typeof payload !== "object" || Array.isArray(payload))
+		return "";
+	const value = payload as Record<string, unknown>;
+	const threadId = typeof value.threadId === "string" ? value.threadId : null;
+	const messageId =
+		typeof value.messageId === "string" ? value.messageId : null;
+	if (!threadId) return "";
+	return ` Use read_social_thread with threadId ${threadId}${messageId ? ` and treat messageId ${messageId} as the inbound message` : ""}.`;
 }
 
 function work(kind: string, reason: string): string {
@@ -416,6 +429,8 @@ function work(kind: string, reason: string): string {
 			return "Bring this contact's record up to date: their background, their current role, and anything that has changed since we last looked.";
 		case "meeting-prep":
 			return "There is a meeting with this person soon. Make sure whoever is taking it opens the record knowing who they are dealing with.";
+		case "social-reply":
+			return "A lead sent an inbound Facebook or Instagram message. Read the social thread, respect opt-out and handoff rules, create Eve's structured commercial dossier, and prepare one concise reply draft with prepare_meta_reply. Do not send it. Require human approval before delivery.";
 		case "company-profile":
 			return "This company's brand, industry, location and links are filled in separately and may already be there. Read the account, fill anything still missing, and write a brief if there is something worth saying.";
 		case "workspace-profile":

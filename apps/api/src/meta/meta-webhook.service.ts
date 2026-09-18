@@ -1,32 +1,56 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { type Db, EmailDirection, SocialChannel } from "@crm/db";
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { z } from "zod";
+import { AgentTriggerService } from "../agent/agent-trigger.service";
 import type { EnvironmentVariables } from "../config/env.validation";
 import { InjectDatabase } from "../database/database.constants";
-import { MetaClient } from "./meta.client";
-import { MetaTokenService } from "./meta-token.service";
 
-type MessagingEvent = {
-	sender?: { id?: string };
-	recipient?: { id?: string };
-	timestamp?: number;
-	message?: { mid?: string; text?: string; is_echo?: boolean };
-};
-type MetaPayload = {
-	object?: string;
-	entry?: Array<{ id?: string; messaging?: MessagingEvent[] }>;
-};
+const messagingEventSchema = z
+	.object({
+		sender: z.object({ id: z.string().optional() }).optional(),
+		recipient: z.object({ id: z.string().optional() }).optional(),
+		timestamp: z.number().optional(),
+		message: z
+			.object({
+				mid: z.string().optional(),
+				text: z.string().optional(),
+				is_echo: z.boolean().optional(),
+			})
+			.optional(),
+		postback: z
+			.object({
+				mid: z.string().optional(),
+				title: z.string().optional(),
+				payload: z.string().optional(),
+			})
+			.optional(),
+	})
+	.passthrough();
+const metaPayloadSchema = z
+	.object({
+		object: z.string().optional(),
+		entry: z
+			.array(
+				z
+					.object({
+						id: z.string().optional(),
+						messaging: z.array(messagingEventSchema).optional(),
+					})
+					.passthrough(),
+			)
+			.optional(),
+	})
+	.passthrough();
+type MessagingEvent = z.infer<typeof messagingEventSchema>;
 
 @Injectable()
 export class MetaWebhookService {
-	private readonly logger = new Logger(MetaWebhookService.name);
-
 	constructor(
 		@InjectDatabase() private readonly db: Db,
 		private readonly config: ConfigService<EnvironmentVariables, true>,
-		private readonly client: MetaClient,
-		private readonly tokens: MetaTokenService,
+		private readonly agent: AgentTriggerService,
 	) {}
 
 	verify(mode?: string, token?: string) {
@@ -41,9 +65,13 @@ export class MetaWebhookService {
 			raw,
 			Array.isArray(signature) ? signature[0] : signature,
 		);
-		let payload: MetaPayload;
+		let payload: z.infer<typeof metaPayloadSchema>;
 		try {
-			payload = JSON.parse(raw.toString("utf8")) as MetaPayload;
+			const parsed = metaPayloadSchema.safeParse(
+				JSON.parse(raw.toString("utf8")),
+			);
+			if (!parsed.success) throw new Error("invalid payload");
+			payload = parsed.data;
 		} catch {
 			throw new BadRequestException("Invalid Meta webhook JSON.");
 		}
@@ -63,7 +91,17 @@ export class MetaWebhookService {
 		const senderId = event.sender?.id;
 		const recipientId = event.recipient?.id ?? entryId;
 		const message = event.message;
-		if (!senderId || !recipientId || !message?.mid || message.is_echo) return;
+		const postback = event.postback;
+		const externalMessageId = message?.mid ?? postback?.mid;
+		const body = message?.text ?? postback?.title ?? postback?.payload;
+		if (
+			!senderId ||
+			!recipientId ||
+			!externalMessageId ||
+			!body ||
+			message?.is_echo
+		)
+			return;
 		const page = await this.db.metaPage.findFirst({
 			where: {
 				enabled: true,
@@ -81,6 +119,22 @@ export class MetaWebhookService {
 				: SocialChannel.FACEBOOK;
 		const sentAt = new Date(event.timestamp ?? Date.now());
 		const externalThreadId = `${recipientId}:${senderId}`;
+		const existingThread = await this.db.socialThread.findUnique({
+			where: { channel_externalThreadId: { channel, externalThreadId } },
+			select: { id: true },
+		});
+		if (existingThread) {
+			const existingMessage = await this.db.socialMessage.findUnique({
+				where: {
+					threadId_externalMessageId: {
+						threadId: existingThread.id,
+						externalMessageId,
+					},
+				},
+				select: { id: true },
+			});
+			if (existingMessage) return;
+		}
 		const thread = await this.db.socialThread.upsert({
 			where: { channel_externalThreadId: { channel, externalThreadId } },
 			create: {
@@ -98,50 +152,22 @@ export class MetaWebhookService {
 			.create({
 				data: {
 					threadId: thread.id,
-					externalMessageId: message.mid,
+					externalMessageId,
 					direction: EmailDirection.INBOUND,
 					senderId,
-					body: message.text ?? null,
-					raw: event,
+					body,
+					raw: JSON.parse(JSON.stringify(event)),
 					sentAt,
 				},
 			})
 			.catch(() => null);
-		if (!created || !page.connection.replyAssistantEnabled || !message.text)
-			return;
-		const reply = await this.draft(message.text);
-		if (!reply) return;
-		try {
-			const containerId =
-				channel === SocialChannel.INSTAGRAM
-					? (page.instagramBusinessAccountId ?? page.pageId)
-					: page.pageId;
-			const result = await this.client.send(
-				containerId,
-				this.tokens.decrypt(page.encryptedPageAccessToken),
-				senderId,
-				reply,
-			);
-			const id =
-				typeof result === "object" && result && "message_id" in result
-					? String(result.message_id)
-					: `eve:${message.mid}`;
-			await this.db.socialMessage.create({
-				data: {
-					threadId: thread.id,
-					externalMessageId: id,
-					direction: EmailDirection.OUTBOUND,
-					senderId: containerId,
-					body: reply,
-					raw: JSON.parse(JSON.stringify(result)),
-					sentAt: new Date(),
-				},
-			});
-		} catch (error) {
-			this.logger.warn(
-				`Meta reply failed: ${error instanceof Error ? error.message : "unknown"}`,
-			);
-		}
+		if (!created || !page.connection.replyAssistantEnabled) return;
+		await this.agent.socialMessageReceived({
+			threadId: thread.id,
+			messageId: externalMessageId,
+			channel,
+			reason: "New inbound Meta message requires a human-approved Eve reply.",
+		});
 	}
 
 	private assertSignature(raw: Buffer, signature?: string) {
@@ -157,42 +183,5 @@ export class MetaWebhookService {
 			!timingSafeEqual(expected, supplied)
 		)
 			throw new BadRequestException("Invalid Meta signature.");
-	}
-
-	private async draft(inbound: string) {
-		if (
-			/\b(stop|baja|no contactar|no escrib|unsubscribe|queja|abogado|legal|privacidad|precio|cotizaci[oó]n|contrato)\b/i.test(
-				inbound,
-			)
-		)
-			return null;
-		const key = process.env.OPENAI_API_KEY;
-		if (!key) return null;
-		const response = await fetch("https://api.openai.com/v1/chat/completions", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${key}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				model: process.env.EVE_OPENAI_MODEL || "gpt-4.1-mini",
-				temperature: 0.25,
-				max_tokens: 180,
-				messages: [
-					{
-						role: "user",
-						content: `Eres Eve, appointment setter de Braxel. Responde en español a un mensaje entrante de Facebook o Instagram. Nunca haces prospección masiva. Tu objetivo es avanzar una conversación hacia una llamada de diagnóstico con un humano. Usa este proceso: saluda y reconoce el contexto; descubre el problema con una pregunta abierta; confirma lo entendido; conecta el problema con una oferta solo si existe evidencia; pide un siguiente paso concreto. Sé natural y breve, entre 40 y 90 palabras, con máximo una pregunta. Usa venta consultiva: pregunta antes de argumentar, no contradigas, no presiones y no prometas resultados. No inventes precios, descuentos, disponibilidad, casos, integraciones ni datos de la empresa. Si preguntan precio, contrato, garantías o condiciones comerciales, devuelve exactamente HANDOFF para que un humano use el catálogo vigente. Devuelve HANDOFF si mencionan no contactar, privacidad, una queja, un asunto legal, datos sensibles o una intención ambigua. Si expresan interés, propone una llamada y pide su horario preferido; no confirmes una cita sin calendario humano. Mensaje entrante: ${inbound}`,
-					},
-				],
-			}),
-		});
-		if (!response.ok) return null;
-		const json = (await response.json()) as {
-			choices?: Array<{ message?: { content?: string } }>;
-		};
-		const output = json.choices?.[0]?.message?.content?.trim();
-		return output && output !== "HANDOFF" && output.length <= 1200
-			? output
-			: null;
 	}
 }

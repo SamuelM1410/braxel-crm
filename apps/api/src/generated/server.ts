@@ -23,7 +23,7 @@ import { dashboardSummaryInput } from "../dashboard/dashboard.contracts";
 import { dealListInput, dealIdInput, dealCreateInput, dealUpdateArgs, setStageInput, dealContactsInput, dealAttachContactInput, dealDetachContactInput, dealContactRoleInput, dealBulkOwnerInput, dealBulkStageInput, dealBulkInput } from "../deals/deals.contracts";
 import { fieldListInput, fieldByKeyInput, fieldIdInput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput } from "../fields/fields.contracts";
 import { sendApprovedEmailInput, setEmailAssistantInput, setAutoCreateInput, suppressDomainInput, threadInput, calendarEventInput } from "../google/google.contracts";
-import { setMetaAssistantInput } from "../meta/meta.contracts";
+import { setMetaAssistantInput, metaThreadsInput } from "../meta/meta.contracts";
 import { setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
 import { setAgentModelInput, setResearchKeyInput } from "../settings/settings.contracts";
 import { slackChannelsInput, slackJoinChannelInput, slackCreateChannelInput } from "../slack/slack.contracts";
@@ -372,6 +372,9 @@ const appRouter = t.router({
     setAssistant: publicProcedure
       .input(setMetaAssistantInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["setAssistant"]>>),
+    threads: publicProcedure
+      .input(metaThreadsInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["threads"]>>),
     disconnect: publicProcedure
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["disconnect"]>>)
     }),

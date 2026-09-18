@@ -138,6 +138,56 @@ export class MetaConnectionService {
 			select: { replyAssistantEnabled: true },
 		});
 	}
+
+	async threads(userId: string, limit: number) {
+		const connection = await this.db.metaConnection.findUnique({
+			where: { userId },
+			select: {
+				pages: {
+					select: { pageId: true, instagramBusinessAccountId: true },
+				},
+			},
+		});
+		const recipientIds = (connection?.pages ?? []).flatMap((page) =>
+			[page.pageId, page.instagramBusinessAccountId].filter(
+				(value): value is string => Boolean(value),
+			),
+		);
+		if (recipientIds.length === 0) return [];
+		const threads = await this.db.socialThread.findMany({
+			where: { externalRecipientId: { in: recipientIds } },
+			orderBy: { lastMessageAt: "desc" },
+			take: limit,
+			include: {
+				company: { select: { id: true, name: true } },
+				contact: {
+					select: { id: true, firstName: true, lastName: true, email: true },
+				},
+				messages: {
+					orderBy: { sentAt: "desc" },
+					take: 20,
+				},
+			},
+		});
+		return threads.map((thread) => ({
+			id: thread.id,
+			channel: thread.channel,
+			externalSenderId: thread.externalSenderId,
+			externalRecipientId: thread.externalRecipientId,
+			lastMessageAt: thread.lastMessageAt.toISOString(),
+			messageCount: thread.messageCount,
+			company: thread.company,
+			contact: thread.contact,
+			messages: thread.messages.map((message) => ({
+				id: message.id,
+				externalMessageId: message.externalMessageId,
+				direction: message.direction,
+				body: message.body,
+				sentAt: message.sentAt.toISOString(),
+			})),
+		}));
+	}
+
 	async disconnect(userId: string) {
 		await this.db.metaConnection.deleteMany({ where: { userId } });
 		return { disconnected: true };

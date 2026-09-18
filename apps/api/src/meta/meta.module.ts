@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AgentModule } from "../agent/agent.module";
 import { TrpcModule } from "../trpc/trpc.module";
 import { MetaClient } from "./meta.client";
 import { MetaController } from "./meta.controller";
@@ -8,7 +9,7 @@ import { MetaTokenService } from "./meta-token.service";
 import { MetaWebhookService } from "./meta-webhook.service";
 
 @Module({
-	imports: [TrpcModule],
+	imports: [TrpcModule, AgentModule],
 	controllers: [MetaController],
 	providers: [
 		MetaClient,
