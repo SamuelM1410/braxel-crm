@@ -61,7 +61,7 @@ function testDatabase(): string {
 		);
 	}
 
-	return url;
+	return withBraxelSchema(url);
 }
 
 function databaseName(url: string): string {
