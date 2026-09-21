@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import pg from "pg";
 
+const TEST_SCHEMA = "braxel";
 const url = resolve();
 
 if (!url) {
@@ -21,6 +22,7 @@ if (!name.endsWith("_test")) {
 }
 
 await create(url, name);
+await ensureSchema(url);
 migrate(url);
 
 if (!process.env.TEST_DATABASE_URL) {
@@ -71,6 +73,22 @@ async function create(target: string, database: string): Promise<void> {
 	}
 }
 
+async function ensureSchema(target: string): Promise<void> {
+	const client = new pg.Client({ connectionString: target });
+
+	try {
+		await client.connect();
+		await client.query(`CREATE SCHEMA IF NOT EXISTS ${TEST_SCHEMA}`);
+	} catch (error) {
+		fail([
+			`Could not prepare the ${TEST_SCHEMA} schema in ${new URL(target).host}/${databaseName(target)}.`,
+			error instanceof Error ? error.message : String(error),
+		]);
+	} finally {
+		await client.end();
+	}
+}
+
 function migrate(target: string): void {
 	const result = spawnSync("prisma", ["migrate", "deploy"], {
 		stdio: "inherit",
@@ -82,7 +100,7 @@ function migrate(target: string): void {
 
 function resolve(): string | null {
 	const explicit = process.env.TEST_DATABASE_URL;
-	if (explicit) return explicit;
+	if (explicit) return withTestSchema(explicit);
 
 	const live = process.env.DATABASE_URL;
 	if (!live) return null;
@@ -93,11 +111,16 @@ function resolve(): string | null {
 		if (!database) return null;
 
 		parsed.pathname = `/${database.endsWith("_test") ? database : `${database}_test`}`;
-
-		return parsed.toString();
+		return withTestSchema(parsed.toString());
 	} catch {
 		return null;
 	}
+}
+
+function withTestSchema(value: string): string {
+	const parsed = new URL(value);
+	parsed.searchParams.set("schema", TEST_SCHEMA);
+	return parsed.toString();
 }
 
 function databaseName(value: string): string {
