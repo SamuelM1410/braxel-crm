@@ -24,6 +24,26 @@ export default defineTool({
 		limit: z.number().int().min(1).max(20).default(20),
 	}),
 	async execute({ query, limit }) {
+		const localBase = process.env.LOCAL_MAPS_SCRAPER_URL?.trim().replace(/\/$/, "");
+		if (localBase) {
+			const local = await fetch(
+				`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
+				{ signal: AbortSignal.timeout(300_000) },
+			);
+			if (!local.ok)
+				return { ok: false as const, reason: `Local Maps scraper returned HTTP ${local.status}.` };
+			const rows = z.array(z.record(z.string(), z.unknown())).safeParse(await local.json());
+			if (!rows.success) return { ok: false as const, reason: "Local Maps scraper returned an unsupported shape." };
+			return {
+				ok: true as const,
+				provider: "local_maps_scraper" as const,
+				query,
+				candidates: rows.data.slice(0, limit),
+				count: Math.min(rows.data.length, limit),
+				guardrail:
+					"Candidatos obtenidos del scraper local. Eve debe verificar evidencia antes de calificarlos o contactar.",
+			};
+		}
 		const key = process.env.GOOGLE_MAPS_API_KEY?.trim();
 		if (!key) return unavailable("GOOGLE_MAPS_API_KEY");
 		const response = await fetch("https://places.googleapis.com/v1/places:searchText", {

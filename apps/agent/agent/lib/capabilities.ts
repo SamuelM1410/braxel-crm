@@ -58,6 +58,11 @@ export function capabilitiesFrom(
 			gives: "public place identity, website and phone evidence from Google Places",
 		},
 		{
+			...fromEnv("LOCAL_MAPS_SCRAPER_URL"),
+			label: "Local Maps scraper",
+			gives: "Google Maps browser discovery without a Google Cloud API key",
+		},
+		{
 			...fromEnv("PERPLEXITY_API_KEY"),
 			label: "Web research",
 			gives:

@@ -13,7 +13,7 @@ n8n remains a fallback until every replacement passes production checks.
 
 | n8n area | Code replacement | Status |
 | --- | --- | --- |
-| Maps discovery `00A` to `00G` | `discover_google_maps` Eve tool and Places client | Code ready; key required |
+| Maps discovery `00A` to `00G` | `discover_google_maps` Eve tool with the existing local Playwright scraper; Places API is optional | Code ready; local scraper URL required |
 | Candidate intake | Existing intake route and database services | Existing |
 | Website research | Existing `research_company` Eve tool | Existing |
 | PageSpeed and technology signals | Agent enrichment tasks | Existing; verify production |
@@ -39,11 +39,12 @@ Use eve with the Vercel AI Gateway as the model path.
 Use direct OpenAI only as a configured fallback.
 Keep vendor clients in `apps/agent`, not the Nest API.
 
-## Maps requirement
+## Maps providers
 
-Google Maps pages are public, but the official Google Places API requires a key.
-The key enables stable fields, quotas and production support.
-Unauthenticated HTML scraping is incomplete and needs a browser runtime.
+The previous n8n flow used the local Playwright scraper, not Google Cloud.
+Set `LOCAL_MAPS_SCRAPER_URL` to keep that path and avoid a Google Cloud key.
+The official Places API remains an optional fallback through `GOOGLE_MAPS_API_KEY`.
+It gives stable fields and quotas, but requires a billing-enabled Google Cloud project.
 
 ## Shutdown order
 
