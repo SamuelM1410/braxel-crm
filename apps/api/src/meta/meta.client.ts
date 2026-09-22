@@ -88,6 +88,19 @@ export class MetaClient {
 		return result.data ?? [];
 	}
 
+	instagramFallback() {
+		const id = this.config.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", {
+			infer: true,
+		});
+		if (!id) return undefined;
+		return {
+			id,
+			username:
+				this.config.get("META_INSTAGRAM_USERNAME", { infer: true }) ??
+				undefined,
+		};
+	}
+
 	async subscribePage(pageId: string, pageToken: string) {
 		return this.post(`${pageId}/subscribed_apps`, {
 			subscribed_fields:

@@ -83,6 +83,14 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	META_INSTAGRAM_BUSINESS_ACCOUNT_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	META_INSTAGRAM_USERNAME?: string;
+
+	@IsOptional()
+	@IsString()
 	MICROSOFT_CLIENT_ID?: string;
 
 	@IsOptional()

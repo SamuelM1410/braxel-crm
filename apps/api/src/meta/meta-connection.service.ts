@@ -106,6 +106,7 @@ export class MetaConnectionService {
 				[...pages, ...assignedPages].map((page) => [page.id, page]),
 			).values(),
 		];
+		const instagramFallback = this.client.instagramFallback();
 		const connection = await this.db.metaConnection.upsert({
 			where: { userId: state.userId },
 			create: {
@@ -136,16 +137,26 @@ export class MetaConnectionService {
 					name: page.name,
 					encryptedPageAccessToken: this.tokens.encrypt(page.access_token),
 					instagramBusinessAccountId:
-						page.instagram_business_account?.id ?? null,
-					instagramUsername: page.instagram_business_account?.username ?? null,
+						page.instagram_business_account?.id ??
+						instagramFallback?.id ??
+						null,
+					instagramUsername:
+						page.instagram_business_account?.username ??
+						instagramFallback?.username ??
+						null,
 				},
 				update: {
 					connectionId: connection.id,
 					name: page.name,
 					encryptedPageAccessToken: this.tokens.encrypt(page.access_token),
 					instagramBusinessAccountId:
-						page.instagram_business_account?.id ?? null,
-					instagramUsername: page.instagram_business_account?.username ?? null,
+						page.instagram_business_account?.id ??
+						instagramFallback?.id ??
+						null,
+					instagramUsername:
+						page.instagram_business_account?.username ??
+						instagramFallback?.username ??
+						null,
 				},
 			});
 			await this.client.subscribePage(page.id, page.access_token);
