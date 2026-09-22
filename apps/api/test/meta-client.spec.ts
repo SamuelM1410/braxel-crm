@@ -12,7 +12,7 @@ describe("MetaClient", () => {
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 	});
-	it("requests Facebook and Instagram messaging scopes without a login configuration", () => {
+	it("requests Facebook messaging scopes without a login configuration", () => {
 		const instance = client({
 			META_APP_ID: "app-id",
 			API_URL: "https://braxel-api.vercel.app",
@@ -22,13 +22,10 @@ describe("MetaClient", () => {
 		const url = new URL(instance.authorizeUrl("state-1"));
 
 		expect(url.searchParams.get("scope")).toContain("pages_messaging");
-		expect(url.searchParams.get("scope")).toContain("instagram_basic");
-		expect(url.searchParams.get("scope")).toContain(
-			"instagram_manage_messages",
-		);
+		expect(url.searchParams.get("scope")).not.toContain("instagram_basic");
 	});
 
-	it("keeps the direct scope flow even when a legacy configuration is present", () => {
+	it("uses the configured login configuration when present", () => {
 		const instance = client({
 			META_APP_ID: "app-id",
 			META_LOGIN_CONFIG_ID: "config-1",
@@ -38,10 +35,8 @@ describe("MetaClient", () => {
 		});
 		const url = new URL(instance.authorizeUrl("state-1"));
 
-		expect(url.searchParams.get("config_id")).toBeNull();
-		expect(url.searchParams.get("scope")).toContain(
-			"instagram_manage_messages",
-		);
+		expect(url.searchParams.get("config_id")).toBe("config-1");
+		expect(url.searchParams.has("scope")).toBe(false);
 	});
 
 	it("verifies the current app subscription", async () => {
