@@ -39,20 +39,21 @@ export class MetaClient {
 		url.searchParams.set("redirect_uri", this.callbackUrl());
 		url.searchParams.set("state", state);
 		url.searchParams.set("response_type", "code");
-		const configId = this.config.get("META_LOGIN_CONFIG_ID", { infer: true });
-		if (configId) url.searchParams.set("config_id", configId);
-		else
-			url.searchParams.set(
-				"scope",
-				[
-					"pages_show_list",
-					"pages_read_engagement",
-					"pages_manage_metadata",
-					"pages_messaging",
-					"instagram_basic",
-					"instagram_manage_messages",
-				].join(","),
-			);
+		// Use the direct OAuth scope flow here. Business Login configurations can
+		// silently pin authorization to the wrong business portfolio (and omit the
+		// linked Instagram asset), while the direct flow lets the account choose the
+		// Page and professional Instagram account it actually administers.
+		url.searchParams.set(
+			"scope",
+			[
+				"pages_show_list",
+				"pages_read_engagement",
+				"pages_manage_metadata",
+				"pages_messaging",
+				"instagram_basic",
+				"instagram_manage_messages",
+			].join(","),
+		);
 		return url.toString();
 	}
 

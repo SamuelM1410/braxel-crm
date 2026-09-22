@@ -28,7 +28,7 @@ describe("MetaClient", () => {
 		);
 	});
 
-	it("uses the configured login configuration when present", () => {
+	it("keeps the direct scope flow even when a legacy configuration is present", () => {
 		const instance = client({
 			META_APP_ID: "app-id",
 			META_LOGIN_CONFIG_ID: "config-1",
@@ -38,8 +38,10 @@ describe("MetaClient", () => {
 		});
 		const url = new URL(instance.authorizeUrl("state-1"));
 
-		expect(url.searchParams.get("config_id")).toBe("config-1");
-		expect(url.searchParams.has("scope")).toBe(false);
+		expect(url.searchParams.get("config_id")).toBeNull();
+		expect(url.searchParams.get("scope")).toContain(
+			"instagram_manage_messages",
+		);
 	});
 
 	it("verifies the current app subscription", async () => {
