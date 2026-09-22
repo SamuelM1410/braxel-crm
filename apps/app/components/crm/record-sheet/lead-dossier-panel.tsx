@@ -11,7 +11,7 @@ import {
 	CardTitle,
 } from "@crm/ui/components/card";
 import { Separator } from "@crm/ui/components/separator";
-import { type LeadReview, parseLeadReview } from "@crm/validation";
+import { type LeadReview, parseLeadReview, safeHref } from "@crm/validation";
 
 type Evidence = { claim: string; source: string; strength: number };
 type Dossier = {
@@ -186,17 +186,27 @@ export function LeadDossierPanel({
 				{dossier.evidence.length > 0 ? (
 					<div className="flex flex-col gap-2">
 						<p className="font-medium text-sm">9. Evidencia verificable</p>
-						{dossier.evidence.map((item) => (
-							<a
-								key={`${item.claim}-${item.source}`}
-								href={item.source}
-								target="_blank"
-								rel="noreferrer noopener"
-								className="text-muted-foreground text-sm underline-offset-2 hover:underline"
-							>
-								{item.claim} · {item.strength}/100
-							</a>
-						))}
+						{dossier.evidence.map((item) => {
+							const href = safeHref(item.source);
+							return href ? (
+								<a
+									key={`${item.claim}-${item.source}`}
+									href={href}
+									target="_blank"
+									rel="noreferrer noopener"
+									className="text-muted-foreground text-sm underline-offset-2 hover:underline"
+								>
+									{item.claim} · {item.strength}/100
+								</a>
+							) : (
+								<p
+									key={`${item.claim}-${item.source}`}
+									className="text-muted-foreground text-sm"
+								>
+									{item.claim} · {item.strength}/100 · fuente no enlazable
+								</p>
+							);
+						})}
 					</div>
 				) : null}
 			</CardContent>
@@ -237,7 +247,20 @@ function ReviewDecision({ review }: { review: LeadReview }) {
 	);
 }
 
-function recommendedContact(channels: ContactChannels) {
+function recommendedContact(raw: ContactChannels) {
+	// Every link here reached us from research or from the intake endpoint, so a
+	// `javascript:` href would be a one-click script in the rep's session.
+	const channels: ContactChannels = {
+		website: safeHref(raw.website),
+		phone: raw.phone,
+		email: raw.email,
+		whatsappUrl: safeHref(raw.whatsappUrl),
+		instagramUrl: safeHref(raw.instagramUrl),
+		facebookUrl: safeHref(raw.facebookUrl),
+		tiktokUrl: safeHref(raw.tiktokUrl),
+		linkedinUrl: safeHref(raw.linkedinUrl),
+	};
+
 	if (channels.whatsappUrl)
 		return {
 			label: "WhatsApp",

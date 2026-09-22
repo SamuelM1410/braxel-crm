@@ -29,10 +29,21 @@ export type LeadImpactSummary = {
 		rejection: number;
 		documentation: number;
 	};
-	time: {
+	/** Measured from the rows themselves. No assumption goes in here. */
+	measured: {
+		decisions: number;
+		medianMinutesToDecide: number | null;
+		fastestMinutesToDecide: number | null;
+		slowestMinutesToDecide: number | null;
+		leadsWithEvidence: number;
+		evidenceItems: number;
+		reviewers: string[];
+	};
+	/** Derived from the two editable minute assumptions. Never measured. */
+	estimated: {
 		manualMinutesPerLead: number;
 		reviewMinutesPerLead: number;
-		minutesSaved: number;
+		minutesSavedOnReviewed: number;
 	};
 	risk: {
 		contactsBlocked: number;

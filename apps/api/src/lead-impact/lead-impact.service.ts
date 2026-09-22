@@ -1,6 +1,7 @@
 import { ActivityType, type Db } from "@crm/db";
 import {
 	LEAD_OS_LABELS,
+	parseLeadEvidence,
 	parseLeadReview,
 	parseLeadScores,
 } from "@crm/validation";
@@ -14,8 +15,28 @@ import type {
 
 const REVIEW_NOTE_PREFIX = "Lead review:";
 
+const MINUTE_MS = 60_000;
+
 function ratio(part: number, whole: number): number {
 	return whole > 0 ? part / whole : 0;
+}
+
+function median(values: number[]): number | null {
+	if (values.length === 0) return null;
+	const sorted = [...values].sort((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+	if (sorted.length % 2 === 1) return sorted[middle] ?? null;
+	const low = sorted[middle - 1];
+	const high = sorted[middle];
+	return low === undefined || high === undefined ? null : (low + high) / 2;
+}
+
+function reviewerOf(meta: unknown): string | null {
+	if (typeof meta !== "object" || meta === null || Array.isArray(meta)) {
+		return null;
+	}
+	const value = (meta as Record<string, unknown>).reviewer;
+	return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 @Injectable()
@@ -29,8 +50,12 @@ export class LeadImpactService {
 		const line = (label: string, value: string) => ({
 			AND: [leads, { description: { contains: `\n${label}: ${value}` } }],
 		});
+		const reviewNotes = {
+			type: ActivityType.NOTE,
+			subject: { startsWith: REVIEW_NOTE_PREFIX },
+		};
 
-		const [total, approved, rejected, synthetic, documented, rows] =
+		const [total, approved, rejected, synthetic, notes, rows] =
 			await Promise.all([
 				this.db.company.count({ where: leads }),
 				this.db.company.count({
@@ -42,11 +67,13 @@ export class LeadImpactService {
 				this.db.company.count({
 					where: line(LEAD_OS_LABELS.synthetic, "sí"),
 				}),
-				this.db.activity.count({
-					where: {
-						type: ActivityType.NOTE,
-						subject: { startsWith: REVIEW_NOTE_PREFIX },
-						body: { not: null },
+				this.db.activity.findMany({
+					where: reviewNotes,
+					select: {
+						createdAt: true,
+						body: true,
+						meta: true,
+						company: { select: { createdAt: true } },
 					},
 				}),
 				this.db.company.findMany({
@@ -65,10 +92,29 @@ export class LeadImpactService {
 
 		const reviewed = approved + rejected;
 		const pending = total - reviewed;
-		const { manualResearchMinutesPerLead, humanReviewMinutesPerLead } =
-			LEAD_IMPACT.assumptions;
+		const documented = notes.filter((note) => note.body?.trim()).length;
+
+		const waits: number[] = [];
+		const reviewers = new Set<string>();
+		for (const note of notes) {
+			const reviewer = reviewerOf(note.meta);
+			if (reviewer) reviewers.add(reviewer);
+			const arrived = note.company?.createdAt;
+			if (!arrived) continue;
+			const minutes =
+				(note.createdAt.getTime() - arrived.getTime()) / MINUTE_MS;
+			if (minutes >= 0) waits.push(minutes);
+		}
+
+		let leadsWithEvidence = 0;
+		let evidenceItems = 0;
 		const companies: LeadImpactCompany[] = rows.map((row) => {
 			const review = parseLeadReview(row.description);
+			const evidence = parseLeadEvidence(row.description);
+			if (evidence && evidence.items.length > 0) {
+				leadsWithEvidence += 1;
+				evidenceItems += evidence.items.length;
+			}
 			return {
 				id: row.id,
 				name: row.name,
@@ -83,6 +129,9 @@ export class LeadImpactService {
 				synthetic: review.synthetic,
 			};
 		});
+
+		const { manualResearchMinutesPerLead, humanReviewMinutesPerLead } =
+			LEAD_IMPACT.assumptions;
 
 		return {
 			totals: {
@@ -99,11 +148,20 @@ export class LeadImpactService {
 				rejection: ratio(rejected, reviewed),
 				documentation: ratio(Math.min(documented, reviewed), reviewed),
 			},
-			time: {
+			measured: {
+				decisions: notes.length,
+				medianMinutesToDecide: median(waits),
+				fastestMinutesToDecide: waits.length ? Math.min(...waits) : null,
+				slowestMinutesToDecide: waits.length ? Math.max(...waits) : null,
+				leadsWithEvidence,
+				evidenceItems,
+				reviewers: [...reviewers].sort(),
+			},
+			estimated: {
 				manualMinutesPerLead: manualResearchMinutesPerLead,
 				reviewMinutesPerLead: humanReviewMinutesPerLead,
-				minutesSaved:
-					total * (manualResearchMinutesPerLead - humanReviewMinutesPerLead),
+				minutesSavedOnReviewed:
+					reviewed * (manualResearchMinutesPerLead - humanReviewMinutesPerLead),
 			},
 			risk: {
 				contactsBlocked: total - approved,

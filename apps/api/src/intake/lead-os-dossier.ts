@@ -1,3 +1,4 @@
+import { webUrl } from "@crm/validation";
 import { z } from "zod";
 
 const text = z.string().trim().min(1).max(3000);
@@ -46,7 +47,7 @@ export const leadOsDossierSchema = z.object({
 		.array(
 			z.object({
 				claim: text,
-				source: z.string().trim().url().max(2048),
+				source: webUrl,
 				strength: z.number().min(0).max(100),
 			}),
 		)
