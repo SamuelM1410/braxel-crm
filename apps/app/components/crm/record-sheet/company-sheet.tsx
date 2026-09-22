@@ -65,6 +65,7 @@ import {
 	descriptionWithoutLeadDossier,
 	LeadDossierPanel,
 } from "./lead-dossier-panel";
+import { LeadFinancePanel } from "./lead-finance-panel";
 import { LeadReviewActions } from "./lead-review-actions";
 import { QuickAddContact, QuickAddDeal } from "./quick-add";
 import { RecordActions } from "./record-actions";
@@ -353,6 +354,10 @@ function CompanyOverview({ company }: { company: Company }) {
 							tiktokUrl: company.tiktokUrl,
 							linkedinUrl: company.linkedinUrl,
 						}}
+					/>
+					<LeadFinancePanel
+						companyId={company.id}
+						description={company.description}
 					/>
 					{descriptionWithoutLeadDossier(company.description) ? (
 						<DetailSheetSection title="About">

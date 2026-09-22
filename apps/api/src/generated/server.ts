@@ -40,6 +40,8 @@ import type { DashboardRouter } from "../dashboard/dashboard.router";
 import type { DealsRouter } from "../deals/deals.router";
 import type { FieldsRouter } from "../fields/fields.router";
 import type { GoogleRouter } from "../google/google.router";
+import type { LeadFinanceRouter } from "../lead-finance/lead-finance.router";
+import type { LeadImpactRouter } from "../lead-impact/lead-impact.router";
 import type { MetaRouter } from "../meta/meta.router";
 import type { MicrosoftRouter } from "../microsoft/microsoft.router";
 import type { SearchRouter } from "../search/search.router";
@@ -365,6 +367,14 @@ const appRouter = t.router({
     event: publicProcedure
       .input(calendarEventInput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["event"]>>)
+    }),
+  leadFinance: t.router({
+    portfolio: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<LeadFinanceRouter["portfolio"]>>)
+    }),
+  leadImpact: t.router({
+    summary: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<LeadImpactRouter["summary"]>>)
     }),
   meta: t.router({
     status: publicProcedure

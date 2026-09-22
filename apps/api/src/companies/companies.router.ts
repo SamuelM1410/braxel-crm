@@ -106,6 +106,7 @@ export class CompaniesRouter {
 			input.id,
 			input.decision,
 			ctx.user.name,
+			ctx.user.id,
 			input.reason,
 		);
 	}

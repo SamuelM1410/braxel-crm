@@ -11,6 +11,7 @@ import {
 	CardTitle,
 } from "@crm/ui/components/card";
 import { Separator } from "@crm/ui/components/separator";
+import { type LeadReview, parseLeadReview } from "@crm/validation";
 
 type Evidence = { claim: string; source: string; strength: number };
 type Dossier = {
@@ -67,6 +68,7 @@ export function LeadDossierPanel({
 	if (!dossier) return null;
 	const assessment = completeAssessment(dossier);
 	const contact = recommendedContact(channels);
+	const review = parseLeadReview(description);
 
 	return (
 		<Card>
@@ -81,6 +83,15 @@ export function LeadDossierPanel({
 				</CardAction>
 			</CardHeader>
 			<CardContent>
+				{review.synthetic ? (
+					<div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+						<p className="font-medium">Datos sintéticos de demostración</p>
+						<p className="text-muted-foreground">
+							Esta empresa no representa un negocio real y no debe contactarse.
+						</p>
+					</div>
+				) : null}
+				{review.isLead ? <ReviewDecision review={review} /> : null}
 				<div className="grid gap-3 sm:grid-cols-3">
 					<Score label="Evidence" value={dossier.scores.evidence_quality} />
 					<Score
@@ -113,7 +124,7 @@ export function LeadDossierPanel({
 					<p className="mt-1 text-muted-foreground text-sm">
 						{contact.nextAction}
 					</p>
-					{contact.href ? (
+					{contact.href && review.contactAllowed ? (
 						<Button asChild className="mt-3" size="sm" variant="outline">
 							<a
 								href={contact.href}
@@ -123,6 +134,11 @@ export function LeadDossierPanel({
 								Abrir {contact.label}
 							</a>
 						</Button>
+					) : null}
+					{contact.href && !review.contactAllowed ? (
+						<p className="mt-2 text-muted-foreground text-xs">
+							Bloqueado hasta que una persona apruebe este lead con un motivo.
+						</p>
 					) : null}
 				</div>
 				{assessment.call_opener ? (
@@ -185,6 +201,39 @@ export function LeadDossierPanel({
 				) : null}
 			</CardContent>
 		</Card>
+	);
+}
+
+function ReviewDecision({ review }: { review: LeadReview }) {
+	const label =
+		review.status === "APPROVED"
+			? "Aprobado por una persona"
+			: review.status === "REJECTED"
+				? "Rechazado por una persona"
+				: "Pendiente de revisión humana";
+	return (
+		<div className="mb-3 flex flex-col gap-1 rounded-md border p-3">
+			<div className="flex items-center gap-2">
+				<p className="font-medium text-sm">Decisión humana</p>
+				<Badge
+					variant={review.status === "REJECTED" ? "destructive" : "secondary"}
+				>
+					{label}
+				</Badge>
+			</div>
+			{review.reviewedBy ? (
+				<p className="text-muted-foreground text-sm">
+					Revisado por {review.reviewedBy}
+				</p>
+			) : (
+				<p className="text-muted-foreground text-sm">
+					Nadie puede contactar este lead hasta que una persona lo apruebe.
+				</p>
+			)}
+			{review.reason ? (
+				<p className="text-sm">Motivo: {review.reason}</p>
+			) : null}
+		</div>
 	);
 }
 

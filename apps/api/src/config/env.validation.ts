@@ -1,6 +1,7 @@
 import { plainToInstance, Type } from "class-transformer";
 import {
 	IsEnum,
+	IsIn,
 	IsInt,
 	IsOptional,
 	IsString,
@@ -168,6 +169,12 @@ export class EnvironmentVariables {
 	@IsOptional()
 	@IsUrl({ require_tld: false, require_protocol: true })
 	LEAD_OS_REVIEW_WEBHOOK_URL?: string;
+
+	@IsOptional()
+	@IsIn(["true", "false"], {
+		message: 'HACKATHON_DEMO_MODE must be "true" or "false".',
+	})
+	HACKATHON_DEMO_MODE?: string;
 }
 
 export function validateEnv(

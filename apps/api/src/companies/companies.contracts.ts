@@ -1,3 +1,4 @@
+import { schemas } from "@crm/validation";
 import { z } from "zod";
 import { bulkIdsInput } from "../crm/bulk";
 import { recordFieldValues } from "../fields/fields.contracts";
@@ -83,7 +84,7 @@ export const companyIdInput = z.object({ id: z.string() });
 export const companyLeadReviewInput = z.object({
 	id: z.string(),
 	decision: z.enum(["APPROVED", "REJECTED"]),
-	reason: z.string().trim().min(3).max(1000).optional(),
+	reason: schemas.leadReview.reason,
 });
 
 export const setPrimaryContactInput = z.object({

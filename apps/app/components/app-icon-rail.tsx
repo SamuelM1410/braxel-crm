@@ -2,8 +2,10 @@
 
 import Building from "@carbon/icons-react/es/Building";
 import type { CarbonIconType } from "@carbon/icons-react/es/CarbonIcon";
+import ChartLineData from "@carbon/icons-react/es/ChartLineData";
 import Chat from "@carbon/icons-react/es/Chat";
 import Close from "@carbon/icons-react/es/Close";
+import Currency from "@carbon/icons-react/es/Currency";
 import Dashboard from "@carbon/icons-react/es/Dashboard";
 import Partnership from "@carbon/icons-react/es/Partnership";
 import Settings from "@carbon/icons-react/es/Settings";
@@ -55,6 +57,8 @@ const ITEMS: RailItem[] = [
 		match: "prefix",
 	},
 	{ title: "Deals", href: "/deals", icon: Partnership, match: "prefix" },
+	{ title: "Impact", href: "/impact", icon: ChartLineData, match: "prefix" },
+	{ title: "Finance", href: "/lead-finance", icon: Currency, match: "prefix" },
 	{ title: "Settings", href: "/settings", icon: Settings, match: "prefix" },
 ];
 

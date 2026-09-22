@@ -12,6 +12,7 @@ import {
 } from "@crm/ui/components/alert-dialog";
 import { Button } from "@crm/ui/components/button";
 import { Textarea } from "@crm/ui/components/textarea";
+import { LEAD_REVIEW, parseLeadReview } from "@crm/validation";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,8 +32,8 @@ export function LeadReviewActions({
 		null,
 	);
 	const [reason, setReason] = useState("");
-	const status = reviewStatus(description);
-	const isReviewLead = /^Lead OS source:/m.test(description ?? "");
+	const { status, isLead: isReviewLead } = parseLeadReview(description);
+	const reasonMissing = LEAD_REVIEW.reason.minLength - reason.trim().length;
 	const review = useMutation(
 		trpc.companies.reviewLead.mutationOptions({
 			onSuccess: (result) => {
@@ -90,15 +91,20 @@ export function LeadReviewActions({
 					<Textarea
 						placeholder="Reason for this decision (required)"
 						value={reason}
+						maxLength={LEAD_REVIEW.reason.maxLength}
+						required
 						onChange={(event) => setReason(event.target.value)}
 					/>
+					<p className="text-muted-foreground text-xs">
+						{reasonMissing > 0
+							? `Escribe ${reasonMissing} carácter${reasonMissing === 1 ? "" : "es"} más para guardar la decisión.`
+							: "El motivo se guarda con tu nombre en el historial."}
+					</p>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							variant={decision === "REJECTED" ? "destructive" : "default"}
-							disabled={
-								review.isPending || reason.trim().length < 3 || !decision
-							}
+							disabled={review.isPending || reasonMissing > 0 || !decision}
 							onClick={() => {
 								if (decision)
 									review.mutate({ id: companyId, decision, reason });
@@ -111,8 +117,4 @@ export function LeadReviewActions({
 			</AlertDialog>
 		</>
 	);
-}
-
-function reviewStatus(description: string | null) {
-	return description?.match(/^Revisión:\s*(.+)$/m)?.[1]?.trim() ?? null;
 }
