@@ -23,7 +23,7 @@ import { dashboardSummaryInput } from "../dashboard/dashboard.contracts";
 import { dealListInput, dealIdInput, dealCreateInput, dealUpdateArgs, setStageInput, dealContactsInput, dealAttachContactInput, dealDetachContactInput, dealContactRoleInput, dealBulkOwnerInput, dealBulkStageInput, dealBulkInput } from "../deals/deals.contracts";
 import { fieldListInput, fieldByKeyInput, fieldIdInput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput } from "../fields/fields.contracts";
 import { sendApprovedEmailInput, setEmailAssistantInput, setAutoCreateInput, suppressDomainInput, threadInput, calendarEventInput } from "../google/google.contracts";
-import { setMetaAssistantInput, metaThreadsInput } from "../meta/meta.contracts";
+import { setMetaAssistantInput, metaThreadsInput, refreshMetaSubscriptionsInput, sendMetaReplyInput } from "../meta/meta.contracts";
 import { setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
 import { setAgentModelInput, setResearchKeyInput } from "../settings/settings.contracts";
 import { slackChannelsInput, slackJoinChannelInput, slackCreateChannelInput } from "../slack/slack.contracts";
@@ -375,6 +375,12 @@ const appRouter = t.router({
     threads: publicProcedure
       .input(metaThreadsInput)
       .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["threads"]>>),
+    refreshSubscriptions: publicProcedure
+      .input(refreshMetaSubscriptionsInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["refreshSubscriptions"]>>),
+    sendReply: publicProcedure
+      .input(sendMetaReplyInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["sendReply"]>>),
     disconnect: publicProcedure
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MetaRouter["disconnect"]>>)
     }),

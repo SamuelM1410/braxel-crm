@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { Db } from "@crm/db";
 import {
 	BadRequestException,
+	ForbiddenException,
 	Injectable,
+	NotFoundException,
 	ServiceUnavailableException,
 } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
@@ -27,6 +29,7 @@ export class MetaConnectionService {
 						id: true,
 						pageId: true,
 						name: true,
+						encryptedPageAccessToken: true,
 						instagramBusinessAccountId: true,
 						instagramUsername: true,
 						enabled: true,
@@ -34,12 +37,36 @@ export class MetaConnectionService {
 				},
 			},
 		});
+		const pages = await Promise.all(
+			(connection?.pages ?? []).map(async (page) => {
+				const { encryptedPageAccessToken, ...publicPage } = page;
+				try {
+					const subscription = await this.client.pageSubscription(
+						page.pageId,
+						this.tokens.decrypt(encryptedPageAccessToken),
+					);
+					return {
+						...publicPage,
+						webhookState: subscription.active
+							? ("active" as const)
+							: ("missing" as const),
+						webhookFields: subscription.fields,
+					};
+				} catch {
+					return {
+						...publicPage,
+						webhookState: "error" as const,
+						webhookFields: [],
+					};
+				}
+			}),
+		);
 		return {
 			configured: this.client.configured(),
 			connected: Boolean(connection),
 			displayName: connection?.displayName ?? null,
 			replyAssistantEnabled: connection?.replyAssistantEnabled ?? false,
-			pages: connection?.pages ?? [],
+			pages,
 			callbackUrl: this.client.callbackUrl(),
 			webhookUrl: new URL("/api/meta/webhook", this.client.apiUrl()).toString(),
 		};
@@ -121,9 +148,7 @@ export class MetaConnectionService {
 					instagramUsername: page.instagram_business_account?.username ?? null,
 				},
 			});
-			await this.client
-				.subscribePage(page.id, page.access_token)
-				.catch(() => undefined);
+			await this.client.subscribePage(page.id, page.access_token);
 		}
 		return state.returnUrl;
 	}
@@ -186,6 +211,97 @@ export class MetaConnectionService {
 				sentAt: message.sentAt.toISOString(),
 			})),
 		}));
+	}
+
+	async refreshSubscriptions(userId: string, pageId?: string) {
+		const pages = await this.db.metaPage.findMany({
+			where: {
+				connection: { userId },
+				...(pageId ? { pageId } : {}),
+			},
+			select: {
+				pageId: true,
+				encryptedPageAccessToken: true,
+			},
+		});
+		if (pages.length === 0)
+			throw new NotFoundException("No connected Meta Page.");
+		for (const page of pages)
+			await this.client.subscribePage(
+				page.pageId,
+				this.tokens.decrypt(page.encryptedPageAccessToken),
+			);
+		return { refreshed: pages.length };
+	}
+
+	async sendReply(userId: string, threadId: string, body: string) {
+		const thread = await this.db.socialThread.findUnique({
+			where: { id: threadId },
+			include: {
+				messages: { orderBy: { sentAt: "desc" }, take: 1 },
+			},
+		});
+		if (!thread) throw new NotFoundException("Conversation not found.");
+		if (thread.channel !== "FACEBOOK" && thread.channel !== "INSTAGRAM")
+			throw new BadRequestException("This conversation is not a Meta DM.");
+		const page = await this.db.metaPage.findFirst({
+			where: {
+				enabled: true,
+				connection: { userId },
+				OR: [
+					{ pageId: thread.externalRecipientId ?? "" },
+					{
+						instagramBusinessAccountId: thread.externalRecipientId ?? "",
+					},
+				],
+			},
+		});
+		if (!page)
+			throw new ForbiddenException(
+				"Conversation is not connected to this account.",
+			);
+		const latest = thread.messages[0];
+		if (latest?.direction !== "INBOUND")
+			throw new BadRequestException(
+				"Wait for a new inbound message before replying.",
+			);
+		if (Date.now() - latest.sentAt.getTime() > 24 * 60 * 60_000)
+			throw new BadRequestException(
+				"The 24-hour Meta reply window has expired.",
+			);
+		if (
+			/\b(stop|unsubscribe|remove me|no me escrib|no contactar|salir)\b/i.test(
+				body,
+			)
+		)
+			throw new BadRequestException(
+				"This draft appears to contain an opt-out instruction.",
+			);
+		const sent = await this.client.send(
+			page.pageId,
+			this.tokens.decrypt(page.encryptedPageAccessToken),
+			thread.externalSenderId,
+			body,
+		);
+		const sentAt = new Date();
+		await this.db.$transaction([
+			this.db.socialMessage.create({
+				data: {
+					threadId: thread.id,
+					externalMessageId: sent.message_id,
+					direction: "OUTBOUND",
+					senderId: thread.externalRecipientId ?? page.pageId,
+					body,
+					raw: sent,
+					sentAt,
+				},
+			}),
+			this.db.socialThread.update({
+				where: { id: thread.id },
+				data: { lastMessageAt: sentAt, messageCount: { increment: 1 } },
+			}),
+		]);
+		return { sent: true, messageId: sent.message_id };
 	}
 
 	async disconnect(userId: string) {

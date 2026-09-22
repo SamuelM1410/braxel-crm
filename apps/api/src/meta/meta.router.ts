@@ -10,7 +10,12 @@ import {
 import type { z } from "zod";
 import type { AuthedTrpcContext } from "../trpc/context.types";
 import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
-import { metaThreadsInput, setMetaAssistantInput } from "./meta.contracts";
+import {
+	metaThreadsInput,
+	refreshMetaSubscriptionsInput,
+	sendMetaReplyInput,
+	setMetaAssistantInput,
+} from "./meta.contracts";
 import { MetaConnectionService } from "./meta-connection.service";
 
 @Router({ alias: "meta" })
@@ -40,6 +45,22 @@ export class MetaRouter {
 		@Input() input: z.infer<typeof metaThreadsInput>,
 	) {
 		return this.connection.threads(ctx.user.id, input.limit);
+	}
+
+	@Mutation({ input: refreshMetaSubscriptionsInput })
+	refreshSubscriptions(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof refreshMetaSubscriptionsInput>,
+	) {
+		return this.connection.refreshSubscriptions(ctx.user.id, input.pageId);
+	}
+
+	@Mutation({ input: sendMetaReplyInput })
+	sendReply(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof sendMetaReplyInput>,
+	) {
+		return this.connection.sendReply(ctx.user.id, input.threadId, input.body);
 	}
 
 	@Mutation()

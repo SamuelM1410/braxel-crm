@@ -14,6 +14,7 @@ type Page = {
 	access_token: string;
 	instagram_business_account?: { id: string; username?: string };
 };
+type SendResponse = { recipient_id?: string; message_id: string };
 
 @Injectable()
 export class MetaClient {
@@ -97,13 +98,27 @@ export class MetaClient {
 		});
 	}
 
+	async pageSubscription(pageId: string, pageToken: string) {
+		const result = await this.get<{
+			data?: Array<{ id: string; subscribed_fields?: string[] }>;
+		}>(`${pageId}/subscribed_apps`, {
+			fields: "id,subscribed_fields",
+			access_token: pageToken,
+		});
+		const app = result.data?.find((item) => item.id === this.appId());
+		return {
+			active: Boolean(app),
+			fields: app?.subscribed_fields ?? [],
+		};
+	}
+
 	async send(
 		pageId: string,
 		pageToken: string,
 		recipientId: string,
 		text: string,
-	) {
-		return this.post(`${pageId}/messages`, {
+	): Promise<SendResponse> {
+		return this.post<SendResponse>(`${pageId}/messages`, {
 			recipient: { id: recipientId },
 			messaging_type: "RESPONSE",
 			message: { text },

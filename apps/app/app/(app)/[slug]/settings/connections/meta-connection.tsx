@@ -13,8 +13,10 @@ import {
 import { Spinner } from "@crm/ui/components/spinner";
 import { StatusIndicator } from "@crm/ui/components/status-indicator";
 import { Switch } from "@crm/ui/components/switch";
+import { Textarea } from "@crm/ui/components/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
 
@@ -25,6 +27,8 @@ export function MetaConnection({ slug }: { slug: string }) {
 	const threads = useQuery(trpc.meta.threads.queryOptions({ limit: 20 }));
 	const refresh = () =>
 		queryClient.invalidateQueries({ queryKey: trpc.meta.status.queryKey() });
+	const refreshThreads = () =>
+		queryClient.invalidateQueries({ queryKey: trpc.meta.threads.queryKey() });
 	const assistant = useMutation(
 		trpc.meta.setAssistant.mutationOptions({
 			onSuccess: refresh,
@@ -34,6 +38,15 @@ export function MetaConnection({ slug }: { slug: string }) {
 	const disconnect = useMutation(
 		trpc.meta.disconnect.mutationOptions({
 			onSuccess: refresh,
+			onError: (e) => toast.error(e.message),
+		}),
+	);
+	const subscriptions = useMutation(
+		trpc.meta.refreshSubscriptions.mutationOptions({
+			onSuccess: () => {
+				toast.success("Meta webhook subscription verified.");
+				refresh();
+			},
 			onError: (e) => toast.error(e.message),
 		}),
 	);
@@ -97,8 +110,16 @@ export function MetaConnection({ slug }: { slug: string }) {
 										</div>
 										<StatusIndicator
 											size="sm"
-											tone={page.enabled ? "success" : "neutral"}
-											label={page.enabled ? "Listening" : "Off"}
+											tone={
+												page.webhookState === "active" ? "success" : "warning"
+											}
+											label={
+												page.webhookState === "active"
+													? "Webhook active"
+													: page.webhookState === "missing"
+														? "Subscription missing"
+														: "Could not verify"
+											}
 										/>
 									</div>
 								))}
@@ -121,13 +142,22 @@ export function MetaConnection({ slug }: { slug: string }) {
 					) : null}
 					<CardFooter className="gap-2">
 						{meta?.connected ? (
-							<Button
-								variant="destructive"
-								disabled={disconnect.isPending}
-								onClick={() => disconnect.mutate()}
-							>
-								Disconnect
-							</Button>
+							<>
+								<Button
+									variant="outline"
+									disabled={subscriptions.isPending}
+									onClick={() => subscriptions.mutate({})}
+								>
+									Verify webhooks
+								</Button>
+								<Button
+									variant="destructive"
+									disabled={disconnect.isPending}
+									onClick={() => disconnect.mutate()}
+								>
+									Disconnect
+								</Button>
+							</>
 						) : (
 							<Button asChild disabled={!meta?.configured}>
 								<Link
@@ -157,30 +187,13 @@ export function MetaConnection({ slug }: { slug: string }) {
 							</p>
 						) : threads.data?.length ? (
 							<div className="divide-y rounded-md border">
-								{threads.data.map((thread) => {
-									const latest = thread.messages[0];
-									const name = thread.contact
-										? [thread.contact.firstName, thread.contact.lastName]
-												.filter(Boolean)
-												.join(" ")
-										: (thread.company?.name ?? thread.externalSenderId);
-									return (
-										<div key={thread.id} className="space-y-1 p-3">
-											<div className="flex items-center justify-between gap-3">
-												<p className="font-medium text-sm">{name}</p>
-												<span className="text-muted-foreground text-xs">
-													{thread.channel}
-												</span>
-											</div>
-											<p className="line-clamp-2 text-muted-foreground text-sm">
-												{latest?.body ?? "No text message"}
-											</p>
-											<p className="text-muted-foreground text-xs">
-												{new Date(thread.lastMessageAt).toLocaleString()}
-											</p>
-										</div>
-									);
-								})}
+								{threads.data.map((thread) => (
+									<MetaConversation
+										key={thread.id}
+										thread={thread}
+										onSent={refreshThreads}
+									/>
+								))}
 							</div>
 						) : (
 							<p className="text-muted-foreground text-sm">
@@ -202,5 +215,74 @@ export function MetaConnection({ slug }: { slug: string }) {
 				</Card>
 			</div>
 		</main>
+	);
+}
+
+type MetaThread = {
+	id: string;
+	channel: string;
+	externalSenderId: string;
+	lastMessageAt: string;
+	company: { name: string } | null;
+	contact: { firstName: string | null; lastName: string | null } | null;
+	messages: Array<{ body: string | null; direction: string }>;
+};
+
+function MetaConversation({
+	thread,
+	onSent,
+}: {
+	thread: MetaThread;
+	onSent: () => void;
+}) {
+	const trpc = useTRPC();
+	const [draft, setDraft] = useState("");
+	const send = useMutation(
+		trpc.meta.sendReply.mutationOptions({
+			onSuccess: () => {
+				setDraft("");
+				toast.success("Reply sent through Meta.");
+				onSent();
+			},
+			onError: (e) => toast.error(e.message),
+		}),
+	);
+	const latest = thread.messages[0];
+	const name = thread.contact
+		? [thread.contact.firstName, thread.contact.lastName]
+				.filter(Boolean)
+				.join(" ")
+		: (thread.company?.name ?? thread.externalSenderId);
+	const canReply = latest?.direction === "INBOUND";
+	return (
+		<div className="space-y-3 p-3">
+			<div className="flex items-center justify-between gap-3">
+				<p className="font-medium text-sm">{name}</p>
+				<span className="text-muted-foreground text-xs">{thread.channel}</span>
+			</div>
+			<p className="line-clamp-2 text-muted-foreground text-sm">
+				{latest?.body ?? "No text message"}
+			</p>
+			<p className="text-muted-foreground text-xs">
+				{new Date(thread.lastMessageAt).toLocaleString()}
+			</p>
+			<Textarea
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+				placeholder={
+					canReply
+						? "Review or write the approved reply"
+						: "Wait for the customer to reply again"
+				}
+				disabled={!canReply || send.isPending}
+			/>
+			<Button
+				size="sm"
+				disabled={!canReply || !draft.trim() || send.isPending}
+				onClick={() => send.mutate({ threadId: thread.id, body: draft })}
+			>
+				Approve and send
+			</Button>
+		</div>
 	);
 }
