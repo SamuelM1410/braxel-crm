@@ -39,6 +39,20 @@ export class MetaConnectionService {
 		});
 		const pages = await Promise.all(
 			(connection?.pages ?? []).map(async (page) => {
+				const instagramFallback = this.client.instagramFallback();
+				const instagramBusinessAccountId =
+					page.instagramBusinessAccountId ?? instagramFallback?.id ?? null;
+				const instagramUsername =
+					page.instagramUsername ?? instagramFallback?.username ?? null;
+				if (
+					instagramFallback &&
+					(!page.instagramBusinessAccountId || !page.instagramUsername)
+				) {
+					await this.db.metaPage.update({
+						where: { id: page.id },
+						data: { instagramBusinessAccountId, instagramUsername },
+					});
+				}
 				const { encryptedPageAccessToken, ...publicPage } = page;
 				try {
 					const subscription = await this.client.pageSubscription(
@@ -47,6 +61,8 @@ export class MetaConnectionService {
 					);
 					return {
 						...publicPage,
+						instagramBusinessAccountId,
+						instagramUsername,
 						webhookState: subscription.active
 							? ("active" as const)
 							: ("missing" as const),
@@ -55,6 +71,8 @@ export class MetaConnectionService {
 				} catch {
 					return {
 						...publicPage,
+						instagramBusinessAccountId,
+						instagramUsername,
 						webhookState: "error" as const,
 						webhookFields: [],
 					};
@@ -184,11 +202,13 @@ export class MetaConnectionService {
 				},
 			},
 		});
+		const instagramFallback = this.client.instagramFallback();
 		const recipientIds = (connection?.pages ?? []).flatMap((page) =>
 			[page.pageId, page.instagramBusinessAccountId].filter(
 				(value): value is string => Boolean(value),
 			),
 		);
+		if (instagramFallback?.id) recipientIds.push(instagramFallback.id);
 		if (recipientIds.length === 0) return [];
 		const threads = await this.db.socialThread.findMany({
 			where: { externalRecipientId: { in: recipientIds } },
@@ -267,7 +287,15 @@ export class MetaConnectionService {
 				],
 			},
 		});
-		if (!page)
+		const fallbackPage =
+			page ??
+			(this.client.instagramFallback()?.id === thread.externalRecipientId &&
+			thread.channel === "INSTAGRAM"
+				? await this.db.metaPage.findFirst({
+						where: { enabled: true, connection: { userId } },
+					})
+				: null);
+		if (!fallbackPage)
 			throw new ForbiddenException(
 				"Conversation is not connected to this account.",
 			);
@@ -289,8 +317,8 @@ export class MetaConnectionService {
 				"This draft appears to contain an opt-out instruction.",
 			);
 		const sent = await this.client.send(
-			page.pageId,
-			this.tokens.decrypt(page.encryptedPageAccessToken),
+			fallbackPage.pageId,
+			this.tokens.decrypt(fallbackPage.encryptedPageAccessToken),
 			thread.externalSenderId,
 			body,
 		);
@@ -301,7 +329,7 @@ export class MetaConnectionService {
 					threadId: thread.id,
 					externalMessageId: sent.message_id,
 					direction: "OUTBOUND",
-					senderId: thread.externalRecipientId ?? page.pageId,
+					senderId: thread.externalRecipientId ?? fallbackPage.pageId,
 					body,
 					raw: sent,
 					sentAt,

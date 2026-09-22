@@ -112,9 +112,20 @@ export class MetaWebhookService {
 			},
 			include: { connection: true },
 		});
-		if (!page) return;
+		const fallbackPage =
+			page ??
+			(this.config.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", {
+				infer: true,
+			}) === recipientId && object === "instagram"
+				? await this.db.metaPage.findFirst({
+						where: { enabled: true },
+						include: { connection: true },
+					})
+				: null);
+		if (!fallbackPage) return;
 		const channel =
-			object === "instagram" || page.instagramBusinessAccountId === recipientId
+			object === "instagram" ||
+			fallbackPage.instagramBusinessAccountId === recipientId
 				? SocialChannel.INSTAGRAM
 				: SocialChannel.FACEBOOK;
 		const sentAt = new Date(event.timestamp ?? Date.now());
@@ -161,7 +172,7 @@ export class MetaWebhookService {
 				},
 			})
 			.catch(() => null);
-		if (!created || !page.connection.replyAssistantEnabled) return;
+		if (!created || !fallbackPage.connection.replyAssistantEnabled) return;
 		await this.agent.socialMessageReceived({
 			threadId: thread.id,
 			messageId: externalMessageId,
