@@ -24,6 +24,7 @@ Braxel es un CRM en producción que investiga leads con IA y exige una decisión
 - Probabilidad de equilibrio de un contacto: **P\* = C ÷ V**. Si P supera P\*, el contacto se paga solo en valor esperado.
 - Leads para equilibrio: **techo(costo mensual de plataforma ÷ VE promedio)**.
 - Escenarios: multiplican P (con tope de 100 %) y V. El costo por contacto no cambia.
+- **Un lead rechazado no suma.** Nunca se va a contactar, así que su valor esperado es 0. Aparece en la tabla con "No suma: rechazado" y queda fuera de los totales, los escenarios y el punto de equilibrio.
 
 Ejemplo verificable con los valores iniciales (oportunidad 74, prioridad 88, V = COP 3.000.000, C = COP 25.000):
 
@@ -109,7 +110,7 @@ bun run build
 
 ## Estado de la validación
 
-Corrido en esta máquina, sobre esta rama, con Postgres local:
+Corrido en local con Postgres:
 
 | Comprobación | Resultado |
 | --- | --- |
