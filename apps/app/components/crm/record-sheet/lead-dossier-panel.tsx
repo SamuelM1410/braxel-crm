@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@crm/ui/components/alert";
 import { Badge } from "@crm/ui/components/badge";
 import { Button } from "@crm/ui/components/button";
 import {
@@ -84,12 +85,12 @@ export function LeadDossierPanel({
 			</CardHeader>
 			<CardContent>
 				{review.synthetic ? (
-					<div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-						<p className="font-medium">Datos sintéticos de demostración</p>
-						<p className="text-muted-foreground">
+					<Alert variant="warning">
+						<AlertTitle>Datos sintéticos de demostración</AlertTitle>
+						<AlertDescription>
 							Esta empresa no representa un negocio real y no debe contactarse.
-						</p>
-					</div>
+						</AlertDescription>
+					</Alert>
 				) : null}
 				{review.isLead ? <ReviewDecision review={review} /> : null}
 				<div className="grid gap-3 sm:grid-cols-3">
