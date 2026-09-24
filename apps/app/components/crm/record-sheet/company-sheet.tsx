@@ -22,6 +22,7 @@ import {
 	TooltipTrigger,
 } from "@crm/ui/components/tooltip";
 import { formatMoney } from "@crm/ui/lib/format";
+import { contactLockOf } from "@crm/validation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AgentPanel } from "@/components/crm/agent-panel";
@@ -583,7 +584,10 @@ function CompanyOverview({ company }: { company: Company }) {
 
 					{hasCompanyLinks(company) ? (
 						<DetailSheetSection title="Links">
-							<CompanySocials company={company} />
+							<CompanySocials
+								company={company}
+								lock={contactLockOf(company.description)}
+							/>
 						</DetailSheetSection>
 					) : null}
 				</DetailSheetRail>
