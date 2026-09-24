@@ -71,7 +71,7 @@ export function ImpactDashboard() {
 
 	if (!summary) return null;
 
-	const { totals, rates, time, risk, companies } = summary;
+	const { totals, rates, measured, estimated, risk, companies } = summary;
 
 	if (totals.leads === 0) {
 		return (
@@ -87,7 +87,7 @@ export function ImpactDashboard() {
 		);
 	}
 
-	const hoursSaved = time.minutesSaved / 60;
+	const hoursSaved = estimated.minutesSavedOnReviewed / 60;
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -98,9 +98,17 @@ export function ImpactDashboard() {
 					description={`${PERCENT.format(rates.coverage)} del total tiene una decisión humana. ${totals.pending} esperan revisión.`}
 				/>
 				<StatCard
-					label="Tiempo ahorrado (estimado)"
-					value={`${NUMBER.format(hoursSaved)} h`}
-					description={`${totals.leads} leads × (${time.manualMinutesPerLead} − ${time.reviewMinutesPerLead}) min. Supuesto, no medición.`}
+					label="Tiempo de decisión (medido)"
+					value={
+						measured.medianMinutesToDecide === null
+							? "—"
+							: `${NUMBER.format(measured.medianMinutesToDecide)} min`
+					}
+					description={
+						measured.medianMinutesToDecide === null
+							? "Nadie ha decidido todavía, así que no hay nada medido."
+							: `Mediana entre la llegada del lead y su decisión, sobre ${measured.decisions} decisiones reales.`
+					}
 				/>
 				<StatCard
 					label="Contactos bloqueados"
@@ -113,6 +121,72 @@ export function ImpactDashboard() {
 					description={`${PERCENT.format(rates.rejection)} de las decisiones fue un rechazo.`}
 				/>
 			</StatGroup>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Medido, no supuesto</CardTitle>
+					<CardDescription>
+						Estos números salen de las filas de la base de datos.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<StatGroup>
+						<StatCard
+							label="Decisiones registradas"
+							value={measured.decisions}
+							description={
+								measured.reviewers.length > 0
+									? `Tomadas por ${measured.reviewers.join(", ")}.`
+									: "Ninguna todavía."
+							}
+						/>
+						<StatCard
+							label="Decisión más rápida y más lenta"
+							value={
+								measured.fastestMinutesToDecide === null ||
+								measured.slowestMinutesToDecide === null
+									? "—"
+									: `${NUMBER.format(measured.fastestMinutesToDecide)} – ${NUMBER.format(measured.slowestMinutesToDecide)} min`
+							}
+							description="Desde que el lead entró al CRM hasta que una persona decidió."
+						/>
+						<StatCard
+							label="Leads con evidencia"
+							value={`${measured.leadsWithEvidence} de ${companies.length}`}
+							description={`${measured.evidenceItems} afirmaciones con fuente, entre los leads listados abajo.`}
+						/>
+						<StatCard
+							label="Decisiones con motivo"
+							value={`${totals.documentedDecisions} de ${totals.reviewed}`}
+							description={`${PERCENT.format(rates.documentation)} de las decisiones explica por qué.`}
+						/>
+					</StatGroup>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Estimado a partir de supuestos</CardTitle>
+					<CardDescription>
+						Esto no está medido. Los minutos por lead se configuran en
+						lead-impact.config.ts.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<StatGroup>
+						<StatCard
+							label="Tiempo ahorrado (estimado)"
+							value={`${NUMBER.format(hoursSaved)} h`}
+							description={`${totals.reviewed} leads revisados × (${estimated.manualMinutesPerLead} − ${estimated.reviewMinutesPerLead}) min. Solo cuenta los leads que ya pasaron por una persona.`}
+						/>
+					</StatGroup>
+					<p className="text-muted-foreground text-xs">
+						{measured.medianMinutesToDecide === null
+							? "Cuando haya decisiones registradas, compara este supuesto con la mediana medida arriba."
+							: `Para comparar: el supuesto de revisión es ${estimated.reviewMinutesPerLead} min y la mediana medida es ${NUMBER.format(measured.medianMinutesToDecide)} min. Ese tiempo medido incluye la espera, no solo el trabajo.`}
+					</p>
+				</CardContent>
+			</Card>
 
 			<Card>
 				<CardHeader>

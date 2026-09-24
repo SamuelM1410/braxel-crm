@@ -18,6 +18,7 @@
 		"db:push": "turbo run db:push",
 		"db:reset": "turbo run db:reset",
 		"db:seed": "turbo run db:seed",
+		"db:seed:hackathon": "bun run --filter=@crm/db db:seed:hackathon",
 		"db:studio": "turbo run db:studio",
 		"db:test": "bun run --filter=@crm/db db:test"
 	},

@@ -34,6 +34,7 @@
 		"db:push": "bun scripts/require-local-db.ts db:push && prisma db push",
 		"db:reset": "bun scripts/require-local-db.ts db:reset && prisma migrate reset",
 		"db:seed": "bun scripts/require-local-db.ts db:seed && prisma db seed",
+		"db:seed:hackathon": "bun scripts/require-local-db.ts db:seed && bun prisma/seed-hackathon-demo.ts",
 		"db:studio": "prisma studio",
 		"db:test": "bun scripts/test-db.ts",
 		"test": "bun test",

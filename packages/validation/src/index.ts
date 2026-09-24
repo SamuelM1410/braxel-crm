@@ -38,16 +38,30 @@ export {
 	projectPortfolio,
 	roundMoney,
 } from "./lead-finance";
-export type { LeadReview, LeadScores, ReviewStatus } from "./lead-os";
+export type {
+	LeadEvidence,
+	LeadEvidenceItem,
+	LeadReview,
+	LeadScores,
+	ReviewStatus,
+} from "./lead-os";
 export {
 	LEAD_OS_LABELS,
 	lineValue,
+	parseLeadEvidence,
 	parseLeadReview,
 	parseLeadScores,
 	REVIEW_STATUSES,
 } from "./lead-os";
 export { LEAD_REVIEW } from "./lead-review";
 export type { AuthTest, Installation, JoinPayload, Reply } from "./slack";
+export {
+	isWebUrl,
+	MAX_URL_LENGTH,
+	safeHref,
+	WEB_URL_SCHEMES,
+	webUrl,
+} from "./web-url";
 
 export class InvalidInput extends Error {
 	override readonly name = "InvalidInput";

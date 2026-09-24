@@ -1,4 +1,5 @@
 import { db } from "@crm/db";
+import { webUrl } from "@crm/validation";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { assertResearchPurpose } from "../lib/session-purpose";
@@ -50,7 +51,7 @@ const dossierSchema = z.object({
 		.array(
 			z.object({
 				claim: text,
-				source: z.string().url().max(2048),
+				source: webUrl,
 				strength: score,
 			}),
 		)

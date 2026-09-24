@@ -67,20 +67,24 @@ here, what do we sell.
 
 ### Gates in `proxy.ts`
 
-Onboarding, then `/onboarding/research` for the Context key. Asked server-side every
-request.
+Onboarding, and onboarding only. Asked server-side every request.
 
+- **Braxel does not gate on the Context key.** Upstream asked for it at
+  `/onboarding/research`; this fork replaced that page with a redirect to the app, so
+  reading a research gate in the proxy sends a rep into a redirect loop — the page
+  bounces to `/`, and the proxy bounces `/` back to the page. The key lives on
+  Settings → General, and a missing one removes research instead of blocking the CRM.
+  `research-form.tsx` is the upstream form, kept but unrouted.
 - **`getSessionCookie()` decides signed-in**; pages still resolve the real session via
   `requireMailboxAccess()`.
-- **Nothing is cached in a cookie** — both facts revert on a database reset while a
+- **Nothing is cached in a cookie** — the fact reverts on a database reset while a
   year-long marker insists the gate passed. Cache in the API if cost ever matters.
-- **Both reads run concurrently**, but order decides which is *asked* — the research
-  read is never made while onboarding is open.
 - **An unreachable API fails open** (`unknown` lets the request through).
 - **`/sign-in`, `/grant-access`, `/eve` are ungated.** `/sign-in` is the only path a
   stranger may read; `/` joins it only when `IS_MARKETING` is set.
-- **There is no way past the key gate but to answer** — Skip stranded installs, every
-  later company sitting `PENDING` with nothing saying so.
+- **A keyless install is not stranded, but it is not researching either** — companies
+  sit `PENDING` until a key is saved on Settings → General. Nothing in the UI says so
+  today.
 
 ### The name is also the URL
 

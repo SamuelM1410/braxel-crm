@@ -57,13 +57,9 @@ export async function readWorkspaceGate(
 	};
 }
 
-export async function readResearchGate(request: NextRequest): Promise<Gate> {
-	const key = await read<{ configured?: boolean }>(
-		request,
-		"settings.researchKey",
-	);
-
-	if (typeof key?.configured !== "boolean") return "unknown";
-
-	return key.configured ? "settled" : "required";
-}
+/**
+ * Braxel does not gate on the research key. `/onboarding/research` redirects to
+ * the app, so asking for the key here would send a rep into a redirect loop. The
+ * key is set on Settings → General instead, and a missing one removes research
+ * rather than blocking the CRM.
+ */

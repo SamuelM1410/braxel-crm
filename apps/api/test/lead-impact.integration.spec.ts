@@ -11,11 +11,20 @@ const domains = ["pending", "approved", "rejected", "plain"].map(
 const service = new LeadImpactService(db);
 
 const dossier = JSON.stringify({
+	generated_at: new Date().toISOString(),
 	scores: {
 		evidence_quality: 80,
 		commercial_opportunity: 70,
 		contact_priority: 60,
 	},
+	evidence: [
+		{
+			claim: "Perfil público con actividad comercial",
+			source: `https://evidencia.invalid/${suffix}`,
+			strength: 80,
+		},
+	],
+	missing_evidence: ["Confirmar el volumen real"],
 });
 
 function lead(
@@ -87,6 +96,7 @@ beforeAll(async () => {
 				body: "Motivo guardado en el historial.",
 				companyId: company.id,
 				createdById: userId,
+				meta: { leadReviewDecision: "APPROVED", reviewer: "Ana" },
 			},
 		});
 	}
@@ -123,16 +133,41 @@ describe("lead impact summary", () => {
 		);
 	});
 
-	it("estimates the time saved from the configured minutes", async () => {
+	it("estimates the time saved only for the leads a person reviewed", async () => {
 		const after = await service.summary();
 		const { manualResearchMinutesPerLead, humanReviewMinutesPerLead } =
 			LEAD_IMPACT.assumptions;
-		expect(after.time.minutesSaved).toBe(
-			after.totals.leads *
+		expect(after.estimated.minutesSavedOnReviewed).toBe(
+			after.totals.reviewed *
 				(manualResearchMinutesPerLead - humanReviewMinutesPerLead),
 		);
 		expect(after.rates.coverage).toBeGreaterThan(0);
 		expect(after.rates.coverage).toBeLessThanOrEqual(1);
+	});
+
+	it("measures the real wait to decide, and the reviewers who decided", async () => {
+		const after = await service.summary();
+		expect(after.measured.decisions - before.measured.decisions).toBe(2);
+		expect(after.measured.reviewers).toContain("Ana");
+		for (const minutes of [
+			after.measured.medianMinutesToDecide,
+			after.measured.fastestMinutesToDecide,
+			after.measured.slowestMinutesToDecide,
+		]) {
+			expect(minutes).not.toBeNull();
+			expect(minutes ?? -1).toBeGreaterThanOrEqual(0);
+		}
+		expect(after.measured.slowestMinutesToDecide ?? 0).toBeGreaterThanOrEqual(
+			after.measured.fastestMinutesToDecide ?? 0,
+		);
+	});
+
+	it("counts the evidence the dossier actually carries", async () => {
+		const after = await service.summary();
+		expect(after.measured.leadsWithEvidence).toBeGreaterThan(0);
+		expect(after.measured.evidenceItems).toBeGreaterThanOrEqual(
+			after.measured.leadsWithEvidence,
+		);
 	});
 
 	it("lists each lead with its decision, reason and lock state", async () => {

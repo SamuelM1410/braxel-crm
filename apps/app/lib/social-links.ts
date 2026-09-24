@@ -7,6 +7,7 @@ import Money from "@carbon/icons-react/es/Money";
 import UserMultiple from "@carbon/icons-react/es/UserMultiple";
 import Video from "@carbon/icons-react/es/Video";
 import type { CarbonIcon } from "@crm/ui/components/icon";
+import { safeHref } from "@crm/validation";
 
 type SocialLink<T> = { key: keyof T; label: string; icon: CarbonIcon };
 
@@ -56,8 +57,13 @@ const CONTACT_LINKS: SocialLink<ContactLinks>[] = [
 
 function present<T>(record: T, links: SocialLink<T>[]) {
 	return links.flatMap((link) => {
-		const href = record[link.key];
-		return typeof href === "string" && href ? [{ ...link, href }] : [];
+		// Enrichment writes these, so the scheme is not ours to trust.
+		const href = safeHref(
+			typeof record[link.key] === "string"
+				? (record[link.key] as string)
+				: null,
+		);
+		return href ? [{ ...link, href }] : [];
 	});
 }
 

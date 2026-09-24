@@ -31,6 +31,20 @@ const dossierScores = z.object({
 	}),
 });
 
+const dossierEvidence = z.object({
+	generated_at: z.string().trim().min(1).optional(),
+	evidence: z
+		.array(
+			z.object({
+				claim: z.string().trim().min(1),
+				source: z.string().trim().min(1),
+				strength: z.number().min(0).max(100),
+			}),
+		)
+		.default([]),
+	missing_evidence: z.array(z.string().trim().min(1)).default([]),
+});
+
 export type LeadReview = {
 	isLead: boolean;
 	stage: string | null;
@@ -46,6 +60,18 @@ export type LeadScores = {
 	evidence: number;
 	opportunity: number;
 	priority: number;
+};
+
+export type LeadEvidenceItem = {
+	claim: string;
+	source: string;
+	strength: number;
+};
+
+export type LeadEvidence = {
+	generatedAt: string | null;
+	items: LeadEvidenceItem[];
+	missing: string[];
 };
 
 export function lineValue(
@@ -88,22 +114,40 @@ export function parseLeadReview(
 	};
 }
 
-export function parseLeadScores(
-	description: string | null | undefined,
-): LeadScores | null {
+function dossierJson(description: string | null | undefined): unknown {
 	const raw = lineValue(description, LEAD_OS_LABELS.dossier);
 	if (!raw) return null;
-	let json: unknown;
 	try {
-		json = JSON.parse(raw);
+		return JSON.parse(raw);
 	} catch {
 		return null;
 	}
+}
+
+export function parseLeadScores(
+	description: string | null | undefined,
+): LeadScores | null {
+	const json = dossierJson(description);
+	if (json === null) return null;
 	const parsed = dossierScores.safeParse(json);
 	if (!parsed.success) return null;
 	return {
 		evidence: parsed.data.scores.evidence_quality,
 		opportunity: parsed.data.scores.commercial_opportunity,
 		priority: parsed.data.scores.contact_priority,
+	};
+}
+
+export function parseLeadEvidence(
+	description: string | null | undefined,
+): LeadEvidence | null {
+	const json = dossierJson(description);
+	if (json === null) return null;
+	const parsed = dossierEvidence.safeParse(json);
+	if (!parsed.success) return null;
+	return {
+		generatedAt: parsed.data.generated_at ?? null,
+		items: parsed.data.evidence,
+		missing: parsed.data.missing_evidence,
 	};
 }
