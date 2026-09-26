@@ -30,8 +30,11 @@ const client = new Client({
 let state = 'starting';
 let lastQrAt = null;
 let lastMessageAt = null;
+let lastMessageId = null;
 let lastCrmAt = null;
 let lastCrmError = null;
+let lastCrmResult = null;
+let lastDraftAt = null;
 
 function accountSummary() {
   const info = client.info;
@@ -66,7 +69,8 @@ async function askCrm(event) {
 app.get('/health', (_req, res) => {
   res.json({ ok: state === 'ready', state, inboundOnly, autoReplyEnabled,
     crmConfigured: Boolean(crmReplyUrl), crmAuthConfigured: Boolean(crmReplyUrl && crmReplySecret),
-    lastQrAt, lastMessageAt, lastCrmAt, lastCrmError, account: accountSummary() });
+    lastQrAt, lastMessageAt, lastMessageId, lastCrmAt, lastCrmError, lastCrmResult,
+    lastDraftAt, account: accountSummary() });
 });
 
 client.on('qr', async (qr) => {
@@ -86,6 +90,7 @@ client.on('disconnected', (reason) => { state = 'disconnected'; console.warn('Wh
 client.on('message', async (message) => {
   if (message.fromMe || message.from.endsWith('@g.us') || message.from === 'status@broadcast') return;
   lastMessageAt = new Date().toISOString();
+  lastMessageId = message.id._serialized;
   const contact = await message.getContact();
   const event = { channel: 'WHATSAPP_WEB_PILOT', externalMessageId: message.id._serialized,
     externalSenderId: message.from, phone: contact.number || null,
@@ -96,10 +101,13 @@ client.on('message', async (message) => {
     const crmResult = await askCrm(event);
     lastCrmAt = new Date().toISOString();
     lastCrmError = null;
+    lastCrmResult = crmResult?.draft ? 'draft' : 'no_draft';
+    if (crmResult?.draft) lastDraftAt = lastCrmAt;
     reply = crmResult?.reply || null;
     if (crmResult?.draft) console.log('Borrador de Eve guardado para aprobación humana:', crmResult.draft);
   } catch (error) {
     lastCrmError = error instanceof Error ? error.message : 'unknown CRM error';
+    lastCrmResult = 'error';
     console.error('No se pudo consultar el CRM:', error.message);
   }
   if (!reply && autoReplyEnabled) reply = process.env.AUTO_REPLY_TEXT?.trim() || null;
