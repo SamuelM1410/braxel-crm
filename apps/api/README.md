@@ -38,6 +38,22 @@ used for type checking only (`bun run check-types`).
 | `/auth/session`  | optional   | Whether the caller is signed in               |
 | `/health`        | anonymous  | 200 with a database round-trip, 503 otherwise |
 | `/internal/sync/google` | `CRON_SECRET` bearer | Vercel Cron entrypoint for Gmail/Calendar sync. Fails closed when the secret is unset. |
+| `/api/whatsapp-web/health` | anonymous | Local WhatsApp Web pilot status; inbound-only and auto-send disabled. |
+| `/api/whatsapp-web/inbound` | `WHATSAPP_WEBHOOK_SECRET` bearer | Stores an inbound pilot event, deduplicates it, and returns an Eve draft for human approval. |
+
+## Local WhatsApp Web pilot
+
+The companion `whatsapp-web-pilot` process forwards individual inbound WhatsApp
+Web messages to `/api/whatsapp-web/inbound`. The payload carries the sender
+number, display name, text, external message id, and received timestamp. The API
+normalizes the phone, reuses or creates the CRM contact, links a
+`SocialThread`/`SocialMessage` with channel `WHATSAPP`, and enforces the unique
+`threadId_externalMessageId` key so retries are safe. A generated Eve response
+is stored in the message metadata as a draft; the endpoint always returns
+`reply: null` and `approvalRequired: true`. It never sends a message or starts a
+conversation. Configure the pilot's `CRM_REPLY_SECRET` to the API's
+`WHATSAPP_WEBHOOK_SECRET` (the local `CRM_INTAKE_SECRET` is accepted as a
+backwards-compatible fallback).
 
 ## How auth is wired
 

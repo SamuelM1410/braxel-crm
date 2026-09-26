@@ -92,6 +92,19 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	OPENAI_API_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	EVE_OPENAI_MODEL?: string;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(16)
+	WHATSAPP_WEBHOOK_SECRET?: string;
+
+	@IsOptional()
+	@IsString()
 	MICROSOFT_CLIENT_ID?: string;
 
 	@IsOptional()
