@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { z } from "zod";
+import { AgentTriggerService } from "../agent/agent-trigger.service";
 import type { EnvironmentVariables } from "../config/env.validation";
 import { InjectDatabase } from "../database/database.constants";
 
@@ -68,6 +69,7 @@ export class WhatsAppWebService {
 	constructor(
 		@InjectDatabase() private readonly db: Db,
 		private readonly config: ConfigService<EnvironmentVariables, true>,
+		private readonly agent: AgentTriggerService,
 	) {}
 
 	assertAuthorization(authorization?: string) {
@@ -213,6 +215,20 @@ export class WhatsAppWebService {
 				messageCount: { increment: 1 },
 			},
 		});
+
+		try {
+			await this.agent.socialMessageReceived({
+				threadId: thread.id,
+				messageId: created.id,
+				channel: SocialChannel.WHATSAPP,
+				reason:
+					"New inbound WhatsApp Web message requires a human-approved Eve reply.",
+			});
+		} catch (error) {
+			this.logger.warn(
+				`Could not queue WhatsApp Eve draft: ${error instanceof Error ? error.message : "unknown"}`,
+			);
+		}
 
 		this.logger.log({
 			message: "WhatsApp Web inbound message stored",
