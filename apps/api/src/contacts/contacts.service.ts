@@ -7,6 +7,7 @@ import {
 	Prisma as PrismaNamespace,
 	type RecordSource,
 } from "@crm/db";
+import { contactLockOf } from "@crm/validation";
 import {
 	ConflictException,
 	Injectable,
@@ -213,7 +214,12 @@ export class ContactsService {
 					},
 				},
 				company: {
-					select: { ...COMPANY_SELECT, industry: true, primaryContactId: true },
+					select: {
+						...COMPANY_SELECT,
+						industry: true,
+						primaryContactId: true,
+						description: true,
+					},
 				},
 				owner: { select: OWNER_SELECT },
 				deals: {
@@ -244,11 +250,19 @@ export class ContactsService {
 			contact.company?.id ?? null,
 		);
 
-		const { deals, createdAt, brief, facts, company, ...rest } = contact;
+		const {
+			deals,
+			createdAt,
+			brief,
+			facts,
+			company: companyRow,
+			...rest
+		} = contact;
 
 		return {
 			...rest,
-			company,
+			company: companyRow ? withoutDescription(companyRow) : null,
+			contactLock: contactLockOf(companyRow?.description),
 			fields: await this.fields.valuesFor("CONTACT", id),
 			queued: await this.queue.isQueued({ contactId: id }),
 			createdAt: createdAt.toISOString(),
@@ -265,7 +279,7 @@ export class ContactsService {
 				observedAt: fact.observedAt.toISOString(),
 			})),
 			relationship,
-			isPrimaryContact: company?.primaryContactId === contact.id,
+			isPrimaryContact: companyRow?.primaryContactId === contact.id,
 			deals: deals.map(({ role, deal }) => ({
 				...deal,
 				role,
@@ -778,4 +792,11 @@ export class ContactsService {
 		}
 		return error;
 	}
+}
+
+function withoutDescription<T extends { description: string | null }>({
+	description: _description,
+	...rest
+}: T): Omit<T, "description"> {
+	return rest;
 }

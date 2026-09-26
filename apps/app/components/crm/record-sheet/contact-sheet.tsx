@@ -53,6 +53,7 @@ import {
 } from "@/components/detail-sheet";
 import { LocalDateTime, LocalRelativeDate } from "@/components/local-date-time";
 import { factsByField } from "@/lib/contact-facts";
+import { CONTACT_LOCK_MESSAGE } from "@/lib/contact-lock";
 import { ENRICHMENT_POLL_MS, isEnriching } from "@/lib/enrichment-status";
 import { savingField } from "@/lib/pending-field";
 import { hasContactLinks } from "@/lib/social-links";
@@ -180,7 +181,7 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 				contact ? (
 					<>
 						<ContactEnrichmentAction contactId={contact.id} />
-						{contact.email ? (
+						{contact.email && !contact.contactLock ? (
 							<Button asChild variant="outline" size="sm">
 								<a href={`mailto:${contact.email}`}>
 									<Icon icon={Email} data-icon="inline-start" />
@@ -223,7 +224,11 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 							)}
 						</DetailSheetStat>
 						<DetailSheetStat label="Email">
-							{contact.email ? (
+							{contact.email && contact.contactLock ? (
+								<span title={CONTACT_LOCK_MESSAGE[contact.contactLock]}>
+									{contact.email}
+								</span>
+							) : contact.email ? (
 								<a
 									href={`mailto:${contact.email}`}
 									className="underline-offset-2 hover:underline"
@@ -235,7 +240,11 @@ export function ContactSheet({ contactId }: { contactId: string }) {
 							)}
 						</DetailSheetStat>
 						<DetailSheetStat label="Phone">
-							{contact.phone ? (
+							{contact.phone && contact.contactLock ? (
+								<span title={CONTACT_LOCK_MESSAGE[contact.contactLock]}>
+									{contact.phone}
+								</span>
+							) : contact.phone ? (
 								<a
 									href={`tel:${contact.phone}`}
 									className="underline-offset-2 hover:underline"
@@ -452,7 +461,7 @@ function ContactOverview({ contact }: { contact: Contact }) {
 
 			{hasContactLinks(contact) ? (
 				<DetailSheetSection title="Links">
-					<ContactSocials contact={contact} />
+					<ContactSocials contact={contact} lock={contact.contactLock} />
 				</DetailSheetSection>
 			) : null}
 

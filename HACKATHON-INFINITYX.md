@@ -15,7 +15,7 @@ Menú lateral → **Impact**:
 | Riesgo reducido por la revisión humana | "Contactos bloqueados", "Leads descartados" y el porcentaje de decisiones con motivo e historial. |
 | Arquitectura de escalabilidad | Cinco pasos, del intake al contacto autorizado, con "Por qué escala" y "Límites conocidos". |
 | Demo de múltiples empresas | Tabla con las 5 empresas: puntajes, decisión, quién decidió, motivo y estado del canal. |
-| Cómo se evita contactar sin autorización | Cinco garantías, cada una correspondiente a código de esta rama. |
+| Cómo se evita contactar sin autorización | Cinco garantías, cada una correspondiente a código de este repositorio. |
 
 ## Medido, no supuesto
 
@@ -101,7 +101,7 @@ bun run build
 
 ## Estado de la validación
 
-Corrido en esta máquina, sobre esta rama, con Postgres local:
+Corrido en local con Postgres:
 
 | Comprobación | Resultado |
 | --- | --- |
@@ -128,7 +128,7 @@ Además se instaló desde cero (`bun install --frozen-lockfile`) en una carpeta 
 1. **0:00–0:40 — El problema.** Escalar la prospección sin contactar a nadie sin permiso.
 2. **0:40–1:30 — El lead y su bloqueo.** Abre una empresa pendiente. Muestra evidencia y puntajes, y que el canal está bloqueado.
 3. **1:30–2:20 — La decisión.** Aprueba con un motivo completo. Muestra el bloque "Decisión humana" y la nota en Activity.
-4. **2:20–3:40 — Impact.** Abre Impact. Recorre "Leads revisados", y detente en "Medido, no supuesto": decisiones reales, quién decidió, la mediana real y la evidencia contada. Luego muestra el bloque "Estimado" y di en voz alta que eso es un supuesto, no una medición.
+4. **2:20–3:40 — Impact.** Abre Impact. Recorre "Leads revisados", y detente en "Medido, no supuesto": decisiones registradas, quién decidió, el tiempo hasta decidir (mediana y rango) y la evidencia contada. Luego muestra el bloque "Estimado" y di en voz alta que eso es un supuesto, no una medición.
 5. **3:40–4:30 — Escala y garantías.** Baja a "Cómo se evita contactar sin autorización" y a "Arquitectura y escalabilidad". Lee dos límites conocidos en voz alta.
 6. **4:30–5:00 — Cierre.** La escala viene de la cola y del agente; la confianza viene de la decisión humana registrada y medida.
 

@@ -33,6 +33,16 @@ import { useWorkspaceUrl } from "@/lib/use-workspace-url";
 import { IMPACT_COPY } from "./impact-config";
 
 const NUMBER = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
+
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
+
+function duration(minutes: number): string {
+	if (minutes < MINUTES_PER_HOUR) return `${NUMBER.format(minutes)} min`;
+	if (minutes < 2 * MINUTES_PER_DAY)
+		return `${NUMBER.format(minutes / MINUTES_PER_HOUR)} h`;
+	return `${NUMBER.format(minutes / MINUTES_PER_DAY)} días`;
+}
 const PERCENT = new Intl.NumberFormat("es-CO", {
 	style: "percent",
 	maximumFractionDigits: 0,
@@ -98,16 +108,16 @@ export function ImpactDashboard() {
 					description={`${PERCENT.format(rates.coverage)} del total tiene una decisión humana. ${totals.pending} esperan revisión.`}
 				/>
 				<StatCard
-					label="Tiempo de decisión (medido)"
+					label="Tiempo hasta decidir"
 					value={
 						measured.medianMinutesToDecide === null
 							? "—"
-							: `${NUMBER.format(measured.medianMinutesToDecide)} min`
+							: duration(measured.medianMinutesToDecide)
 					}
 					description={
 						measured.medianMinutesToDecide === null
 							? "Nadie ha decidido todavía, así que no hay nada medido."
-							: `Mediana entre la llegada del lead y su decisión, sobre ${measured.decisions} decisiones reales.`
+							: `Mediana entre la llegada del lead y su decisión, sobre ${measured.decisions} decisiones registradas.`
 					}
 				/>
 				<StatCard
@@ -141,12 +151,12 @@ export function ImpactDashboard() {
 							}
 						/>
 						<StatCard
-							label="Decisión más rápida y más lenta"
+							label="Rango de espera"
 							value={
 								measured.fastestMinutesToDecide === null ||
 								measured.slowestMinutesToDecide === null
 									? "—"
-									: `${NUMBER.format(measured.fastestMinutesToDecide)} – ${NUMBER.format(measured.slowestMinutesToDecide)} min`
+									: `${duration(measured.fastestMinutesToDecide)} – ${duration(measured.slowestMinutesToDecide)}`
 							}
 							description="Desde que el lead entró al CRM hasta que una persona decidió."
 						/>
@@ -183,7 +193,7 @@ export function ImpactDashboard() {
 					<p className="text-muted-foreground text-xs">
 						{measured.medianMinutesToDecide === null
 							? "Cuando haya decisiones registradas, compara este supuesto con la mediana medida arriba."
-							: `Para comparar: el supuesto de revisión es ${estimated.reviewMinutesPerLead} min y la mediana medida es ${NUMBER.format(measured.medianMinutesToDecide)} min. Ese tiempo medido incluye la espera, no solo el trabajo.`}
+							: `Para comparar: el supuesto de revisión es ${estimated.reviewMinutesPerLead} min y la mediana medida es ${duration(measured.medianMinutesToDecide)}. Ese tiempo medido incluye la espera, no solo el trabajo.`}
 					</p>
 				</CardContent>
 			</Card>
@@ -219,7 +229,7 @@ export function ImpactDashboard() {
 				<CardHeader>
 					<CardTitle>Cómo se evita contactar sin autorización</CardTitle>
 					<CardDescription>
-						Cada punto corresponde a código de esta rama.
+						Cada punto corresponde a código de este repositorio.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
