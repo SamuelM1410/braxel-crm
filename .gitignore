@@ -41,6 +41,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# WhatsApp Web local session
+whatsapp-web-pilot/.wwebjs_auth/
+
 # Agent worktrees
 .claude/worktrees/
 .agents/
