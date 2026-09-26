@@ -30,6 +30,14 @@ const client = new Client({
 let state = 'starting';
 let lastQrAt = null;
 let lastMessageAt = null;
+let lastCrmAt = null;
+let lastCrmError = null;
+
+function accountSummary() {
+  const info = client.info;
+  const wid = info?.wid;
+  return { id: wid?._serialized || null, phone: wid?.user || null, name: info?.pushname || null };
+}
 
 function withTimeout(promise, timeoutMs) {
   return Promise.race([
@@ -58,7 +66,7 @@ async function askCrm(event) {
 app.get('/health', (_req, res) => {
   res.json({ ok: state === 'ready', state, inboundOnly, autoReplyEnabled,
     crmConfigured: Boolean(crmReplyUrl), crmAuthConfigured: Boolean(crmReplyUrl && crmReplySecret),
-    lastQrAt, lastMessageAt });
+    lastQrAt, lastMessageAt, lastCrmAt, lastCrmError, account: accountSummary() });
 });
 
 client.on('qr', async (qr) => {
@@ -86,9 +94,14 @@ client.on('message', async (message) => {
   let reply = null;
   try {
     const crmResult = await askCrm(event);
+    lastCrmAt = new Date().toISOString();
+    lastCrmError = null;
     reply = crmResult?.reply || null;
     if (crmResult?.draft) console.log('Borrador de Eve guardado para aprobación humana:', crmResult.draft);
-  } catch (error) { console.error('No se pudo consultar el CRM:', error.message); }
+  } catch (error) {
+    lastCrmError = error instanceof Error ? error.message : 'unknown CRM error';
+    console.error('No se pudo consultar el CRM:', error.message);
+  }
   if (!reply && autoReplyEnabled) reply = process.env.AUTO_REPLY_TEXT?.trim() || null;
   if (!reply || !autoReplyEnabled) return;
   await message.reply(reply);
