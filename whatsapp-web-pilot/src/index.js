@@ -62,7 +62,8 @@ async function askCrm(event) {
   return {
     reply: typeof body.reply === 'string' && body.reply.trim() ? body.reply.trim() : null,
     draft: typeof body.draft === 'string' && body.draft.trim() ? body.draft.trim() : null,
-    approvalRequired: body.approvalRequired !== false
+    approvalRequired: body.approvalRequired !== false,
+    reviewReason: typeof body.reviewReason === 'string' ? body.reviewReason : null
   };
 }
 
@@ -104,14 +105,14 @@ client.on('message', async (message) => {
     lastCrmResult = crmResult?.draft ? 'draft' : 'no_draft';
     if (crmResult?.draft) lastDraftAt = lastCrmAt;
     reply = crmResult?.reply || null;
-    if (crmResult?.draft) console.log('Borrador de Eve guardado para aprobación humana:', crmResult.draft);
+    if (crmResult?.draft) console.log('Borrador de Eve:', crmResult.draft);
+    if (crmResult?.approvalRequired && crmResult?.reviewReason) console.log('Revisión humana requerida:', crmResult.reviewReason);
   } catch (error) {
     lastCrmError = error instanceof Error ? error.message : 'unknown CRM error';
     lastCrmResult = 'error';
     console.error('No se pudo consultar el CRM:', error.message);
   }
-  if (!reply && autoReplyEnabled) reply = process.env.AUTO_REPLY_TEXT?.trim() || null;
-  if (!reply || !autoReplyEnabled) return;
+  if (!reply || inboundOnly || !autoReplyEnabled) return;
   await message.reply(reply);
   console.log('Respuesta enviada al remitente del mensaje entrante.');
 });

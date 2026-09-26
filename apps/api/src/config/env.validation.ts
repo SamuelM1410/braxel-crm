@@ -104,6 +104,10 @@ export class EnvironmentVariables {
 	WHATSAPP_WEBHOOK_SECRET?: string;
 
 	@IsOptional()
+	@IsIn(["disabled", "smart"])
+	WHATSAPP_AUTO_REPLY_MODE?: "disabled" | "smart";
+
+	@IsOptional()
 	@IsString()
 	MICROSOFT_CLIENT_ID?: string;
 

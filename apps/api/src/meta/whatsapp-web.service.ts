@@ -24,6 +24,12 @@ export const whatsappWebInboundSchema = z.object({
 
 export type WhatsAppWebInbound = z.infer<typeof whatsappWebInboundSchema>;
 
+type EveReplyDecision = {
+	text: string | null;
+	requiresHuman: boolean;
+	reason: string;
+};
+
 export function normalizePhone(
 	value: string | null | undefined,
 ): string | null {
@@ -82,9 +88,16 @@ export class WhatsAppWebService {
 		return {
 			ok: true,
 			inboundOnly: true,
-			autoReplyEnabled: false,
+			autoReplyMode: this.autoReplyMode(),
 			webhookConfigured: Boolean(this.webhookSecret()),
 		};
+	}
+
+	private autoReplyMode(): "disabled" | "smart" {
+		return this.config.get("WHATSAPP_AUTO_REPLY_MODE", { infer: true }) ===
+			"smart"
+			? "smart"
+			: "disabled";
 	}
 
 	private webhookSecret() {
@@ -150,6 +163,7 @@ export class WhatsAppWebService {
 				messageId: existing.id,
 				threadId: thread.id,
 				approvalRequired: true,
+				reviewReason: "Duplicate event was already stored.",
 				draft: null,
 				reply: null,
 			};
@@ -158,6 +172,10 @@ export class WhatsAppWebService {
 		const draft = event.text.trim()
 			? await this.draft(event.name, event.text)
 			: null;
+		const autoReply =
+			draft?.text && !draft.requiresHuman && this.autoReplyMode() === "smart"
+				? draft.text
+				: null;
 		const raw = {
 			source: event.channel,
 			externalMessageId: event.externalMessageId,
@@ -165,10 +183,10 @@ export class WhatsAppWebService {
 			phone: normalizedPhone,
 			name: event.name ?? null,
 			receivedAt: sentAt.toISOString(),
-			approvalStatus: draft ? "WAITING_FOR_APPROVAL" : "NO_DRAFT",
+			approvalStatus: autoReply ? "AUTO_REPLY" : "REVIEW_REQUIRED",
 			draft: draft?.text ?? null,
-			draftReason:
-				draft?.reason ?? "AI provider is not configured or returned HANDOFF.",
+			draftReason: draft?.reason ?? "AI provider is not configured.",
+			autoReplyMode: this.autoReplyMode(),
 		};
 
 		let created: { id: string } | null = null;
@@ -201,6 +219,7 @@ export class WhatsAppWebService {
 					messageId: duplicate?.id ?? null,
 					threadId: thread.id,
 					approvalRequired: true,
+					reviewReason: "Duplicate event was already stored.",
 					draft: null,
 					reply: null,
 				};
@@ -221,8 +240,9 @@ export class WhatsAppWebService {
 				threadId: thread.id,
 				messageId: created.id,
 				channel: SocialChannel.WHATSAPP,
-				reason:
-					"New inbound WhatsApp Web message requires a human-approved Eve reply.",
+				reason: autoReply
+					? "New inbound WhatsApp Web message received. Eve classified the reply as low risk."
+					: "New inbound WhatsApp Web message requires Eve review before replying.",
 			});
 		} catch (error) {
 			this.logger.warn(
@@ -243,8 +263,11 @@ export class WhatsAppWebService {
 			messageId: created.id,
 			threadId: thread.id,
 			draft: draft?.text ?? null,
-			approvalRequired: true,
-			reply: null,
+			approvalRequired: !autoReply,
+			reviewReason: autoReply
+				? null
+				: (draft?.reason ?? "AI provider is not configured."),
+			reply: autoReply,
 		};
 	}
 
@@ -272,7 +295,10 @@ export class WhatsAppWebService {
 		});
 	}
 
-	private async draft(name: string | null | undefined, inbound: string) {
+	private async draft(
+		name: string | null | undefined,
+		inbound: string,
+	): Promise<EveReplyDecision | null> {
 		const key = process.env.OPENAI_API_KEY;
 		if (!key) return null;
 		const controller = new AbortController();
@@ -295,7 +321,7 @@ export class WhatsAppWebService {
 							{
 								role: "system",
 								content:
-									"Eres Eve, appointment setter de Braxel. Braxel crea páginas web orientadas a conversión y automatiza atención y seguimiento por WhatsApp para recuperar oportunidades y carritos abandonados. Responde en español, con calidez y precisión, entre 40 y 90 palabras, haciendo como máximo una pregunta. Descubre primero el contexto, conecta solo problemas evidenciados con la oferta, no inventes precios, resultados, disponibilidad, clientes ni integraciones. Si preguntan precio, contrato, legalidad, privacidad, garantía, piden una propuesta detallada, expresan que no desean contacto o hay ambigüedad, devuelve exactamente HANDOFF. Si hay interés, propone una llamada de diagnóstico sin confirmar una cita. Esto es un BORRADOR para revisión humana: no envías nada.",
+									"Eres Eve, appointment setter de Braxel. Braxel crea páginas web orientadas a conversión y automatiza atención y seguimiento por WhatsApp para recuperar oportunidades y carritos abandonados. Responde en español, con calidez y precisión, entre 40 y 90 palabras, haciendo como máximo una pregunta. Descubre primero el contexto, conecta solo problemas evidenciados con la oferta, no inventes precios, resultados, disponibilidad, clientes ni integraciones. Si preguntan precio, contrato, legalidad, privacidad, garantía, piden una propuesta detallada, expresan que no desean contacto, piden una acción sensible o existe ambigüedad, devuelve exactamente HANDOFF. Si hay interés, propone una llamada de diagnóstico sin confirmar una cita. Devuelve solo el mensaje final o HANDOFF.",
 							},
 							{
 								role: "user",
@@ -310,8 +336,23 @@ export class WhatsAppWebService {
 				choices?: Array<{ message?: { content?: string } }>;
 			};
 			const text = json.choices?.[0]?.message?.content?.trim();
-			if (!text || text === "HANDOFF" || text.length > 1200) return null;
-			return { text, reason: "Eve draft generated; human approval required." };
+			if (!text || text.length > 1200)
+				return {
+					text: null,
+					requiresHuman: true,
+					reason: "Eve did not return a safe reply.",
+				};
+			if (text.toUpperCase() === "HANDOFF")
+				return {
+					text: null,
+					requiresHuman: true,
+					reason: "Eve classified the conversation as requiring human review.",
+				};
+			return {
+				text,
+				requiresHuman: false,
+				reason: "Eve classified the reply as low risk.",
+			};
 		} catch (error) {
 			this.logger.warn(
 				`WhatsApp draft failed: ${error instanceof Error ? error.message : "unknown"}`,
