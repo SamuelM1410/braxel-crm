@@ -43,6 +43,7 @@ yarn-error.log*
 
 # WhatsApp Web local session
 whatsapp-web-pilot/.wwebjs_auth/
+whatsapp-web-pilot/.wwebjs_cache/
 
 # Agent worktrees
 .claude/worktrees/
