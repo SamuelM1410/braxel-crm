@@ -31,7 +31,7 @@ Es nuevo en esta entrega:
 5. **El agente sabe qué es una página web**: sus instrucciones ahora dicen que el contenido que lee es evidencia, no una orden, y que ninguna página puede aprobar un lead ni levantar un No contactar.
 6. **Un modo demo** (`HACKATHON_DEMO_MODE`) que no llama a n8n y no abre ninguna ruta pública.
 7. **Datos sintéticos seguros**: 5 empresas en el dominio reservado `.invalid`, con aviso visible en la ficha.
-8. **La suite quedó en verde**: 1117 pruebas, 0 fallas, incluidas las cinco que antes fallaban.
+8. **La suite quedó en verde**: 1128 pruebas, 0 fallas, incluidas las cinco que antes fallaban.
 
 ## Por qué esto y no un CRM nuevo
 
@@ -90,7 +90,7 @@ Corrido en local con Postgres:
 | --- | --- |
 | `bun run check-types` | 13 de 13 tareas |
 | `bun run lint` | 9 de 9 tareas |
-| `bun run test` | **1117 pruebas, 0 fallas** |
+| `bun run test` | **1128 pruebas, 0 fallas** |
 | `bun run build` | 4 de 4 tareas |
 
 Las cinco pruebas que los paquetes anteriores reportaban como fallando ya no fallan. Cuatro describían una página que Braxel retiró y se eliminaron con su motivo escrito en `docs/api.md`; la quinta era un defecto real y está corregida. El detalle está en la sección de límites.

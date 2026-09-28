@@ -52,7 +52,7 @@ Es nuevo en esta entrega:
 5. **Rechazo de enlaces que el navegador ejecutaría** (`javascript:`, `data:`, `file:`), que llegaban desde páginas web y se renderizaban tal cual en tres sitios.
 6. **Un límite de confianza explícito para el agente**: el contenido que lee es evidencia, no una orden.
 7. **Una prueba de extremo a extremo** del recorrido completo: `apps/api/test/lead-lifecycle.e2e.spec.ts`.
-8. **La suite en verde**: 1117 pruebas, 0 fallas.
+8. **La suite en verde**: 1128 pruebas, 0 fallas.
 
 ## Cómo correrlo en la máquina que ya tiene el CRM local
 
@@ -107,7 +107,7 @@ Corrido en local con Postgres:
 | --- | --- |
 | `bun run check-types` | 13 de 13 tareas |
 | `bun run lint` | 9 de 9 tareas |
-| `bun run test` | **1117 pruebas, 0 fallas** |
+| `bun run test` | **1128 pruebas, 0 fallas** |
 | `bun run build` | 4 de 4 tareas |
 
 Las cinco pruebas que los paquetes anteriores reportaban como fallando ya no fallan. Cuatro describían una página que Braxel retiró y se eliminaron con su motivo escrito en `docs/api.md`; la quinta era un defecto real y está corregida. El detalle está en la sección de límites.
