@@ -11,6 +11,8 @@ const autoReplyEnabled = process.env.AUTO_REPLY_ENABLED === "true";
 const crmReplyUrl = process.env.CRM_REPLY_URL?.trim() || "";
 const crmReplySecret = process.env.CRM_REPLY_SECRET?.trim() || "";
 const crmTimeoutMs = Number(process.env.CRM_REPLY_TIMEOUT_MS || 12000);
+const openAiApiKey = process.env.OPENAI_API_KEY?.trim() || "";
+const audioTimeoutMs = Number(process.env.WHATSAPP_AUDIO_TIMEOUT_MS || 20000);
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -55,6 +57,36 @@ function withTimeout(promise, timeoutMs) {
 			setTimeout(() => reject(new Error("CRM reply timeout")), timeoutMs),
 		),
 	]);
+}
+
+async function transcribeAudio(message) {
+	if (!openAiApiKey)
+		throw new Error("OPENAI_API_KEY is required for audio messages");
+	const media = await withTimeout(message.downloadMedia(), audioTimeoutMs);
+	if (!media?.data) throw new Error("WhatsApp audio media was empty");
+	const audio = Buffer.from(media.data, "base64");
+	const form = new FormData();
+	form.append(
+		"file",
+		new Blob([audio], { type: media.mimetype || "audio/ogg" }),
+		"whatsapp-audio.ogg",
+	);
+	form.append("model", process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1");
+	form.append("language", "es");
+	const response = await withTimeout(
+		fetch("https://api.openai.com/v1/audio/transcriptions", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${openAiApiKey}` },
+			body: form,
+		}),
+		audioTimeoutMs,
+	);
+	if (!response.ok)
+		throw new Error(`Audio transcription HTTP ${response.status}`);
+	const body = await response.json();
+	const text = body.text?.trim();
+	if (!text) throw new Error("Audio transcription returned no text");
+	return text;
 }
 
 async function askCrm(event) {
@@ -155,13 +187,36 @@ client.on("message", async (message) => {
 		`${message.from}:${message.timestamp || Date.now()}:${message.body || ""}`;
 	lastMessageId = externalMessageId;
 	const contact = await message.getContact();
+	const isAudio = message.type === "ptt" || message.type === "audio";
+	let text = message.body || "";
+	if (isAudio && !text.trim()) {
+		try {
+			text = await transcribeAudio(message);
+			console.log("Audio transcrito para Eve:", text);
+		} catch (error) {
+			lastCrmError =
+				error instanceof Error ? error.message : "audio transcription failed";
+			lastCrmResult = "audio_error";
+			console.error("No se pudo transcribir el audio:", lastCrmError);
+			if (!inboundOnly && autoReplyEnabled) {
+				try {
+					await message.reply(
+						"No pude escuchar el audio correctamente. ¿Puedes enviarme el mensaje por texto?",
+					);
+				} catch (replyError) {
+					console.error("No se pudo enviar el aviso de audio:", replyError);
+				}
+			}
+			return;
+		}
+	}
 	const event = {
 		channel: "WHATSAPP_WEB_PILOT",
 		externalMessageId,
 		externalSenderId: message.from,
 		phone: contact.number || null,
 		name: contact.pushname || contact.name || null,
-		text: message.body || "",
+		text,
 		receivedAt: lastMessageAt,
 	};
 	console.log("Mensaje entrante:", JSON.stringify(event));
