@@ -90,7 +90,7 @@ export class MailboxTokenService {
 		try {
 			const accounts = await this.db.account.findMany({
 				where: { userId, providerId },
-				select: { id: true, scope: true },
+				select: { accountId: true, scope: true },
 				orderBy: { updatedAt: "desc" },
 			});
 			const account = accounts.find((candidate) =>
@@ -105,9 +105,7 @@ export class MailboxTokenService {
 			}
 
 			const { accessToken } = await auth.api.getAccessToken({
-				// Selecting by the local account id is important when the CRM login
-				// and the connected agency mailbox are both Google accounts.
-				body: { providerId, accountId: account.id, userId },
+				body: { providerId, accountId: account.accountId, userId },
 			});
 
 			if (!accessToken) {
