@@ -41,7 +41,7 @@ used for type checking only (`bun run check-types`).
 | `/api/whatsapp-web/health` | anonymous | Local WhatsApp Web pilot status and reply policy. |
 | `/api/whatsapp-web/inbound` | `WHATSAPP_WEBHOOK_SECRET` bearer | Stores an inbound pilot event, deduplicates it, and returns a smart Eve decision. |
 | `/api/whatsapp-web/outbound` | `WHATSAPP_WEBHOOK_SECRET` bearer | Records a reply actually sent by the local pilot, deduplicated by the WhatsApp message id. |
-| `/api/whatsapp-web/metrics` | `WHATSAPP_WEBHOOK_SECRET` bearer | Returns the WhatsApp sales funnel: stages, qualified leads, call requests, opt-outs, reply counts and average reply length. |
+| `/api/whatsapp-web/metrics` | CRM session or `WHATSAPP_WEBHOOK_SECRET` bearer | Returns the WhatsApp sales funnel and operational recommendations. |
 
 ## Local WhatsApp Web pilot
 
@@ -60,7 +60,8 @@ after a reply is actually sent, so the CRM measures real responses rather than
 only generated drafts. The `/api/whatsapp-web/metrics` endpoint uses those
 events plus deterministic Spanish sales signals to report `NEW`, `QUALIFYING`,
 `INTERESTED`, `OBJECTION`, `CALL_REQUESTED`, `HANDOFF` and `OPT_OUT` stages.
-The score is an operational prioritisation signal, not a promise of conversion.
+Signed-in CRM users can read metrics without the pilot secret. The score and
+recommendations are operational signals, not promises of conversion.
 
 ## How auth is wired
 
