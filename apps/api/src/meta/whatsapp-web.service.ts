@@ -24,6 +24,17 @@ export const whatsappWebInboundSchema = z.object({
 
 export type WhatsAppWebInbound = z.infer<typeof whatsappWebInboundSchema>;
 
+export const whatsappWebOutboundSchema = z.object({
+	channel: z.literal("WHATSAPP_WEB_PILOT"),
+	externalMessageId: z.string().trim().min(1).max(240),
+	externalSenderId: z.string().trim().min(1).max(240),
+	text: z.string().min(1).max(8000),
+	replyMode: z.enum(["AUTO_REPLY", "REVIEW_REQUIRED"]).default("AUTO_REPLY"),
+	sentAt: z.coerce.date().optional(),
+});
+
+export type WhatsAppWebOutbound = z.infer<typeof whatsappWebOutboundSchema>;
+
 type EveReplyDecision = {
 	text: string | null;
 	requiresHuman: boolean;
@@ -34,6 +45,144 @@ type ConversationTurn = {
 	direction: string;
 	body: string | null;
 };
+
+export type SalesStage =
+	| "NEW"
+	| "QUALIFYING"
+	| "INTERESTED"
+	| "OBJECTION"
+	| "CALL_REQUESTED"
+	| "HANDOFF"
+	| "OPT_OUT";
+
+export type SalesSignal = {
+	stage: SalesStage;
+	intent: string;
+	score: number;
+	topics: string[];
+	nextAction: string;
+};
+
+const salesStageRank: Record<SalesStage, number> = {
+	NEW: 1,
+	QUALIFYING: 2,
+	INTERESTED: 3,
+	OBJECTION: 3,
+	CALL_REQUESTED: 4,
+	HANDOFF: 5,
+	OPT_OUT: 0,
+};
+
+function classifySalesSignal(text: string): SalesSignal {
+	const normalized = text.toLocaleLowerCase("es");
+	const topics: string[] = [];
+	if (/\b(web|página|sitio|landing|tienda online)\b/.test(normalized))
+		topics.push("website");
+	if (/\b(whatsapp|chat|mensaje|atención|cliente)\b/.test(normalized))
+		topics.push("whatsapp");
+	if (/\b(venta|ventas|vender|conversión|convertir|carrito)\b/.test(normalized))
+		topics.push("conversion");
+	if (
+		/\b(precio|costo|coste|caro|barato|cotización|presupuesto)\b/.test(
+			normalized,
+		)
+	)
+		topics.push("pricing");
+
+	if (
+		/(no me escrib(?:as|an|ir)?|no contactar|no contactes|baja|stop|unsubscribe|salir)/.test(
+			normalized,
+		)
+	) {
+		return {
+			stage: "OPT_OUT",
+			intent: "opt_out",
+			score: 0,
+			topics,
+			nextAction: "No responder automáticamente y detener el seguimiento.",
+		};
+	}
+	if (
+		/\b(llamada|llamar|agendar|agenda|reunión|reunion|hablar)\b/.test(
+			normalized,
+		)
+	) {
+		return {
+			stage: "CALL_REQUESTED",
+			intent: "call_request",
+			score: 88,
+			topics,
+			nextAction: "Derivar a una persona para confirmar la llamada.",
+		};
+	}
+	if (
+		/\b(caro|precio|pensarlo|pensarlo bien|tiempo|no estoy seguro|ya tengo web|ya tenemos web)\b/.test(
+			normalized,
+		)
+	) {
+		return {
+			stage: "OBJECTION",
+			intent: "objection",
+			score: 56,
+			topics,
+			nextAction:
+				"Validar la objeción, responder con valor y hacer una sola pregunta.",
+		};
+	}
+	if (
+		/\b(quiero|interesa|me interesa|necesito|cómo funciona|como funciona|más información|mas informacion|mejorar ventas|cotización|cotizacion)\b/.test(
+			normalized,
+		)
+	) {
+		return {
+			stage: "INTERESTED",
+			intent: "purchase_interest",
+			score: 70,
+			topics,
+			nextAction: "Calificar el negocio y proponer un diagnóstico si encaja.",
+		};
+	}
+	if (text.trim()) {
+		return {
+			stage: "QUALIFYING",
+			intent: "information_request",
+			score: 34,
+			topics,
+			nextAction:
+				"Entender el negocio y el problema antes de presentar la oferta.",
+		};
+	}
+	return {
+		stage: "NEW",
+		intent: "empty_message",
+		score: 10,
+		topics,
+		nextAction: "Solicitar el mensaje por texto o una aclaración.",
+	};
+}
+
+function salesFromRaw(raw: unknown): SalesSignal | null {
+	if (!raw || typeof raw !== "object") return null;
+	const sales = (raw as Record<string, unknown>).sales;
+	if (!sales || typeof sales !== "object") return null;
+	const value = sales as Record<string, unknown>;
+	if (typeof value.stage !== "string" || !(value.stage in salesStageRank))
+		return null;
+	return {
+		stage: value.stage as SalesStage,
+		intent: typeof value.intent === "string" ? value.intent : "unknown",
+		score: typeof value.score === "number" ? value.score : 0,
+		topics: Array.isArray(value.topics)
+			? value.topics.filter(
+					(topic): topic is string => typeof topic === "string",
+				)
+			: [],
+		nextAction:
+			typeof value.nextAction === "string"
+				? value.nextAction
+				: "Review the conversation.",
+	};
+}
 
 export function normalizePhone(
 	value: string | null | undefined,
@@ -95,6 +244,134 @@ export class WhatsAppWebService {
 			inboundOnly: true,
 			autoReplyMode: this.autoReplyMode(),
 			webhookConfigured: Boolean(this.webhookSecret()),
+		};
+	}
+
+	async salesMetrics() {
+		const threads = await this.db.socialThread.findMany({
+			where: { channel: SocialChannel.WHATSAPP },
+			orderBy: { lastMessageAt: "desc" },
+			select: {
+				id: true,
+				lastMessageAt: true,
+				contact: {
+					select: {
+						id: true,
+						calendarEvents: { select: { id: true, status: true } },
+						deals: { select: { deal: { select: { stage: true } } } },
+					},
+				},
+				messages: {
+					orderBy: { sentAt: "asc" },
+					select: { direction: true, body: true, raw: true, sentAt: true },
+				},
+			},
+		});
+		const stages: Record<SalesStage, number> = {
+			NEW: 0,
+			QUALIFYING: 0,
+			INTERESTED: 0,
+			OBJECTION: 0,
+			CALL_REQUESTED: 0,
+			HANDOFF: 0,
+			OPT_OUT: 0,
+		};
+		let inboundMessages = 0;
+		let outboundMessages = 0;
+		let automaticReplies = 0;
+		let humanReviews = 0;
+		let callRequests = 0;
+		let optOuts = 0;
+		let totalReplyWords = 0;
+		let repliesWithText = 0;
+		const bookedCallContacts = new Set<string>();
+		const wonDealContacts = new Set<string>();
+		for (const thread of threads) {
+			if (thread.contact) {
+				if (
+					thread.contact.calendarEvents.some(
+						(event) => !/cancel|declin/i.test(event.status),
+					)
+				)
+					bookedCallContacts.add(thread.contact.id);
+				if (
+					thread.contact.deals.some((item) => item.deal.stage === "CLOSED_WON")
+				)
+					wonDealContacts.add(thread.contact.id);
+			}
+			let latestSignal: SalesSignal | null = null;
+			for (const message of thread.messages) {
+				if (message.direction === EmailDirection.INBOUND) {
+					inboundMessages += 1;
+					const inboundRaw =
+						message.raw && typeof message.raw === "object"
+							? (message.raw as Record<string, unknown>)
+							: {};
+					if (inboundRaw.approvalStatus === "REVIEW_REQUIRED")
+						humanReviews += 1;
+					const signal = salesFromRaw(message.raw);
+					if (signal && signal.stage === "OPT_OUT") {
+						latestSignal = signal;
+					} else if (
+						signal &&
+						latestSignal?.stage !== "OPT_OUT" &&
+						(!latestSignal ||
+							salesStageRank[signal.stage] >=
+								salesStageRank[latestSignal.stage])
+					) {
+						latestSignal = signal;
+					}
+				} else {
+					outboundMessages += 1;
+					const raw =
+						message.raw && typeof message.raw === "object"
+							? (message.raw as Record<string, unknown>)
+							: {};
+					if (raw.replyMode === "AUTO_REPLY") automaticReplies += 1;
+					if (raw.replyMode === "REVIEW_REQUIRED") humanReviews += 1;
+					if (message.body?.trim()) {
+						totalReplyWords += message.body.trim().split(/\s+/).length;
+						repliesWithText += 1;
+					}
+				}
+			}
+			if (latestSignal) {
+				stages[latestSignal.stage] += 1;
+				if (latestSignal.stage === "CALL_REQUESTED") callRequests += 1;
+				if (latestSignal.stage === "OPT_OUT") optOuts += 1;
+			}
+		}
+		const qualifiedLeads =
+			stages.INTERESTED +
+			stages.OBJECTION +
+			stages.CALL_REQUESTED +
+			stages.HANDOFF;
+		const callsBooked = bookedCallContacts.size;
+		const dealsWon = wonDealContacts.size;
+		return {
+			ok: true,
+			generatedAt: new Date().toISOString(),
+			totalConversations: threads.length,
+			inboundMessages,
+			outboundMessages,
+			automaticReplies,
+			humanReviews,
+			qualifiedLeads,
+			callRequests,
+			callsBooked,
+			dealsWon,
+			callBookingRate: qualifiedLeads
+				? Math.round((callsBooked / qualifiedLeads) * 1000) / 10
+				: 0,
+			closeRate: qualifiedLeads
+				? Math.round((dealsWon / qualifiedLeads) * 1000) / 10
+				: 0,
+			optOuts,
+			averageReplyWords: repliesWithText
+				? Math.round((totalReplyWords / repliesWithText) * 10) / 10
+				: 0,
+			stages,
+			lastMessageAt: threads[0]?.lastMessageAt?.toISOString() ?? null,
 		};
 	}
 
@@ -180,11 +457,27 @@ export class WhatsAppWebService {
 			take: 8,
 			select: { direction: true, body: true },
 		});
-		const draft = event.text.trim()
-			? await this.draft(event.name, event.text, history.reverse())
-			: null;
+		const classifiedSales = classifySalesSignal(event.text);
+		const draft =
+			event.text.trim() && classifiedSales.stage !== "OPT_OUT"
+				? await this.draft(event.name, event.text, history.reverse())
+				: null;
+		const sales: SalesSignal =
+			draft?.requiresHuman && classifiedSales.stage !== "CALL_REQUESTED"
+				? {
+						...classifiedSales,
+						stage: "HANDOFF",
+						intent: "human_handoff",
+						score: Math.max(classifiedSales.score, 75),
+						nextAction: "Revisar el mensaje y responder como persona.",
+					}
+				: classifiedSales;
 		const autoReply =
-			draft?.text && !draft.requiresHuman && this.autoReplyMode() === "smart"
+			draft?.text &&
+			!draft.requiresHuman &&
+			sales.stage !== "CALL_REQUESTED" &&
+			sales.stage !== "OPT_OUT" &&
+			this.autoReplyMode() === "smart"
 				? draft.text
 				: null;
 		const raw = {
@@ -198,6 +491,11 @@ export class WhatsAppWebService {
 			draft: draft?.text ?? null,
 			draftReason: draft?.reason ?? "AI provider is not configured.",
 			autoReplyMode: this.autoReplyMode(),
+			sales: {
+				...sales,
+				detectedAt: sentAt.toISOString(),
+				replyMode: autoReply ? "AUTO_REPLY" : "REVIEW_REQUIRED",
+			},
 		};
 
 		let created: { id: string } | null = null;
@@ -277,9 +575,72 @@ export class WhatsAppWebService {
 			approvalRequired: !autoReply,
 			reviewReason: autoReply
 				? null
-				: (draft?.reason ?? "AI provider is not configured."),
+				: sales.stage === "OPT_OUT"
+					? "Opt-out detected; no automatic reply will be sent."
+					: sales.stage === "CALL_REQUESTED"
+						? "The lead requested a call; confirm the appointment as a person."
+						: (draft?.reason ?? "AI provider is not configured."),
 			reply: autoReply,
+			sales,
 		};
+	}
+
+	async recordOutbound(input: unknown) {
+		const parsed = whatsappWebOutboundSchema.safeParse(input);
+		if (!parsed.success) {
+			throw new BadRequestException({
+				message: "Invalid WhatsApp Web outbound payload.",
+				issues: parsed.error.issues.map((issue) => ({
+					path: issue.path.join("."),
+					message: issue.message,
+				})),
+			});
+		}
+		const event = parsed.data;
+		const thread = await this.db.socialThread.findUnique({
+			where: {
+				channel_externalThreadId: {
+					channel: SocialChannel.WHATSAPP,
+					externalThreadId: `web:${event.externalSenderId}`,
+				},
+			},
+			select: { id: true },
+		});
+		if (!thread)
+			throw new BadRequestException("WhatsApp thread was not found.");
+		const sentAt = event.sentAt ?? new Date();
+		try {
+			const created = await this.db.socialMessage.create({
+				data: {
+					threadId: thread.id,
+					externalMessageId: event.externalMessageId,
+					direction: EmailDirection.OUTBOUND,
+					senderId: event.externalSenderId,
+					body: event.text,
+					raw: {
+						source: event.channel,
+						replyMode: event.replyMode,
+						receivedAt: sentAt.toISOString(),
+					},
+					sentAt,
+				},
+			});
+			await this.db.socialThread.update({
+				where: { id: thread.id },
+				data: { lastMessageAt: sentAt, messageCount: { increment: 1 } },
+			});
+			return {
+				ok: true,
+				duplicate: false,
+				messageId: created.id,
+				threadId: thread.id,
+			};
+		} catch (error) {
+			if (isPrismaUniqueViolation(error)) {
+				return { ok: true, duplicate: true, threadId: thread.id };
+			}
+			throw error;
+		}
 	}
 
 	private async findOrCreateContact(

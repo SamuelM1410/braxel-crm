@@ -9,6 +9,9 @@ const port = Number(process.env.PORT || 8787);
 const inboundOnly = process.env.WHATSAPP_INBOUND_ONLY !== "false";
 const autoReplyEnabled = process.env.AUTO_REPLY_ENABLED === "true";
 const crmReplyUrl = process.env.CRM_REPLY_URL?.trim() || "";
+const crmOutboundUrl =
+	process.env.CRM_OUTBOUND_URL?.trim() ||
+	(crmReplyUrl ? crmReplyUrl.replace(/\/inbound\/?$/, "/outbound") : "");
 const crmReplySecret = process.env.CRM_REPLY_SECRET?.trim() || "";
 const crmTimeoutMs = Number(process.env.CRM_REPLY_TIMEOUT_MS || 12000);
 const openAiApiKey = process.env.OPENAI_API_KEY?.trim() || "";
@@ -39,6 +42,8 @@ let lastCrmAt = null;
 let lastCrmError = null;
 let lastCrmResult = null;
 let lastDraftAt = null;
+let lastOutboundAt = null;
+let lastOutboundError = null;
 
 function accountSummary() {
 	const info = client.info;
@@ -123,6 +128,23 @@ async function askCrm(event) {
 	};
 }
 
+async function recordCrmOutbound(event) {
+	if (!crmOutboundUrl || !crmReplySecret) return null;
+	const response = await withTimeout(
+		fetch(crmOutboundUrl, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				authorization: `Bearer ${crmReplySecret}`,
+			},
+			body: JSON.stringify(event),
+		}),
+		crmTimeoutMs,
+	);
+	if (!response.ok) throw new Error(`CRM outbound HTTP ${response.status}`);
+	return response.json();
+}
+
 app.get("/health", (_req, res) => {
 	res.json({
 		ok: state === "ready",
@@ -131,6 +153,7 @@ app.get("/health", (_req, res) => {
 		autoReplyEnabled,
 		crmConfigured: Boolean(crmReplyUrl),
 		crmAuthConfigured: Boolean(crmReplyUrl && crmReplySecret),
+		crmOutboundConfigured: Boolean(crmOutboundUrl && crmReplySecret),
 		lastQrAt,
 		lastMessageAt,
 		lastMessageId,
@@ -138,6 +161,8 @@ app.get("/health", (_req, res) => {
 		lastCrmError,
 		lastCrmResult,
 		lastDraftAt,
+		lastOutboundAt,
+		lastOutboundError,
 		account: accountSummary(),
 	});
 });
@@ -237,7 +262,38 @@ client.on("message", async (message) => {
 		console.error("No se pudo consultar el CRM:", error.message);
 	}
 	if (!reply || inboundOnly || !autoReplyEnabled) return;
-	await message.reply(reply);
+	const sentAt = new Date().toISOString();
+	let sentMessage;
+	try {
+		sentMessage = await message.reply(reply);
+	} catch (error) {
+		lastOutboundError =
+			error instanceof Error ? error.message : "WhatsApp reply failed";
+		console.error("No se pudo enviar la respuesta de WhatsApp:", lastOutboundError);
+		return;
+	}
+	try {
+		await recordCrmOutbound({
+			channel: "WHATSAPP_WEB_PILOT",
+			externalMessageId:
+				sentMessage.id?._serialized ||
+				sentMessage.id?.id ||
+				`${externalMessageId}:reply`,
+			externalSenderId: message.from,
+			text: reply,
+			replyMode: "AUTO_REPLY",
+			sentAt,
+		});
+		lastOutboundAt = sentAt;
+		lastOutboundError = null;
+	} catch (error) {
+		lastOutboundError =
+			error instanceof Error ? error.message : "outbound reporting failed";
+		console.error(
+			"La respuesta se envió, pero no se registró en el CRM:",
+			lastOutboundError,
+		);
+	}
 	console.log("Respuesta enviada al remitente del mensaje entrante.");
 });
 

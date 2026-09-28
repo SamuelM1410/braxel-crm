@@ -17,4 +17,8 @@ La primera ejecución muestra un QR; las siguientes reutilizan la sesión en
 `http://localhost:3001` y recibe el evento en
 `/api/whatsapp-web/inbound`. Usa `AUTO_REPLY_ENABLED=true` y
 `WHATSAPP_INBOUND_ONLY=false` solo con `WHATSAPP_AUTO_REPLY_MODE=smart` en el
-API. El CRM conserva la revisión humana para respuestas sensibles.
+API. Tras enviar una respuesta, el piloto registra el mensaje real en
+`/api/whatsapp-web/outbound`, lo que alimenta las métricas comerciales y evita
+contar un borrador como respuesta entregada. Define `CRM_OUTBOUND_URL` solo si
+la ruta derivada por defecto no es correcta. El CRM conserva la revisión
+humana para respuestas sensibles.

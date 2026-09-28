@@ -21,4 +21,21 @@ export class WhatsAppWebController {
 		this.whatsapp.assertAuthorization(authorization);
 		return this.whatsapp.ingest(body);
 	}
+
+	@Post("outbound")
+	@AllowAnonymous()
+	async outbound(
+		@Headers("authorization") authorization: string | undefined,
+		@Body() body: unknown,
+	) {
+		this.whatsapp.assertAuthorization(authorization);
+		return this.whatsapp.recordOutbound(body);
+	}
+
+	@Get("metrics")
+	@AllowAnonymous()
+	async metrics(@Headers("authorization") authorization: string | undefined) {
+		this.whatsapp.assertAuthorization(authorization);
+		return this.whatsapp.salesMetrics();
+	}
 }
