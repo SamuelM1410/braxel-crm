@@ -238,6 +238,14 @@ export class WhatsAppWebService {
 			throw new UnauthorizedException("Invalid WhatsApp pilot authorization.");
 	}
 
+	assertMetricsAuthorization(
+		authorization: string | undefined,
+		hasSession: boolean,
+	) {
+		if (hasSession) return;
+		this.assertAuthorization(authorization);
+	}
+
 	health() {
 		return {
 			ok: true,
@@ -348,6 +356,25 @@ export class WhatsAppWebService {
 			stages.HANDOFF;
 		const callsBooked = bookedCallContacts.size;
 		const dealsWon = wonDealContacts.size;
+		const recommendations: string[] = [];
+		if (inboundMessages > 0 && qualifiedLeads === 0)
+			recommendations.push(
+				"Añade una pregunta de calificación después de cada primer contacto.",
+			);
+		if (callRequests > 0 && callsBooked === 0)
+			recommendations.push(
+				"Confirma las solicitudes de llamada dentro de diez minutos.",
+			);
+		if (repliesWithText > 0 && totalReplyWords / repliesWithText > 85)
+			recommendations.push(
+				"Reduce las respuestas automáticas a menos de ochenta palabras.",
+			);
+		if (optOuts > 0)
+			recommendations.push("Detén el seguimiento tras una solicitud de baja.");
+		if (qualifiedLeads > 0 && dealsWon === 0)
+			recommendations.push(
+				"Registra el resultado de cada llamada para ajustar el guion.",
+			);
 		return {
 			ok: true,
 			generatedAt: new Date().toISOString(),
@@ -371,6 +398,7 @@ export class WhatsAppWebService {
 				? Math.round((totalReplyWords / repliesWithText) * 10) / 10
 				: 0,
 			stages,
+			recommendations,
 			lastMessageAt: threads[0]?.lastMessageAt?.toISOString() ?? null,
 		};
 	}
