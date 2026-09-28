@@ -449,7 +449,7 @@ function CompanyOverview({ company }: { company: Company }) {
 						<Button
 							className="mt-2 w-full"
 							variant={company.emailAssistantEnabled ? "default" : "outline"}
-							disabled={replyAssistant.isPending || !company.outreachApprovedAt}
+							disabled={replyAssistant.isPending}
 							onClick={() =>
 								replyAssistant.mutate({
 									companyId: company.id,
@@ -462,9 +462,10 @@ function CompanyOverview({ company }: { company: Company }) {
 								: "Activar Eve solo para respuestas entrantes"}
 						</Button>
 						<p className="mt-3 text-muted-foreground text-xs">
-							Eve nunca inicia mensajes: solo responde un hilo existente tras tu
-							aprobación, y pausa ante opt-out, precio, contrato o una situación
-							ambigua.
+							El primer contacto sigue requiriendo aprobación. Eve puede
+							responder automáticamente en hilos existentes y se pausa ante
+							opt-out, precio, contrato, privacidad, quejas o cualquier caso
+							ambiguo.
 						</p>
 						<OutreachEmail
 							companyId={company.id}

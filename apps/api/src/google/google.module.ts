@@ -5,6 +5,8 @@ import { TrpcModule } from "../trpc/trpc.module";
 import { CalendarClient } from "./calendar.client";
 import { CalendarSyncService } from "./calendar-sync.service";
 import { ConversationService } from "./conversation.service";
+import { EmailUnsubscribeController } from "./email-unsubscribe.controller";
+import { EmailUnsubscribeService } from "./email-unsubscribe.service";
 import { GmailClient } from "./gmail.client";
 import { GmailSyncService } from "./gmail-sync.service";
 import { GoogleRouter } from "./google.router";
@@ -24,9 +26,11 @@ import { ReplySetterService } from "./reply-setter.service";
 		GoogleConnectionService,
 		OutreachEmailService,
 		ReplySetterService,
+		EmailUnsubscribeService,
 		ConversationService,
 		GoogleRouter,
 	],
+	controllers: [EmailUnsubscribeController],
 	exports: [GoogleSyncService, GoogleConnectionService],
 })
 export class GoogleModule {}

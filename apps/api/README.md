@@ -38,6 +38,30 @@ used for type checking only (`bun run check-types`).
 | `/auth/session`  | optional   | Whether the caller is signed in               |
 | `/health`        | anonymous  | 200 with a database round-trip, 503 otherwise |
 | `/internal/sync/google` | `CRON_SECRET` bearer | Vercel Cron entrypoint for Gmail/Calendar sync. Fails closed when the secret is unset. |
+| `/api/whatsapp-web/health` | anonymous | Local WhatsApp Web pilot status and reply policy. |
+| `/api/whatsapp-web/inbound` | `WHATSAPP_WEBHOOK_SECRET` bearer | Stores an inbound pilot event, deduplicates it, and returns a smart Eve decision. |
+| `/api/whatsapp-web/outbound` | `WHATSAPP_WEBHOOK_SECRET` bearer | Records a reply actually sent by the local pilot, deduplicated by the WhatsApp message id. |
+| `/api/whatsapp-web/metrics` | CRM session or `WHATSAPP_WEBHOOK_SECRET` bearer | Returns the WhatsApp sales funnel and operational recommendations. |
+
+## Local WhatsApp Web pilot
+
+The companion `whatsapp-web-pilot` process forwards individual inbound WhatsApp
+Web messages to `/api/whatsapp-web/inbound`. The payload carries the sender
+number, display name, text, external message id, and received timestamp. The API
+normalizes the phone, reuses or creates the CRM contact, links a
+`SocialThread`/`SocialMessage` with channel `WHATSAPP`, and enforces the unique
+`threadId_externalMessageId` key so retries are safe. A generated Eve response
+is stored in the message metadata. With `WHATSAPP_AUTO_REPLY_MODE="smart"`, low-risk
+replies return in `reply`; sensitive or ambiguous cases return
+`approvalRequired: true` with a review reason. Configure the pilot's `CRM_REPLY_SECRET` to the API's
+`WHATSAPP_WEBHOOK_SECRET` (the local `CRM_INTAKE_SECRET` is accepted as a
+backwards-compatible fallback). The pilot calls `/api/whatsapp-web/outbound`
+after a reply is actually sent, so the CRM measures real responses rather than
+only generated drafts. The `/api/whatsapp-web/metrics` endpoint uses those
+events plus deterministic Spanish sales signals to report `NEW`, `QUALIFYING`,
+`INTERESTED`, `OBJECTION`, `CALL_REQUESTED`, `HANDOFF` and `OPT_OUT` stages.
+Signed-in CRM users can read metrics without the pilot secret. The score and
+recommendations are operational signals, not promises of conversion.
 
 ## How auth is wired
 

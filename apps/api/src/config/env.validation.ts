@@ -92,6 +92,39 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	OPENAI_API_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	EVE_OPENAI_MODEL?: string;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(32)
+	EMAIL_UNSUBSCRIBE_SECRET?: string;
+
+	@IsOptional()
+	@IsUrl({ require_tld: false, require_protocol: true })
+	EMAIL_UNSUBSCRIBE_BASE_URL?: string;
+
+	@IsOptional()
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@Max(500)
+	GMAIL_MARKETING_DAILY_LIMIT = 50;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(16)
+	WHATSAPP_WEBHOOK_SECRET?: string;
+
+	@IsOptional()
+	@IsIn(["disabled", "smart"])
+	WHATSAPP_AUTO_REPLY_MODE?: "disabled" | "smart";
+
+	@IsOptional()
+	@IsString()
 	MICROSOFT_CLIENT_ID?: string;
 
 	@IsOptional()

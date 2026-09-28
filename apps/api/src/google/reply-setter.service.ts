@@ -6,8 +6,8 @@ import { MailboxTokenService } from "../mailbox/mailbox-token.service";
 import { GmailClient } from "./gmail.client";
 
 /**
- * A deliberately narrow, human-gated reply setter. It cannot discover leads,
- * send first messages, or continue a conversation that asks to stop.
+ * A narrow, risk-gated reply setter. It never starts outreach, and it hands
+ * sensitive or ambiguous replies to a human instead of sending automatically.
  */
 @Injectable()
 export class ReplySetterService {
@@ -63,7 +63,6 @@ export class ReplySetterService {
 				email: true,
 				description: true,
 				salesStage: true,
-				outreachApprovedAt: true,
 				emailAssistantEnabled: true,
 				emailAssistantLastReplyAt: true,
 				phone: true,
@@ -72,8 +71,12 @@ export class ReplySetterService {
 				whatsappUrl: true,
 			},
 		});
-		if (!company?.emailAssistantEnabled || !company.outreachApprovedAt) return;
-		if (!SENDABLE.has(company.salesStage) || !message.body?.trim()) return;
+		if (!company?.emailAssistantEnabled || !message.body?.trim()) return;
+		const suppressed = await this.db.suppressedContact.findUnique({
+			where: { email: message.fromEmail.toLowerCase() },
+			select: { email: true },
+		});
+		if (suppressed) return;
 		if (isStopOrRisk(message.body)) {
 			await this.db.company.update({
 				where: { id: company.id },
@@ -238,16 +241,8 @@ Output only the email body.`;
 	}
 }
 
-const SENDABLE = new Set([
-	"INTERESTED",
-	"FOLLOW_UP_ACTIVE",
-	"QUALIFIED",
-	"CLOSING_CALL_BOOKED",
-	"PROPOSAL_SENT",
-	"PAYMENT_PENDING",
-]);
 function isStopOrRisk(value: string) {
-	return /\b(no me interes|no contactar|unsubscribe|cancelar|baja|stop|spam|queja|demanda|legal|contrato|precio|cotizaci[oó]n|presupuesto)\b/i.test(
+	return /\b(no me interes|no contactar|unsubscribe|cancelar|baja|stop|spam|queja|demanda|legal|contrato|precio|cotizaci[oó]n|presupuesto|datos personales|privacidad|garant[ií]a|reembolso|abogado|denuncia|hablar con alguien|persona)\b/i.test(
 		value,
 	);
 }

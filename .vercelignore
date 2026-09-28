@@ -11,6 +11,10 @@
 # deployment. See docs/environment.md.
 .env
 .env.*
+.wwebjs_auth
+.wwebjs_cache
+whatsapp-web-pilot/.wwebjs_auth
+whatsapp-web-pilot/.wwebjs_cache
 
 # Build output and caches — regenerated in the build container. `.vercel/output`
 # especially: uploading a local Build Output API directory invites the build to

@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { MailboxTokenService } from "../mailbox/mailbox-token.service";
+import { marketingBody, marketingHeaders } from "./email-marketing";
 import { GmailClient } from "./gmail.client";
 
 const SENDABLE_STAGES = new Set([
@@ -56,6 +57,27 @@ export class OutreachEmailService {
 		if (!SENDABLE_STAGES.has(company.salesStage)) {
 			throw new BadRequestException(
 				"Email follow-up is available only after a positive or qualified sales outcome.",
+			);
+		}
+		const dailyLimit = Math.max(
+			1,
+			Number.parseInt(process.env.GMAIL_MARKETING_DAILY_LIMIT ?? "50", 10) ||
+				50,
+		);
+		const dayStart = new Date();
+		dayStart.setHours(0, 0, 0, 0);
+		const sentToday = await this.db.activity.count({
+			where: {
+				createdById: userId,
+				type: ActivityType.EMAIL,
+				occurredAt: { gte: dayStart },
+			},
+		});
+		if (sentToday >= dailyLimit) {
+			throw new BadRequestException(
+				"Daily Gmail outreach limit reached (" +
+					dailyLimit +
+					"). Increase GMAIL_MARKETING_DAILY_LIMIT only after deliverability review.",
 			);
 		}
 
@@ -133,19 +155,9 @@ export class OutreachEmailService {
 	) {
 		const company = await this.db.company.findUnique({
 			where: { id: input.companyId },
-			select: { id: true, outreachApprovedAt: true, salesStage: true },
+			select: { id: true },
 		});
 		if (!company) throw new NotFoundException("Company not found.");
-		if (input.enabled && !company.outreachApprovedAt) {
-			throw new BadRequestException(
-				"Approve this company's outreach before enabling its reply assistant.",
-			);
-		}
-		if (input.enabled && !SENDABLE_STAGES.has(company.salesStage)) {
-			throw new BadRequestException(
-				"The reply assistant is available only after a positive or qualified sales outcome.",
-			);
-		}
 		return this.db.company.update({
 			where: { id: company.id },
 			data: {
@@ -164,16 +176,18 @@ function encodeMessage(input: {
 	subject: string;
 	body: string;
 }) {
-	const header = (value: string) => value.replace(/[\\r\\n]+/g, " ").trim();
+	const header = (value: string) => value.replace(/[\r\n]+/g, " ").trim();
+	const unsubscribe = marketingHeaders(input.to);
 	const mime = [
 		`To: ${header(input.to)}`,
 		`From: ${header(input.from)}`,
 		`Subject: ${header(input.subject)}`,
+		...unsubscribe,
 		"MIME-Version: 1.0",
 		'Content-Type: text/plain; charset="UTF-8"',
 		"Content-Transfer-Encoding: 8bit",
 		"",
-		input.body.trim(),
-	].join("\\r\\n");
+		marketingBody(input.body, input.to),
+	].join("\r\n");
 	return Buffer.from(mime, "utf8").toString("base64url");
 }
