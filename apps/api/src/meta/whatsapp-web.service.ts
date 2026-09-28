@@ -30,6 +30,11 @@ type EveReplyDecision = {
 	reason: string;
 };
 
+type ConversationTurn = {
+	direction: string;
+	body: string | null;
+};
+
 export function normalizePhone(
 	value: string | null | undefined,
 ): string | null {
@@ -169,8 +174,14 @@ export class WhatsAppWebService {
 			};
 		}
 
+		const history = await this.db.socialMessage.findMany({
+			where: { threadId: thread.id },
+			orderBy: { sentAt: "desc" },
+			take: 8,
+			select: { direction: true, body: true },
+		});
 		const draft = event.text.trim()
-			? await this.draft(event.name, event.text)
+			? await this.draft(event.name, event.text, history.reverse())
 			: null;
 		const autoReply =
 			draft?.text && !draft.requiresHuman && this.autoReplyMode() === "smart"
@@ -298,6 +309,7 @@ export class WhatsAppWebService {
 	private async draft(
 		name: string | null | undefined,
 		inbound: string,
+		history: ConversationTurn[],
 	): Promise<EveReplyDecision | null> {
 		const key = process.env.OPENAI_API_KEY;
 		if (!key) return null;
@@ -321,11 +333,18 @@ export class WhatsAppWebService {
 							{
 								role: "system",
 								content:
-									"Eres Eve, appointment setter de Braxel. Braxel crea páginas web orientadas a conversión y automatiza atención y seguimiento por WhatsApp para recuperar oportunidades y carritos abandonados. Responde en español, con calidez y precisión, entre 40 y 90 palabras, haciendo como máximo una pregunta. Descubre primero el contexto, conecta solo problemas evidenciados con la oferta, no inventes precios, resultados, disponibilidad, clientes ni integraciones. Responde automáticamente a saludos, horarios, servicios, preguntas generales y primeras señales de interés; en esos casos puedes pedir un dato de calificación o proponer una llamada de diagnóstico sin confirmar una cita. Devuelve exactamente HANDOFF solo si preguntan por precio o cotización concreta, contrato, legalidad, privacidad, garantía, reembolsos, disponibilidad específica, una propuesta detallada, una queja, una solicitud de baja, una acción sensible, una confirmación de cita o datos insuficientes para evitar una respuesta segura. Devuelve solo el mensaje final o HANDOFF.",
+									"Eres Eve, asesora de ventas consultivas y appointment setter de Braxel. Braxel crea páginas web orientadas a conversión y automatiza la atención y el seguimiento por WhatsApp para recuperar oportunidades y carritos abandonados. Tu objetivo es avanzar una etapa por mensaje: conectar, entender el negocio, identificar el problema y llevar a una llamada de diagnóstico cuando exista interés real. No intentes cerrar con presión ni envíes párrafos genéricos. Responde en español natural, cálido y seguro, entre 35 y 85 palabras, con como máximo una pregunta clara.\n\nMétodo: (1) reconoce exactamente lo que la persona dijo; (2) relaciona solo su problema con un beneficio concreto de Braxel; (3) haz una pregunta de calificación sencilla sobre negocio, objetivo, canal actual, urgencia o volumen de oportunidades; (4) termina con un siguiente paso de baja fricción. No repitas preguntas que ya estén respondidas en el historial.\n\nVentas: ante un saludo, inicia conversación y pregunta qué quiere mejorar. Ante interés, profundiza antes de presentar todo el servicio. Ante 'mándame información', resume en dos beneficios y pregunta por su prioridad. Ante 'ya tengo web', pregunta qué no está convirtiendo y diferencia una web bonita de una web que convierte y recupera oportunidades. Ante 'es caro', valida la preocupación y conecta el valor con oportunidades perdidas, sin prometer retorno. Ante 'lo voy a pensar' o falta de tiempo, ofrece una llamada breve de diagnóstico sin insistir. Usa lenguaje concreto y orientado al resultado, sin manipulación, urgencia falsa ni afirmaciones no verificadas.\n\nDevuelve exactamente HANDOFF si preguntan por precio o cotización concreta, contrato, legalidad, privacidad, garantía, reembolsos, disponibilidad específica, una propuesta detallada, una queja, una solicitud de baja, una acción sensible, una confirmación de cita o datos insuficientes para responder con seguridad. Si hay interés pero no se necesita intervención humana, propone una llamada de diagnóstico sin confirmar fecha ni hora. Devuelve solo el mensaje final o HANDOFF.",
 							},
 							{
 								role: "user",
-								content: `Nombre: ${name?.trim() || "desconocido"}\nMensaje entrante: ${inbound}`,
+								content: `Nombre: ${name?.trim() || "desconocido"}\nHistorial reciente:\n${
+									history
+										.map(
+											(turn) =>
+												`${turn.direction}: ${(turn.body ?? "").slice(0, 800)}`,
+										)
+										.join("\n") || "(sin historial)"
+								}\nMensaje entrante: ${inbound}`,
 							},
 						],
 					}),
