@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { createDecipheriv, createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import express from "express";
 import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
@@ -16,6 +17,7 @@ const crmReplySecret = process.env.CRM_REPLY_SECRET?.trim() || "";
 const crmTimeoutMs = Number(process.env.CRM_REPLY_TIMEOUT_MS || 12000);
 const openAiApiKey = process.env.OPENAI_API_KEY?.trim() || "";
 const audioTimeoutMs = Number(process.env.WHATSAPP_AUDIO_TIMEOUT_MS || 20000);
+const audioDownloadAttempts = 5;
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -25,6 +27,7 @@ const client = new Client({
 		clientId: process.env.WHATSAPP_CLIENT_ID || "braxel-test",
 		dataPath: ".wwebjs_auth",
 	}),
+	userAgent: false,
 	puppeteer: {
 		headless: true,
 		executablePath:
@@ -64,11 +67,164 @@ function withTimeout(promise, timeoutMs) {
 	]);
 }
 
+function serializeMessageId(message) {
+	if (message.id?._serialized) return message.id._serialized;
+	const remote =
+		typeof message.id?.remote === "string"
+			? message.id.remote
+			: message.id?.remote?._serialized || message.from || "";
+	const id = message.id?.id;
+	if (!remote || !id) return null;
+	return `${message.id?.fromMe ? "true" : "false"}_${remote}_${id}`;
+}
+
+function mediaKeyBuffer(value) {
+	if (Buffer.isBuffer(value)) return value;
+	if (value instanceof Uint8Array) return Buffer.from(value);
+	if (typeof value === "string") {
+		const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+		return Buffer.from(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="), "base64");
+	}
+	if (value && typeof value === "object") return Buffer.from(Object.values(value));
+	return null;
+}
+
+async function downloadMediaDirect(messageOrData) {
+	const data = messageOrData._data || messageOrData;
+	if (!data.directPath || !data.mediaKey || !data.filehash || !data.encFilehash) {
+		return null;
+	}
+	const mediaKey = mediaKeyBuffer(data.mediaKey);
+	if (!mediaKey) throw new Error("WhatsApp media key was invalid");
+	const response = await withTimeout(
+		fetch(`https://mmg.whatsapp.net${data.directPath}`, {
+			headers: {
+				Origin: "https://web.whatsapp.com",
+				Referer: "https://web.whatsapp.com/",
+				"User-Agent": "Mozilla/5.0",
+			},
+		}),
+		audioTimeoutMs,
+	);
+	if (!response.ok) throw new Error(`WhatsApp media HTTP ${response.status}`);
+	const encrypted = Buffer.from(await response.arrayBuffer());
+	if (encrypted.length <= 10) throw new Error("WhatsApp media payload was empty");
+	const ciphertext = encrypted.subarray(0, -10);
+	const actualMac = encrypted.subarray(-10);
+	const info =
+		data.type === "ptt" || data.type === "audio"
+			? "WhatsApp Audio Keys"
+			: `WhatsApp ${String(data.type || "Audio").replace(/^./, (value) => value.toUpperCase())} Keys`;
+	let expandedKey = null;
+	for (const salt of [Buffer.alloc(32), Buffer.alloc(0)]) {
+		for (const keyInfo of [info, "WhatsApp Audio Keys"]) {
+			const candidate = Buffer.from(
+				hkdfSync("sha256", mediaKey, salt, Buffer.from(keyInfo), 112),
+			);
+			const expectedMac = createHmac("sha256", candidate.subarray(48, 80))
+				.update(Buffer.concat([candidate.subarray(0, 16), ciphertext]))
+				.digest()
+				.subarray(0, 10);
+			if (timingSafeEqual(actualMac, expectedMac)) {
+				expandedKey = candidate;
+				break;
+			}
+		}
+		if (expandedKey) break;
+	}
+	if (!expandedKey) {
+		throw new Error(`WhatsApp media integrity check failed (key ${mediaKey.length} bytes, payload ${encrypted.length} bytes)`);
+	}
+	const decipher = createDecipheriv(
+		"aes-256-cbc",
+		expandedKey.subarray(16, 48),
+		expandedKey.subarray(0, 16),
+	);
+	const audio = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+	return {
+		data: audio.toString("base64"),
+		mimetype: data.mimetype || "audio/ogg",
+		filename: data.filename || null,
+		filesize: audio.length,
+	};
+}
+
 async function transcribeAudio(message) {
 	if (!openAiApiKey)
 		throw new Error("OPENAI_API_KEY is required for audio messages");
-	const media = await withTimeout(message.downloadMedia(), audioTimeoutMs);
-	if (!media?.data) throw new Error("WhatsApp audio media was empty");
+	const messageId = serializeMessageId(message);
+	if (messageId && message.id && !message.id._serialized) {
+		message.id._serialized = messageId;
+	}
+	let media = null;
+	let lastError = null;
+	for (let attempt = 1; attempt <= audioDownloadAttempts; attempt += 1) {
+		try {
+			if (attempt > 1) {
+				await new Promise((resolve) => setTimeout(resolve, 3000 * attempt));
+				await message.reload();
+			}
+			media = await withTimeout(message.downloadMedia(), audioTimeoutMs);
+			if (!media?.data) media = await downloadMediaDirect(message);
+			if (media?.data) break;
+			lastError = new Error("WhatsApp audio media was empty");
+		} catch (error) {
+			lastError = error;
+			try {
+				media = await downloadMediaDirect(message);
+				if (media?.data) break;
+			} catch (directError) {
+				lastError = directError;
+			}
+		}
+	}
+	if (!media?.data) {
+		const detail = lastError instanceof Error ? lastError.message : String(lastError);
+		let pageDiagnostics = null;
+		try {
+			pageDiagnostics = await message.client.pupPage.evaluate(async (messageId) => {
+				const msg =
+					window.require("WAWebCollections").Msg.get(messageId) ||
+					(
+						await window
+							.require("WAWebCollections")
+							.Msg.getMessagesById([messageId])
+					)?.messages?.[0];
+				const mediaData = msg?.mediaData;
+				return {
+					exists: Boolean(msg),
+					mediaStage: mediaData?.mediaStage || null,
+					mediaKeys: mediaData ? Object.keys(mediaData) : [],
+					directPath: Boolean(msg?.directPath || mediaData?.directPath),
+					mediaKey: Boolean(msg?.mediaKey || mediaData?.mediaKey),
+					fileHash: Boolean(msg?.filehash || mediaData?.filehash),
+					encFileHash: Boolean(msg?.encFilehash || mediaData?.encFilehash),
+				};
+			}, messageId);
+		} catch (error) {
+			pageDiagnostics = { error: error instanceof Error ? error.message : String(error) };
+		}
+		console.error("Audio media diagnostics:", {
+			type: message.type,
+			id: messageId,
+			rawIdType: typeof message._data?.id,
+			rawIdKeys: message._data?.id ? Object.keys(message._data.id) : [],
+			rawId: message._data?.id || null,
+			hasMedia: message.hasMedia,
+			mimetype: message._data?.mimetype || null,
+			filename: message._data?.filename || null,
+			duration: message._data?.duration || null,
+			dataKeys: message._data ? Object.keys(message._data) : [],
+			mediaDataKeys: message._data?.mediaData ? Object.keys(message._data.mediaData) : [],
+			directPath: message._data?.directPath || null,
+			mediaKey: Boolean(message._data?.mediaKey),
+			fileHash: Boolean(message._data?.filehash),
+			encFileHash: Boolean(message._data?.encFilehash),
+			mediaStage: message._data?.mediaData?.mediaStage || null,
+			pageDiagnostics,
+		});
+		throw new Error(`WhatsApp audio download failed: ${detail}`);
+	}
 	const audio = Buffer.from(media.data, "base64");
 	const form = new FormData();
 	form.append(
@@ -210,7 +366,7 @@ client.on("message", async (message) => {
 		return;
 	lastMessageAt = new Date().toISOString();
 	const externalMessageId =
-		message.id?._serialized ||
+		serializeMessageId(message) ||
 		message.id?.id ||
 		`${message.from}:${message.timestamp || Date.now()}:${message.body || ""}`;
 	lastMessageId = externalMessageId;
@@ -225,7 +381,11 @@ client.on("message", async (message) => {
 			lastCrmError =
 				error instanceof Error ? error.message : "audio transcription failed";
 			lastCrmResult = "audio_error";
-			console.error("No se pudo transcribir el audio:", lastCrmError);
+			console.error("No se pudo transcribir el audio:", {
+				message: lastCrmError,
+				name: error instanceof Error ? error.name : "unknown",
+				stack: error instanceof Error ? error.stack : undefined,
+			});
 			if (!inboundOnly && autoReplyEnabled) {
 				try {
 					await message.reply(
@@ -279,8 +439,8 @@ client.on("message", async (message) => {
 		await recordCrmOutbound({
 			channel: "WHATSAPP_WEB_PILOT",
 			externalMessageId:
-				sentMessage.id?._serialized ||
-				sentMessage.id?.id ||
+				sentMessage?.id?._serialized ||
+				sentMessage?.id?.id ||
 				`${externalMessageId}:reply`,
 			externalSenderId: message.from,
 			text: reply,
