@@ -100,6 +100,22 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	@MinLength(32)
+	EMAIL_UNSUBSCRIBE_SECRET?: string;
+
+	@IsOptional()
+	@IsUrl({ require_tld: false, require_protocol: true })
+	EMAIL_UNSUBSCRIBE_BASE_URL?: string;
+
+	@IsOptional()
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@Max(500)
+	GMAIL_MARKETING_DAILY_LIMIT = 50;
+
+	@IsOptional()
+	@IsString()
 	@MinLength(16)
 	WHATSAPP_WEBHOOK_SECRET?: string;
 
