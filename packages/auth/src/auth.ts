@@ -41,6 +41,7 @@ if (env.google) {
 		scope: [...IDENTITY_SCOPES],
 
 		accessType: "offline",
+		prompt: "consent",
 
 		...(primaryWorkspaceDomain() ? { hd: primaryWorkspaceDomain() } : {}),
 	};
