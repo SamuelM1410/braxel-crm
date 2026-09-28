@@ -21,4 +21,6 @@ API. Tras enviar una respuesta, el piloto registra el mensaje real en
 `/api/whatsapp-web/outbound`, lo que alimenta las métricas comerciales y evita
 contar un borrador como respuesta entregada. Define `CRM_OUTBOUND_URL` solo si
 la ruta derivada por defecto no es correcta. El CRM conserva la revisión
-humana para respuestas sensibles.
+humana para respuestas sensibles. El piloto transcribe mensajes de audio cuando
+`OPENAI_API_KEY` está disponible. El estado `audioTranscriptionConfigured` lo
+confirma sin exponer la clave.

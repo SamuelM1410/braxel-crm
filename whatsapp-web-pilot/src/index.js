@@ -154,6 +154,9 @@ app.get("/health", (_req, res) => {
 		crmConfigured: Boolean(crmReplyUrl),
 		crmAuthConfigured: Boolean(crmReplyUrl && crmReplySecret),
 		crmOutboundConfigured: Boolean(crmOutboundUrl && crmReplySecret),
+		audioTranscriptionConfigured: Boolean(openAiApiKey),
+		audioTranscriptionModel:
+			process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1",
 		lastQrAt,
 		lastMessageAt,
 		lastMessageId,
