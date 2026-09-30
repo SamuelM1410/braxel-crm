@@ -37,7 +37,9 @@ export function LeadReviewActions({
 	const review = useMutation(
 		trpc.companies.reviewLead.mutationOptions({
 			onSuccess: (result) => {
-				toast.success(`Lead ${result.decision.toLowerCase()}.`);
+				toast.success(
+					result.decision === "APPROVED" ? "Lead aprobado." : "Lead rechazado.",
+				);
 				void cache.company(companyId, { settle: "record" });
 				setDecision(null);
 				setReason("");
@@ -55,7 +57,7 @@ export function LeadReviewActions({
 				disabled={review.isPending}
 				onClick={() => setDecision("APPROVED")}
 			>
-				Approve lead
+				Aprobar lead
 			</Button>
 			<Button
 				variant="outline"
@@ -63,7 +65,7 @@ export function LeadReviewActions({
 				disabled={review.isPending}
 				onClick={() => setDecision("REJECTED")}
 			>
-				Reject lead
+				Rechazar lead
 			</Button>
 
 			<AlertDialog
@@ -79,17 +81,17 @@ export function LeadReviewActions({
 					<AlertDialogHeader>
 						<AlertDialogTitle>
 							{decision === "APPROVED"
-								? "Approve this lead?"
-								: "Reject this lead?"}
+								? "¿Aprobar este lead?"
+								: "¿Rechazar este lead?"}
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{decision === "APPROVED"
-								? "Record why this company is a real commercial opportunity."
-								: "Lead OS will add this company to its do-not-contact list."}
+								? "Explica por qué esta empresa es una oportunidad comercial real."
+								: "El lead queda en No contactar y su canal sigue bloqueado."}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<Textarea
-						placeholder="Reason for this decision (required)"
+						placeholder="Motivo de la decisión (obligatorio)"
 						value={reason}
 						maxLength={LEAD_REVIEW.reason.maxLength}
 						required
@@ -97,11 +99,11 @@ export function LeadReviewActions({
 					/>
 					<p className="text-muted-foreground text-xs">
 						{reasonMissing > 0
-							? `Escribe ${reasonMissing} carácter${reasonMissing === 1 ? "" : "es"} más para guardar la decisión.`
+							? `Escribe ${reasonMissing} ${reasonMissing === 1 ? "carácter" : "caracteres"} más para guardar la decisión.`
 							: "El motivo se guarda con tu nombre en el historial."}
 					</p>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>Cancelar</AlertDialogCancel>
 						<AlertDialogAction
 							variant={decision === "REJECTED" ? "destructive" : "default"}
 							disabled={review.isPending || reasonMissing > 0 || !decision}
@@ -110,7 +112,7 @@ export function LeadReviewActions({
 									review.mutate({ id: companyId, decision, reason });
 							}}
 						>
-							{decision === "APPROVED" ? "Approve lead" : "Reject lead"}
+							{decision === "APPROVED" ? "Aprobar lead" : "Rechazar lead"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

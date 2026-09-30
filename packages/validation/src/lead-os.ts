@@ -56,6 +56,13 @@ export type LeadReview = {
 	contactAllowed: boolean;
 };
 
+/**
+ * Why a Lead OS lead may not be contacted yet, or null when it may. A company that
+ * is not a Lead OS lead is never locked: this gate is for leads a person has not
+ * approved, not for customers.
+ */
+export type ContactLock = "pending" | "doNotContact";
+
 export type LeadScores = {
 	evidence: number;
 	opportunity: number;
@@ -150,4 +157,13 @@ export function parseLeadEvidence(
 		items: parsed.data.evidence,
 		missing: parsed.data.missing_evidence,
 	};
+}
+
+export function contactLockOf(
+	description: string | null | undefined,
+): ContactLock | null {
+	const review = parseLeadReview(description);
+	if (!review.isLead || review.contactAllowed) return null;
+	const undecided = review.status === "PENDING" || review.status === null;
+	return undecided ? "pending" : "doNotContact";
 }
