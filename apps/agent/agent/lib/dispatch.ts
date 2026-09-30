@@ -406,7 +406,7 @@ export function brief(task: LeasedTask): string {
 
 	const context =
 		task.kind === "social-reply" ? socialReplyContext(task.payload) : "";
-	return again + work(task.kind, task.reason) + context;
+	return again + work(task.kind, task.reason, task.payload) + context;
 }
 
 function socialReplyContext(payload: LeasedTask["payload"]): string {
@@ -420,7 +420,11 @@ function socialReplyContext(payload: LeasedTask["payload"]): string {
 	return ` Use read_social_thread with threadId ${threadId}${messageId ? ` and treat messageId ${messageId} as the inbound message` : ""}.`;
 }
 
-function work(kind: string, reason: string): string {
+function work(
+	kind: string,
+	reason: string,
+	payload?: LeasedTask["payload"],
+): string {
 	switch (kind) {
 		case "identify":
 			return "Work out who this contact actually is, and record what you find. Read what we already have before spending anything.";
@@ -430,7 +434,7 @@ function work(kind: string, reason: string): string {
 		case "meeting-prep":
 			return "There is a meeting with this person soon. Make sure whoever is taking it opens the record knowing who they are dealing with.";
 		case "social-reply":
-			return "A lead sent an inbound Facebook or Instagram message. Read the social thread, respect opt-out and handoff rules, create Eve's structured commercial dossier, and prepare one concise reply draft with prepare_meta_reply. Do not send it. Require human approval before delivery.";
+			return socialReplyWork(payload);
 		case "company-profile":
 			return "This company's brand, industry, location and links are filled in separately and may already be there. Read the account, fill anything still missing, and write a brief if there is something worth saying.";
 		case "workspace-profile":
@@ -438,4 +442,15 @@ function work(kind: string, reason: string): string {
 		default:
 			return `Handle this: ${reason}`;
 	}
+}
+
+function socialReplyWork(payload?: LeasedTask["payload"]): string {
+	const channel =
+		payload && typeof payload === "object" && !Array.isArray(payload)
+			? (payload as Record<string, unknown>).channel
+			: null;
+	if (channel === "WHATSAPP") {
+		return "A lead sent an inbound WhatsApp message through the local pilot. Read the social thread, respect opt-out and handoff rules, create Eve's structured commercial dossier, and prepare one concise reply draft with prepare_whatsapp_reply. Do not send it from the pilot. Require human approval before delivery.";
+	}
+	return "A lead sent an inbound Facebook or Instagram message. Read the social thread, respect opt-out and handoff rules, create Eve's structured commercial dossier, and prepare one concise reply draft with prepare_meta_reply. Do not send it. Require human approval before delivery.";
 }

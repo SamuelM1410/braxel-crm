@@ -13,6 +13,9 @@ import { AuthMiddleware } from "../trpc/middlewares/auth.middleware";
 import { ConversationService } from "./conversation.service";
 import {
 	calendarEventInput,
+	campaignIdInput,
+	createOutreachCampaignInput,
+	optOutRecipientInput,
 	sendApprovedEmailInput,
 	setAutoCreateInput,
 	setEmailAssistantInput,
@@ -21,6 +24,7 @@ import {
 } from "./google.contracts";
 import { GoogleConnectionService } from "./google-connection.service";
 import { GoogleSyncService } from "./google-sync.service";
+import { OutreachCampaignService } from "./outreach-campaign.service";
 import { OutreachEmailService } from "./outreach-email.service";
 
 @Router({ alias: "google" })
@@ -34,6 +38,7 @@ export class GoogleRouter {
 		private readonly conversations: ConversationService,
 		@Inject(OutreachEmailService)
 		private readonly outreach: OutreachEmailService,
+		private readonly campaignService: OutreachCampaignService,
 	) {}
 
 	@Query()
@@ -71,6 +76,51 @@ export class GoogleRouter {
 		@Input() input: z.infer<typeof setEmailAssistantInput>,
 	) {
 		return this.outreach.setReplyAssistant(ctx.user.id, input);
+	}
+
+	@Query()
+	async campaigns(@Ctx() ctx: AuthedTrpcContext) {
+		return this.campaignService.list(ctx.user.id);
+	}
+
+	@Mutation({ input: createOutreachCampaignInput })
+	async createCampaign(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof createOutreachCampaignInput>,
+	) {
+		return this.campaignService.create(ctx.user.id, input);
+	}
+
+	@Mutation({ input: campaignIdInput })
+	async activateCampaign(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input("campaignId") campaignId: string,
+	) {
+		return this.campaignService.activate(ctx.user.id, campaignId);
+	}
+
+	@Mutation({ input: campaignIdInput })
+	async pauseCampaign(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input("campaignId") campaignId: string,
+	) {
+		return this.campaignService.pause(ctx.user.id, campaignId);
+	}
+
+	@Mutation({ input: campaignIdInput })
+	async runCampaign(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input("campaignId") campaignId: string,
+	) {
+		return this.campaignService.runCampaign(ctx.user.id, campaignId);
+	}
+
+	@Mutation({ input: optOutRecipientInput })
+	async optOutRecipient(
+		@Ctx() ctx: AuthedTrpcContext,
+		@Input() input: z.infer<typeof optOutRecipientInput>,
+	) {
+		return this.campaignService.optOut(ctx.user.id, input.recipient);
 	}
 
 	@Mutation({ input: setAutoCreateInput })

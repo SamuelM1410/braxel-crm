@@ -1,7 +1,8 @@
 import { syncError } from "@crm/telemetry";
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { GoogleConnectionService } from "../google/google-connection.service";
 import { GoogleSyncService } from "../google/google-sync.service";
+import { OutreachCampaignService } from "../google/outreach-campaign.service";
 import {
 	isGoogleSyncSource,
 	isMicrosoftSyncSource,
@@ -31,6 +32,7 @@ export class MailboxSyncService {
 		private readonly microsoft: MicrosoftSyncService,
 		private readonly googleConnections: GoogleConnectionService,
 		private readonly microsoftConnections: MicrosoftConnectionService,
+		@Optional() private readonly campaigns?: OutreachCampaignService,
 	) {}
 
 	async runDue(): Promise<TickSummary> {
@@ -97,6 +99,24 @@ export class MailboxSyncService {
 			}
 		}
 
+		try {
+			if (!this.campaigns) return this.finish(summary, startedAt);
+			const campaignSummary = await this.campaigns.runDue();
+			this.logger.log({
+				message: "Outreach campaign tick",
+				...campaignSummary,
+			});
+		} catch (error) {
+			this.logger.error(
+				{ message: "Outreach campaign tick failed" },
+				error instanceof Error ? error.stack : String(error),
+			);
+		}
+
+		return this.finish(summary, startedAt);
+	}
+
+	private finish(summary: TickSummary, startedAt: number): TickSummary {
 		summary.durationMs = Date.now() - startedAt;
 
 		this.logger.log({

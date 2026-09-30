@@ -12,6 +12,7 @@ import { GmailSyncService } from "./gmail-sync.service";
 import { GoogleRouter } from "./google.router";
 import { GoogleConnectionService } from "./google-connection.service";
 import { GoogleSyncService } from "./google-sync.service";
+import { OutreachCampaignService } from "./outreach-campaign.service";
 import { OutreachEmailService } from "./outreach-email.service";
 import { ReplySetterService } from "./reply-setter.service";
 
@@ -25,12 +26,17 @@ import { ReplySetterService } from "./reply-setter.service";
 		GoogleSyncService,
 		GoogleConnectionService,
 		OutreachEmailService,
+		OutreachCampaignService,
 		ReplySetterService,
 		EmailUnsubscribeService,
 		ConversationService,
 		GoogleRouter,
 	],
 	controllers: [EmailUnsubscribeController],
-	exports: [GoogleSyncService, GoogleConnectionService],
+	exports: [
+		GoogleSyncService,
+		GoogleConnectionService,
+		OutreachCampaignService,
+	],
 })
 export class GoogleModule {}

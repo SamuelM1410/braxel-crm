@@ -195,6 +195,14 @@ export class EnvironmentVariables {
 	CRM_TELEMETRY_DISABLED?: string;
 
 	@IsOptional()
+	@IsUrl({ require_tld: false, require_protocol: true })
+	SCRAPEGRAPH_URL?: string;
+
+	@IsOptional()
+	@IsUrl({ require_tld: true, require_protocol: true })
+	SCRAPEGRAPH_DEFAULT_URL?: string;
+
+	@IsOptional()
 	@IsString()
 	@MinLength(32)
 	CRM_INTAKE_SECRET?: string;
@@ -208,6 +216,11 @@ export class EnvironmentVariables {
 		message: 'HACKATHON_DEMO_MODE must be "true" or "false".',
 	})
 	HACKATHON_DEMO_MODE?: string;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(16)
+	WHATSAPP_WEBHOOK_SECRET?: string;
 }
 
 export function validateEnv(

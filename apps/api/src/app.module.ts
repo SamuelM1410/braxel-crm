@@ -27,6 +27,7 @@ import { logAuthRoute } from "./logging/request-logger.middleware";
 import { MailboxModule } from "./mailbox/mailbox.module";
 import { MetaModule } from "./meta/meta.module";
 import { MicrosoftModule } from "./microsoft/microsoft.module";
+import { ScrapersModule } from "./scrapers/scrapers.module";
 import { SearchModule } from "./search/search.module";
 import { SettingsModule } from "./settings/settings.module";
 import { SlackModule } from "./slack/slack.module";
@@ -36,6 +37,7 @@ import { TelemetryModule } from "./telemetry/telemetry.module";
 import { TrackingModule } from "./tracking/tracking.module";
 import { TrpcModule } from "./trpc/trpc.module";
 import { UsersModule } from "./users/users.module";
+import { WhatsAppWebModule } from "./whatsapp-web/whatsapp-web.module";
 import { WorkspaceModule } from "./workspace/workspace.module";
 
 @Module({
@@ -65,6 +67,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		AgentModule,
 		DashboardModule,
 		SearchModule,
+		ScrapersModule,
 		MailboxModule,
 		MetaModule,
 		GoogleModule,
@@ -72,6 +75,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		SyncModule,
 		SettingsModule,
 		WorkspaceModule,
+		WhatsAppWebModule,
 		SsoModule,
 		SlackModule,
 		BackfillModule,

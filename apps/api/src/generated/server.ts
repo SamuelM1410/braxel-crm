@@ -22,9 +22,10 @@ import { setReportingCurrencyInput, setManualRateInput, removeManualRateInput } 
 import { dashboardSummaryInput } from "../dashboard/dashboard.contracts";
 import { dealListInput, dealIdInput, dealCreateInput, dealUpdateArgs, setStageInput, dealContactsInput, dealAttachContactInput, dealDetachContactInput, dealContactRoleInput, dealBulkOwnerInput, dealBulkStageInput, dealBulkInput } from "../deals/deals.contracts";
 import { fieldListInput, fieldByKeyInput, fieldIdInput, fieldCreateInput, fieldUpdateArgs, fieldReorderInput } from "../fields/fields.contracts";
-import { sendApprovedEmailInput, setEmailAssistantInput, setAutoCreateInput, suppressDomainInput, threadInput, calendarEventInput } from "../google/google.contracts";
+import { sendApprovedEmailInput, setEmailAssistantInput, createOutreachCampaignInput, campaignIdInput, optOutRecipientInput, setAutoCreateInput, suppressDomainInput, threadInput, calendarEventInput } from "../google/google.contracts";
 import { setMetaAssistantInput, metaThreadsInput, refreshMetaSubscriptionsInput, sendMetaReplyInput } from "../meta/meta.contracts";
 import { setOutlookAutoCreateInput } from "../microsoft/microsoft.contracts";
+import { scraperHistoryInput, scraperRunInput, scraperImportInput } from "../scrapers/scrapers.contracts";
 import { setAgentModelInput, setResearchKeyInput } from "../settings/settings.contracts";
 import { slackChannelsInput, slackJoinChannelInput, slackCreateChannelInput } from "../slack/slack.contracts";
 import { ssoProviderListInput, registerSsoProviderInput, deleteSsoProviderInput } from "../sso/sso.contracts";
@@ -44,6 +45,7 @@ import type { LeadFinanceRouter } from "../lead-finance/lead-finance.router";
 import type { LeadImpactRouter } from "../lead-impact/lead-impact.router";
 import type { MetaRouter } from "../meta/meta.router";
 import type { MicrosoftRouter } from "../microsoft/microsoft.router";
+import type { ScrapersRouter } from "../scrapers/scrapers.router";
 import type { SearchRouter } from "../search/search.router";
 import type { SettingsRouter } from "../settings/settings.router";
 import type { SlackRouter } from "../slack/slack.router";
@@ -355,6 +357,23 @@ const appRouter = t.router({
     setEmailAssistant: publicProcedure
       .input(setEmailAssistantInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["setEmailAssistant"]>>),
+    campaigns: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["campaigns"]>>),
+    createCampaign: publicProcedure
+      .input(createOutreachCampaignInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["createCampaign"]>>),
+    activateCampaign: publicProcedure
+      .input(campaignIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["activateCampaign"]>>),
+    pauseCampaign: publicProcedure
+      .input(campaignIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["pauseCampaign"]>>),
+    runCampaign: publicProcedure
+      .input(campaignIdInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["runCampaign"]>>),
+    optOutRecipient: publicProcedure
+      .input(optOutRecipientInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["optOutRecipient"]>>),
     setAutoCreate: publicProcedure
       .input(setAutoCreateInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<GoogleRouter["setAutoCreate"]>>),
@@ -406,6 +425,19 @@ const appRouter = t.router({
     setAutoCreate: publicProcedure
       .input(setOutlookAutoCreateInput)
       .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<MicrosoftRouter["setAutoCreate"]>>)
+    }),
+  scrapers: t.router({
+    status: publicProcedure
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ScrapersRouter["status"]>>),
+    history: publicProcedure
+      .input(scraperHistoryInput)
+      .query(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ScrapersRouter["history"]>>),
+    run: publicProcedure
+      .input(scraperRunInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ScrapersRouter["run"]>>),
+    import: publicProcedure
+      .input(scraperImportInput)
+      .mutation(async () => "PLACEHOLDER_DO_NOT_REMOVE" as unknown as Awaited<ReturnType<ScrapersRouter["import"]>>)
     }),
   search: t.router({
     quick: publicProcedure

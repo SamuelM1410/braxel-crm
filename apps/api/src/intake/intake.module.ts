@@ -6,6 +6,6 @@ import { LeadReviewService } from "./lead-review.service";
 @Module({
 	controllers: [IntakeController],
 	providers: [IntakeService, LeadReviewService],
-	exports: [LeadReviewService],
+	exports: [IntakeService, LeadReviewService],
 })
 export class IntakeModule {}

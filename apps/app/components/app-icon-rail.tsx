@@ -7,7 +7,9 @@ import Chat from "@carbon/icons-react/es/Chat";
 import Close from "@carbon/icons-react/es/Close";
 import Currency from "@carbon/icons-react/es/Currency";
 import Dashboard from "@carbon/icons-react/es/Dashboard";
+import Email from "@carbon/icons-react/es/Email";
 import Partnership from "@carbon/icons-react/es/Partnership";
+import Renew from "@carbon/icons-react/es/Renew";
 import Settings from "@carbon/icons-react/es/Settings";
 import UserMultiple from "@carbon/icons-react/es/UserMultiple";
 import { Button } from "@crm/ui/components/button";
@@ -59,6 +61,8 @@ const ITEMS: RailItem[] = [
 	{ title: "Deals", href: "/deals", icon: Partnership, match: "prefix" },
 	{ title: "Impact", href: "/impact", icon: ChartLineData, match: "prefix" },
 	{ title: "Finance", href: "/lead-finance", icon: Currency, match: "prefix" },
+	{ title: "Lead generation", href: "/leads", icon: Renew, match: "prefix" },
+	{ title: "Gmail outreach", href: "/email", icon: Email, match: "prefix" },
 	{ title: "Settings", href: "/settings", icon: Settings, match: "prefix" },
 ];
 

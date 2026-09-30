@@ -28,6 +28,8 @@ model User {
   ownedDeals     Deal[]              @relation("DealOwner")
   activities     Activity[]          @relation("ActivityAuthor")
   mailboxSyncs   MailboxSync[]
+  outreachCampaigns OutreachCampaign[]
+  scraperRuns      ScraperRun[]
   factDecisions  ContactFact[]       @relation("FactDecider")
   conversations  AgentConversation[] @relation("ConversationOwner")
   fieldValues    FieldValue[]        @relation("FieldValueUser")
@@ -202,6 +204,27 @@ enum ContactChannel {
   WEBSITE
 }
 
+enum OutreachChannel {
+  GMAIL
+}
+
+enum OutreachCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum OutreachItemStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+  OPTED_OUT
+}
+
 enum ActivityType {
   NOTE
   CALL
@@ -226,6 +249,38 @@ enum RecordSource {
   EMAIL
   CALENDAR
   TRACKING
+}
+
+enum ScraperProvider {
+	GOOGLE_MAPS
+	MINDCASE
+	SCRAPEGRAPH
+}
+
+enum ScraperRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model ScraperRun {
+  id          String           @id @default(cuid())
+  provider    ScraperProvider
+  query       String
+  resultCount Int              @default(0)
+  status      ScraperRunStatus @default(RUNNING)
+  results     Json?
+  error       String?
+  startedAt   DateTime         @default(now())
+  finishedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdById String
+  createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById, createdAt])
+  @@index([provider, status, createdAt])
+  @@map("scraperRun")
 }
 
 enum AgentConversationKind {
@@ -370,6 +425,7 @@ model Company {
   emailThreads   EmailThread[]
   socialThreads  SocialThread[]
   calendarEvents CalendarEvent[]
+  outreachItems  OutreachCampaignItem[]
   fieldValues    FieldValue[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -379,6 +435,64 @@ model Company {
   @@index([lastActivityAt])
   @@index([salesStage, nextSalesActionAt])
   @@map("company")
+}
+
+// A consent-gated, auditable outbound campaign. The campaign worker only
+// sends items whose consentAt and consentSource are present.
+model OutreachCampaign {
+  id              String                  @id @default(cuid())
+  name            String
+  channel         OutreachChannel         @default(GMAIL)
+  status          OutreachCampaignStatus  @default(DRAFT)
+  ownerId         String
+  owner           User                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  subjectTemplate String
+  bodyTemplate    String
+  dailyLimit      Int                     @default(25)
+  perMinuteLimit  Int                     @default(2)
+  startsAt        DateTime?
+  stoppedAt       DateTime?
+  lastRunAt       DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  items OutreachCampaignItem[]
+
+  @@index([ownerId, status, startsAt])
+  @@map("outreachCampaign")
+}
+
+model OutreachCampaignItem {
+  id                 String              @id @default(cuid())
+  campaignId         String
+  campaign           OutreachCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  companyId          String?
+  company            Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contactId          String?
+  contact            Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  recipient          String
+  subject            String
+  body               String
+  consentAt          DateTime
+  consentSource      String
+  status             OutreachItemStatus  @default(QUEUED)
+  scheduledAt        DateTime            @default(now())
+  sendingAt          DateTime?
+  sentAt             DateTime?
+  failedAt           DateTime?
+  optedOutAt         DateTime?
+  attempts           Int                 @default(0)
+  providerMessageId  String?
+  lastError          String?
+  idempotencyKey     String              @unique
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([campaignId, status, scheduledAt])
+  @@index([recipient, status])
+  @@index([companyId])
+  @@index([contactId])
+  @@map("outreachCampaignItem")
 }
 
 model CompanyEnrichment {
@@ -432,6 +546,7 @@ model Contact {
   emailThreads    EmailThread[]
   socialThreads   SocialThread[]
   calendarEvents  CalendarEvent[]
+  outreachItems   OutreachCampaignItem[]
   eventAttendance CalendarAttendee[]
   fieldValues     FieldValue[]
   visitors        TrackedVisitor[]   @relation("VisitorContact")

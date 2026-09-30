@@ -33,6 +33,7 @@ import {
 	InlineSelectField,
 	savingValue,
 } from "@/components/crm/inline-field";
+import { OutreachCopyKit } from "@/components/crm/outreach-copy-kit";
 import { OutreachEmail } from "@/components/crm/outreach-email";
 import { OwnerCell } from "@/components/crm/owner-cell";
 import { CompanySocials } from "@/components/crm/social-links";
@@ -372,6 +373,11 @@ function CompanyOverview({ company }: { company: Company }) {
 
 				<DetailSheetRail>
 					<DetailSheetSection title="Seguimiento comercial">
+						<OutreachCopyKit
+							companyName={company.name}
+							whatsappUrl={company.whatsappUrl}
+							email={company.email ?? company.primaryContact?.email ?? null}
+						/>
 						<DetailSheetProperties columns={1}>
 							<InlineSelectField
 								label="Estado"
@@ -468,6 +474,7 @@ function CompanyOverview({ company }: { company: Company }) {
 						</p>
 						<OutreachEmail
 							companyId={company.id}
+							companyName={company.name}
 							recipient={company.email ?? company.primaryContact?.email ?? null}
 							approved={Boolean(company.outreachApprovedAt)}
 							stage={company.salesStage}

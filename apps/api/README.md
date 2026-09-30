@@ -20,7 +20,9 @@ value almost every install wants — they are both the sign-in button and the
 Gmail and Calendar sync — but they are optional and set as a pair, because an
 install that signs in through its own identity provider on **Settings → SSO**
 needs neither. With them, register
-`http://localhost:3001/api/auth/callback/google` as an authorised redirect URI.
+`http://localhost:3000/api/auth/callback/google` as an authorised redirect URI
+for local development. The API process listens on 3001, but the Next.js app on
+3000 proxies `/api/*` and is the callback origin configured by Better Auth.
 `src/config/env.validation.ts` is the full list of what this process reads;
 [`docs/environment.md`](../../docs/environment.md) explains where the file is
 found.
@@ -62,6 +64,34 @@ events plus deterministic Spanish sales signals to report `NEW`, `QUALIFYING`,
 `INTERESTED`, `OBJECTION`, `CALL_REQUESTED`, `HANDOFF` and `OPT_OUT` stages.
 Signed-in CRM users can read metrics without the pilot secret. The score and
 recommendations are operational signals, not promises of conversion.
+## ScrapeGraphAI lead generation
+
+The CRM exposes one scraper provider, `SCRAPEGRAPH`, through the Lead
+generation screen (`/<slug>/leads`). The button calls the configured worker's
+`POST /research` endpoint, stores the evidence in `scraperRun`, and keeps
+importing separate and review-gated. Maps and Mindcase are not used by this
+flow. Set `SCRAPEGRAPH_URL` (default local worker: `http://127.0.0.1:8011`)
+and optionally `SCRAPEGRAPH_DEFAULT_URL`; the URL field in the screen can
+override that default for a single run. A worker health check is shown before
+execution, and no lead is contacted automatically.
+
+## Consent-gated Gmail campaigns
+
+The `google` tRPC router exposes `campaigns`, `createCampaign`,
+`activateCampaign`, `pauseCampaign`, `runCampaign`, and `optOutRecipient`. A campaign item must
+include a recorded `consentAt` and `consentSource`; recipients are deduplicated
+and recipients that opted out cannot be queued again. Each item has a unique
+idempotency key and every completed send is written to the activity timeline. The existing
+`/internal/sync/google` cron also drains active campaigns using the campaign's
+daily and per-minute limits, with retry backoff and automatic pausing when the
+Gmail grant is missing or rate-limited.
+
+This queue is intentionally Gmail-only. The local `whatsapp-web-pilot` remains
+an inbound/supervised reply pilot and does not send bulk campaigns. Set the same
+`WHATSAPP_WEBHOOK_SECRET` in the API and pilot, point `CRM_REPLY_URL` at the
+route above, and keep `AUTO_REPLY_ENABLED=false` while validating. Production
+WhatsApp outreach must use the approved Business Platform flow, templates, and
+opt-in records.
 
 ## How auth is wired
 

@@ -11,19 +11,25 @@ import { useTRPC } from "@/lib/trpc/client";
 
 export function OutreachEmail({
 	companyId,
+	companyName,
 	recipient,
 	approved,
 	stage,
 }: {
 	companyId: string;
+	companyName: string;
 	recipient: string | null;
 	approved: boolean;
 	stage: string;
 }) {
 	const trpc = useTRPC();
 	const cache = useCrmCache();
-	const [subject, setSubject] = useState("");
-	const [body, setBody] = useState("");
+	const [subject, setSubject] = useState(
+		`Una idea para mejorar las conversiones de ${companyName}`,
+	);
+	const [body, setBody] = useState(
+		`Hola,\n\nSoy Samuel, de Braxel. Estuve revisando ${companyName} y vimos una oportunidad concreta para convertir mejor las visitas de su página en clientes y recuperar oportunidades que se quedan a medias.\n\n¿Te puedo compartir una idea breve, con ejemplos y sin compromiso? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
+	);
 	const allowed =
 		approved &&
 		[
@@ -40,8 +46,10 @@ export function OutreachEmail({
 			onSuccess: async (result) => {
 				await cache.company(companyId, { settle: "record" });
 				toast.success(`Email enviado a ${result.recipient}.`);
-				setSubject("");
-				setBody("");
+				setSubject(`Una idea para mejorar las conversiones de ${companyName}`);
+				setBody(
+					`Hola,\n\nSoy Samuel, de Braxel. Estuve revisando ${companyName} y vimos una oportunidad concreta para convertir mejor las visitas de su página en clientes y recuperar oportunidades que se quedan a medias.\n\n¿Te puedo compartir una idea breve, con ejemplos y sin compromiso? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
+				);
 			},
 			onError: (error) => toast.error(error.message),
 		}),

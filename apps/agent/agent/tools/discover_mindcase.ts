@@ -68,7 +68,10 @@ export default defineTool({
 			};
 		const parsed = Response.safeParse(await response.json());
 		if (!parsed.success)
-			return { ok: false as const, reason: "Mindcase returned an unsupported shape." };
+			return {
+				ok: false as const,
+				reason: "Mindcase returned an unsupported shape.",
+			};
 		const rows = Array.isArray(parsed.data.data)
 			? parsed.data.data
 			: parsed.data.data

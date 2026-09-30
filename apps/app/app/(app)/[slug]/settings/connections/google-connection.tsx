@@ -45,6 +45,7 @@ import { LocalRelativeTime } from "@/components/local-date-time";
 import { isSyncing, SYNC_POLL_MS } from "@/lib/sync-status";
 import { useCrmCache } from "@/lib/trpc/cache";
 import { useTRPC } from "@/lib/trpc/client";
+import { GmailCampaigns } from "./gmail-campaigns";
 
 const SOURCES = {
 	calendar: {
@@ -179,9 +180,10 @@ function ConnectGoogle({
 					</div>
 				</CardTitle>
 				<CardDescription>
-					Gmail and Calendar stay read-only by default. Sending is available
-					only after a rep approves a qualified follow-up inside the CRM. The
-					mailbox may be different from the CRM sign-in account.
+					Gmail and Calendar stay read-only by default. Individual follow-ups
+					need approval; campaigns can run automatically only for recipients
+					with recorded consent. The mailbox may be different from the CRM
+					sign-in account.
 				</CardDescription>
 
 				<CardAction>
@@ -304,187 +306,190 @@ export function GoogleConnection({
 	const healthy = failing.length === 0 && hasRefreshToken;
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>
-					<div className="flex items-center gap-2">
-						Google
-						<StatusIndicator
-							size="sm"
-							tone={healthy ? "success" : "warning"}
-							label={healthy ? "Connected" : "Needs attention"}
-						/>
-					</div>
-				</CardTitle>
-				<CardDescription>
-					Meetings and email threads land on the matching company as they
-					happen.
-				</CardDescription>
-
-				<CardAction>
-					<Button
-						variant="contrast"
-						size="sm"
-						disabled={syncNow.isPending}
-						onClick={() => syncNow.mutate()}
-					>
-						{syncNow.isPending ? "Checking…" : "Check now"}
-					</Button>
-				</CardAction>
-			</CardHeader>
-
-			<CardContent>
-				{!hasRefreshToken ? (
-					<Alert variant="destructive" attention={insistence}>
-						<Icon icon={Warning} />
-						<AlertTitle>Google did not return a refresh token</AlertTitle>
-						<AlertDescription>Sign out and back in.</AlertDescription>
-					</Alert>
-				) : failing.length > 0 ? (
-					failing.map((source) => {
-						const { summary, url } = explain(
-							source.lastError ?? "Google needs reconnecting.",
-						);
-
-						return (
-							<Alert
-								key={source.source}
-								variant="destructive"
-								attention={insistence}
-							>
-								<Icon icon={Warning} />
-								<AlertTitle>
-									{SOURCES[source.source].label} sync failed
-								</AlertTitle>
-								<AlertDescription>{summary}</AlertDescription>
-
-								{url ? (
-									<AlertAction>
-										<Button variant="contrast" size="xs" asChild>
-											<a href={url} target="_blank" rel="noreferrer">
-												Resolve
-												<Icon icon={Launch} data-icon="inline-end" />
-											</a>
-										</Button>
-									</AlertAction>
-								) : null}
-							</Alert>
-						);
-					})
-				) : (
-					<p className="text-muted-foreground text-xs">
-						{lastSyncedAt ? (
-							<>
-								Last checked <LocalRelativeTime date={lastSyncedAt} />
-							</>
-						) : (
-							"Waiting for the first check"
-						)}
-					</p>
-				)}
-
-				{sources.map((source) => {
-					const copy = SOURCES[source.source];
-
-					return (
-						<div
-							key={source.source}
-							className="flex items-center justify-between gap-6"
-						>
-							<Label
-								htmlFor={`auto-create-${source.source}`}
-								className="flex flex-col items-start gap-1"
-							>
-								<span className="text-sm">{copy.label}</span>
-								<span className="font-normal text-muted-foreground text-xs">
-									{copy.autoCreate}
-								</span>
-							</Label>
-
-							<Switch
-								id={`auto-create-${source.source}`}
-								checked={source.autoCreate}
-								disabled={setAutoCreate.isPending}
-								onCheckedChange={(enabled) =>
-									setAutoCreate.mutate({ source: source.source, enabled })
-								}
+		<>
+			<Card>
+				<CardHeader>
+					<CardTitle>
+						<div className="flex items-center gap-2">
+							Google
+							<StatusIndicator
+								size="sm"
+								tone={healthy ? "success" : "warning"}
+								label={healthy ? "Connected" : "Needs attention"}
 							/>
 						</div>
-					);
-				})}
+					</CardTitle>
+					<CardDescription>
+						Meetings and email threads land on the matching company as they
+						happen.
+					</CardDescription>
 
-				<CardFooter>
-					<div className="-ml-2 flex flex-wrap items-center gap-1 text-muted-foreground">
-						<AlertDialog>
-							<AlertDialogTrigger asChild>
-								<Button variant="ghost" size="xs" disabled={purge.isPending}>
-									Delete synced data
-								</Button>
-							</AlertDialogTrigger>
-
-							<AlertDialogContent>
-								<AlertDialogHeader>
-									<AlertDialogTitle>Delete synced data?</AlertDialogTitle>
-									<AlertDialogDescription>
-										Every email and meeting brought in from Google is removed
-										from the CRM. The next check starts from now, so nothing
-										deleted here comes back.
-									</AlertDialogDescription>
-								</AlertDialogHeader>
-
-								<AlertDialogFooter>
-									<AlertDialogCancel>Cancel</AlertDialogCancel>
-									<AlertDialogAction
-										variant="destructive"
-										onClick={() => purge.mutate()}
-									>
-										Delete
-									</AlertDialogAction>
-								</AlertDialogFooter>
-							</AlertDialogContent>
-						</AlertDialog>
-
-						<AlertDialog>
-							<AlertDialogTrigger asChild>
-								<Button variant="ghost" size="xs" disabled={revoke.isPending}>
-									Revoke Google access
-								</Button>
-							</AlertDialogTrigger>
-
-							<AlertDialogContent>
-								<AlertDialogHeader>
-									<AlertDialogTitle>Revoke Google access?</AlertDialogTitle>
-									<AlertDialogDescription>
-										{required
-											? "You will be signed out, and you cannot use the CRM again until you grant access."
-											: "New email and meetings stop arriving. Everything already synced stays, and you can connect Google again from this page."}
-									</AlertDialogDescription>
-								</AlertDialogHeader>
-
-								<AlertDialogFooter>
-									<AlertDialogCancel>Cancel</AlertDialogCancel>
-									<AlertDialogAction
-										variant="destructive"
-										onClick={() => revoke.mutate()}
-									>
-										Revoke
-									</AlertDialogAction>
-								</AlertDialogFooter>
-							</AlertDialogContent>
-						</AlertDialog>
-
-						<Button variant="ghost" size="xs" asChild>
-							<Link
-								href="https://myaccount.google.com/permissions"
-								target="_blank"
-								rel="noreferrer"
-							>
-								Manage in your Google account
-							</Link>
+					<CardAction>
+						<Button
+							variant="contrast"
+							size="sm"
+							disabled={syncNow.isPending}
+							onClick={() => syncNow.mutate()}
+						>
+							{syncNow.isPending ? "Checking…" : "Check now"}
 						</Button>
-					</div>
-				</CardFooter>
-			</CardContent>
-		</Card>
+					</CardAction>
+				</CardHeader>
+
+				<CardContent>
+					{!hasRefreshToken ? (
+						<Alert variant="destructive" attention={insistence}>
+							<Icon icon={Warning} />
+							<AlertTitle>Google did not return a refresh token</AlertTitle>
+							<AlertDescription>Sign out and back in.</AlertDescription>
+						</Alert>
+					) : failing.length > 0 ? (
+						failing.map((source) => {
+							const { summary, url } = explain(
+								source.lastError ?? "Google needs reconnecting.",
+							);
+
+							return (
+								<Alert
+									key={source.source}
+									variant="destructive"
+									attention={insistence}
+								>
+									<Icon icon={Warning} />
+									<AlertTitle>
+										{SOURCES[source.source].label} sync failed
+									</AlertTitle>
+									<AlertDescription>{summary}</AlertDescription>
+
+									{url ? (
+										<AlertAction>
+											<Button variant="contrast" size="xs" asChild>
+												<a href={url} target="_blank" rel="noreferrer">
+													Resolve
+													<Icon icon={Launch} data-icon="inline-end" />
+												</a>
+											</Button>
+										</AlertAction>
+									) : null}
+								</Alert>
+							);
+						})
+					) : (
+						<p className="text-muted-foreground text-xs">
+							{lastSyncedAt ? (
+								<>
+									Last checked <LocalRelativeTime date={lastSyncedAt} />
+								</>
+							) : (
+								"Waiting for the first check"
+							)}
+						</p>
+					)}
+
+					{sources.map((source) => {
+						const copy = SOURCES[source.source];
+
+						return (
+							<div
+								key={source.source}
+								className="flex items-center justify-between gap-6"
+							>
+								<Label
+									htmlFor={`auto-create-${source.source}`}
+									className="flex flex-col items-start gap-1"
+								>
+									<span className="text-sm">{copy.label}</span>
+									<span className="font-normal text-muted-foreground text-xs">
+										{copy.autoCreate}
+									</span>
+								</Label>
+
+								<Switch
+									id={`auto-create-${source.source}`}
+									checked={source.autoCreate}
+									disabled={setAutoCreate.isPending}
+									onCheckedChange={(enabled) =>
+										setAutoCreate.mutate({ source: source.source, enabled })
+									}
+								/>
+							</div>
+						);
+					})}
+
+					<CardFooter>
+						<div className="-ml-2 flex flex-wrap items-center gap-1 text-muted-foreground">
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button variant="ghost" size="xs" disabled={purge.isPending}>
+										Delete synced data
+									</Button>
+								</AlertDialogTrigger>
+
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>Delete synced data?</AlertDialogTitle>
+										<AlertDialogDescription>
+											Every email and meeting brought in from Google is removed
+											from the CRM. The next check starts from now, so nothing
+											deleted here comes back.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction
+											variant="destructive"
+											onClick={() => purge.mutate()}
+										>
+											Delete
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button variant="ghost" size="xs" disabled={revoke.isPending}>
+										Revoke Google access
+									</Button>
+								</AlertDialogTrigger>
+
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>Revoke Google access?</AlertDialogTitle>
+										<AlertDialogDescription>
+											{required
+												? "You will be signed out, and you cannot use the CRM again until you grant access."
+												: "New email and meetings stop arriving. Everything already synced stays, and you can connect Google again from this page."}
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction
+											variant="destructive"
+											onClick={() => revoke.mutate()}
+										>
+											Revoke
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+
+							<Button variant="ghost" size="xs" asChild>
+								<Link
+									href="https://myaccount.google.com/permissions"
+									target="_blank"
+									rel="noreferrer"
+								>
+									Manage in your Google account
+								</Link>
+							</Button>
+						</div>
+					</CardFooter>
+				</CardContent>
+			</Card>
+			<GmailCampaigns />
+		</>
 	);
 }
