@@ -17,7 +17,12 @@ from langchain_ollama import ChatOllama
 from langchain_community import chat_models as community_chat_models
 if not hasattr(community_chat_models, "ChatOllama"):
     community_chat_models.ChatOllama = ChatOllama
-from langchain_classic.output_parsers.structured import ResponseSchema, StructuredOutputParser
+try:
+    # Newer LangChain distributions moved these helpers to langchain-classic.
+    from langchain_classic.output_parsers.structured import ResponseSchema, StructuredOutputParser
+except ModuleNotFoundError:
+    # Keep the worker bootable with the LangChain 0.3.x stack used here.
+    from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core import output_parsers
 if not hasattr(output_parsers, "ResponseSchema"):
     output_parsers.ResponseSchema = ResponseSchema
