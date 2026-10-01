@@ -217,10 +217,6 @@ export class EnvironmentVariables {
 	})
 	HACKATHON_DEMO_MODE?: string;
 
-	@IsOptional()
-	@IsString()
-	@MinLength(16)
-	WHATSAPP_WEBHOOK_SECRET?: string;
 }
 
 export function validateEnv(
