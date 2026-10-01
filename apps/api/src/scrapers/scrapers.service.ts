@@ -65,7 +65,7 @@ export class ScrapersService {
 		await this.access.assertMember(userId);
 		if (!this.scrapegraphUrl()) {
 			throw new BadRequestException(
-				"ScrapeGraphAI no está configurado. Define SCRAPEGRAPH_URL (por defecto http://127.0.0.1:8011) en el API.",
+				"ScrapeGraphAI no está configurado en producción. Define SCRAPEGRAPH_URL con la URL pública del worker en el proyecto braxel-api.",
 			);
 		}
 		const target = input.query.trim() || this.scrapegraphTarget();
@@ -201,11 +201,17 @@ export class ScrapersService {
 		};
 	}
 
-	private scrapegraphUrl() {
-		return (
-			this.config.get<string>("SCRAPEGRAPH_URL")?.trim().replace(/\/$/, "") ||
-			"http://127.0.0.1:8011"
-		);
+	private scrapegraphUrl(): string | null {
+		const configured = this.config
+			.get<string>("SCRAPEGRAPH_URL")
+			?.trim()
+			.replace(/\/$/, "");
+		if (configured) return configured;
+		// The local worker is useful for development only. Never make a
+		// production deployment call the developer's machine by accident.
+		return process.env.NODE_ENV === "production"
+			? null
+			: "http://127.0.0.1:8011";
 	}
 
 	private scrapegraphTarget() {

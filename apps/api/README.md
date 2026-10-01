@@ -70,7 +70,9 @@ The CRM exposes one scraper provider, `SCRAPEGRAPH`, through the Lead
 generation screen (`/<slug>/leads`). The button calls the configured worker's
 `POST /research` endpoint, stores the evidence in `scraperRun`, and keeps
 importing separate and review-gated. Maps and Mindcase are not used by this
-flow. Set `SCRAPEGRAPH_URL` (default local worker: `http://127.0.0.1:8011`)
+flow. Set `SCRAPEGRAPH_URL` to the public URL of the deployed worker. In
+development, the API falls back to `http://127.0.0.1:8011`; production never
+calls localhost and reports the scraper as unconfigured until this variable is set.
 and optionally `SCRAPEGRAPH_DEFAULT_URL`; the URL field in the screen can
 override that default for a single run. A worker health check is shown before
 execution, and no lead is contacted automatically.
