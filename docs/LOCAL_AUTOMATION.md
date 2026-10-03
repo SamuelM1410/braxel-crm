@@ -35,7 +35,8 @@ enables it.
 ## Scrapers in the CRM
 
 Open **Settings → Scrapers**. The page shows whether the local Maps service and
-Mindcase are configured, when each run happened, and the returned candidates.
+ScrapeGraph enrichment are available, when each run happened, and the returned
+candidates.
 The **Ejecutar** button is a manual, auditable run. **Importar para revisión**
 uses the existing intake path and creates records with `REVIEW_REQUIRED` and
 `doNotContact=true`; a person must verify the evidence before any outreach.
@@ -46,5 +47,6 @@ The local Maps service is expected at:
 LOCAL_MAPS_SCRAPER_URL=http://127.0.0.1:8001
 ```
 
-It is intentionally local for now. If the process is stopped, the CRM marks
-the source as configured but offline and does not pretend a run succeeded.
+It is intentionally local for now. If the process is stopped, a local run
+fails clearly; the CRM never pretends it succeeded. Mindcase is not part of
+the active pipeline.

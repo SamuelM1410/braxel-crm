@@ -17,7 +17,7 @@ n8n remains a fallback until every replacement passes production checks.
 | Candidate intake | Existing intake route and database services | Existing |
 | Website research | Existing `research_company` Eve tool | Existing |
 | PageSpeed and technology signals | Agent enrichment tasks | Existing; verify production |
-| Social research | `discover_mindcase` Eve tool | Code ready; key and balance required |
+| Social research | ScrapeGraph enrichment plus the public-page fallback | Code ready; no Mindcase key required |
 | Deterministic evidence gate | Agent evidence and capability layer | Existing |
 | Eve score, offer and dossier | Agent skills and dossier tools | Existing |
 | Review queue | Existing CRM company and review surfaces | Existing |
