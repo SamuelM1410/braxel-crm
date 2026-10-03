@@ -1,7 +1,6 @@
 import { ActivityType, type Db } from "@crm/db";
 import { LEAD_OS_LABELS, LEAD_REVIEW } from "@crm/validation";
 import {
-	BadGatewayException,
 	BadRequestException,
 	Injectable,
 	Logger,
@@ -139,25 +138,32 @@ export class LeadReviewService implements OnModuleInit {
 		reviewer: string,
 		reason: string,
 	) {
-		const response = await fetch(webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				sourceId,
-				decision,
-				reviewedBy: reviewer,
-				reason,
-			}),
-		});
-		if (!response.ok) {
-			this.logger.error({
-				message: "Lead OS review decision failed",
+		try {
+			const response = await fetch(webhookUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					sourceId,
+					decision,
+					reviewedBy: reviewer,
+					reason,
+				}),
+			});
+			if (!response.ok) {
+				this.logger.warn({
+					message: "Lead OS review sync returned a non-success status",
+					companyId,
+					decision,
+					status: response.status,
+				});
+			}
+		} catch (error) {
+			this.logger.warn({
+				message: "Lead OS review sync was unreachable; decision kept in CRM",
 				companyId,
 				decision,
+				error: error instanceof Error ? error.message : String(error),
 			});
-			throw new BadGatewayException(
-				"Lead OS could not save this review decision.",
-			);
 		}
 	}
 
