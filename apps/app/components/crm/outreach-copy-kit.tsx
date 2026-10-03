@@ -17,15 +17,25 @@ function buildEmail(companyName: string): { subject: string; body: string } {
 	};
 }
 
-function whatsappChatUrl(destination: string, message: string): string {
+function whatsappChatUrl(destination: string, message: string): string | null {
 	const value = destination.trim();
+	if (!value) return null;
 	if (/^https?:\/\//i.test(value)) {
-		const url = new URL(value);
-		url.searchParams.set("text", message);
-		return url.toString();
+		try {
+			const url = new URL(value);
+			url.searchParams.set("text", message);
+			return url.toString();
+		} catch {
+			return null;
+		}
 	}
 
-	const phone = value.replace(/[^\d]/g, "");
+	const digits = value.replace(/\D/g, "");
+	if (!digits) return null;
+	// Scrapers often return a local Colombian number. wa.me requires the
+	// international country code, so make the common 10-digit case explicit.
+	const phone =
+		digits.length === 10 && digits.startsWith("3") ? `57${digits}` : digits;
 	return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
@@ -36,11 +46,6 @@ async function copyText(text: string, label: string): Promise<void> {
 	} catch {
 		toast.error("No se pudo copiar. Selecciona el texto y usa Ctrl/Cmd+C.");
 	}
-}
-
-function openWhatsApp(destination: string, message: string): void {
-	const url = whatsappChatUrl(destination, message);
-	window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export function OutreachCopyKit({
@@ -56,7 +61,8 @@ export function OutreachCopyKit({
 	const [expanded, setExpanded] = useState(true);
 	const whatsapp = buildWhatsAppMessage(companyName);
 	const emailDraft = buildEmail(companyName);
-	const hasWhatsApp = Boolean(whatsappUrl?.trim());
+	const whatsappHref = whatsappChatUrl(whatsappUrl ?? "", whatsapp);
+	const hasWhatsApp = Boolean(whatsappHref);
 	const hasEmail = Boolean(email?.trim());
 
 	return (
@@ -85,13 +91,20 @@ export function OutreachCopyKit({
 						<div className="mb-1 flex items-center justify-between gap-2">
 							<span className="font-medium text-xs">WhatsApp</span>
 							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={!hasWhatsApp}
-									onClick={() => openWhatsApp(whatsappUrl ?? "", whatsapp)}
-								>
-									Abrir chat
+								<Button variant="outline" size="sm" asChild>
+									<a
+										href={whatsappHref ?? undefined}
+										target="_blank"
+										rel="noopener noreferrer"
+										aria-disabled={!hasWhatsApp}
+										className={
+											!hasWhatsApp
+												? "pointer-events-none opacity-50"
+												: undefined
+										}
+									>
+										Abrir chat
+									</a>
 								</Button>
 								<Button
 									variant="outline"

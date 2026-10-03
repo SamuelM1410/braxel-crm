@@ -216,7 +216,6 @@ export class EnvironmentVariables {
 		message: 'HACKATHON_DEMO_MODE must be "true" or "false".',
 	})
 	HACKATHON_DEMO_MODE?: string;
-
 }
 
 export function validateEnv(

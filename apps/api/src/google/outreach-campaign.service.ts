@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { MailboxTokenService } from "../mailbox/mailbox-token.service";
+import { marketingBody, marketingHeaders } from "./email-marketing";
 import { GmailClient } from "./gmail.client";
 
 const MAX_TICK_BUDGET_MS = 45_000;
@@ -256,7 +257,7 @@ export class OutreachCampaignService {
 					to: item.recipient,
 					from: profile.data.emailAddress,
 					subject: item.subject,
-					body: withOptOut(item.body),
+					body: item.body,
 				}),
 			);
 
@@ -401,12 +402,6 @@ export class OutreachCampaignService {
 	}
 }
 
-function withOptOut(body: string) {
-	if (/\b(stop|unsubscribe|cancelar suscripción|no recibir)\b/i.test(body))
-		return body;
-	return `${body.trim()}\n\nSi no deseas recibir más mensajes, responde STOP.`;
-}
-
 function backoff(attempts: number) {
 	return Math.min(15 * 60_000, 30_000 * 2 ** Math.max(attempts - 1, 0));
 }
@@ -422,11 +417,12 @@ function encodeMessage(input: {
 		`To: ${header(input.to)}`,
 		`From: ${header(input.from)}`,
 		`Subject: ${header(input.subject)}`,
+		...marketingHeaders(input.to),
 		"MIME-Version: 1.0",
 		'Content-Type: text/plain; charset="UTF-8"',
 		"Content-Transfer-Encoding: 8bit",
 		"",
-		input.body.trim(),
+		marketingBody(input.body, input.to),
 	].join("\\r\\n");
 	return Buffer.from(mime, "utf8").toString("base64url");
 }

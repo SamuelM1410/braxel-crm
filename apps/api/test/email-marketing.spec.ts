@@ -27,7 +27,7 @@ describe("email marketing safeguards", () => {
 		const token = createUnsubscribeToken(" Lead@Example.com ");
 		expect(token).toBeString();
 		expect(verifyUnsubscribeToken(token as string)).toBe("lead@example.com");
-		expect(verifyUnsubscribeToken(token + "tampered")).toBeNull();
+		expect(verifyUnsubscribeToken(`${token}tampered`)).toBeNull();
 	});
 
 	test("adds a public one-click URL and visible fallback", () => {
