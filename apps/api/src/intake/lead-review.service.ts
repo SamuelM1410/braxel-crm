@@ -81,7 +81,24 @@ export class LeadReviewService implements OnModuleInit {
 				decision,
 			});
 		} else {
-			await this.forward(companyId, sourceId, decision, reviewer, cleanReason);
+			const webhookUrl = this.webhookUrl();
+			if (webhookUrl) {
+				await this.forward(
+					webhookUrl,
+					companyId,
+					sourceId,
+					decision,
+					reviewer,
+					cleanReason,
+				);
+			} else {
+				this.logger.warn({
+					message:
+						"Lead review webhook is not configured; saving the decision locally",
+					companyId,
+					decision,
+				});
+			}
 		}
 
 		const occurredAt = new Date();
@@ -115,13 +132,14 @@ export class LeadReviewService implements OnModuleInit {
 	}
 
 	private async forward(
+		webhookUrl: string,
 		companyId: string,
 		sourceId: string,
 		decision: LeadReviewDecision,
 		reviewer: string,
 		reason: string,
 	) {
-		const response = await fetch(this.webhookUrl(), {
+		const response = await fetch(webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -143,11 +161,17 @@ export class LeadReviewService implements OnModuleInit {
 		}
 	}
 
-	private webhookUrl() {
-		return (
-			this.config.get<string>("LEAD_OS_REVIEW_WEBHOOK_URL") ??
-			"http://host.docker.internal:5678/webhook/agency-lead-os-review-decision"
-		);
+	private webhookUrl(): string | null {
+		const configured = this.config
+			.get<string>("LEAD_OS_REVIEW_WEBHOOK_URL")
+			?.trim();
+		if (configured) return configured;
+
+		// The old Docker hostname is useful only for local development. Never
+		// attempt it from Railway/Vercel: it turns a valid CRM save into fetch failed.
+		return process.env.NODE_ENV === "production"
+			? null
+			: "http://host.docker.internal:5678/webhook/agency-lead-os-review-decision";
 	}
 }
 
