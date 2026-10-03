@@ -376,6 +376,7 @@ function CompanyOverview({ company }: { company: Company }) {
 						<OutreachCopyKit
 							companyName={company.name}
 							whatsappUrl={company.whatsappUrl}
+							phone={company.phone}
 							email={company.email ?? company.primaryContact?.email ?? null}
 						/>
 						<DetailSheetProperties columns={1}>

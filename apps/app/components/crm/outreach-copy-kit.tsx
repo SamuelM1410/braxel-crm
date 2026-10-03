@@ -51,18 +51,22 @@ async function copyText(text: string, label: string): Promise<void> {
 export function OutreachCopyKit({
 	companyName,
 	whatsappUrl,
+	phone,
 	email,
 }: {
 	companyName: string;
 	whatsappUrl: string | null;
+	phone: string | null;
 	email: string | null;
 }) {
 	// Keep the copy-ready drafts visible as soon as a company is opened.
 	const [expanded, setExpanded] = useState(true);
 	const whatsapp = buildWhatsAppMessage(companyName);
 	const emailDraft = buildEmail(companyName);
-	const whatsappHref = whatsappChatUrl(whatsappUrl ?? "", whatsapp);
+	const whatsappDestination = whatsappUrl?.trim() || phone?.trim() || "";
+	const whatsappHref = whatsappChatUrl(whatsappDestination, whatsapp);
 	const hasWhatsApp = Boolean(whatsappHref);
+	const usingPhoneFallback = !whatsappUrl?.trim() && Boolean(phone?.trim());
 	const hasEmail = Boolean(email?.trim());
 
 	return (
@@ -121,6 +125,10 @@ export function OutreachCopyKit({
 						{!hasWhatsApp ? (
 							<p className="mt-1 text-muted-foreground text-xs">
 								Añade el WhatsApp de la empresa para habilitar este botón.
+							</p>
+						) : usingPhoneFallback ? (
+							<p className="mt-1 text-muted-foreground text-xs">
+								Se usará el teléfono guardado con el código de país de Colombia.
 							</p>
 						) : null}
 					</div>
