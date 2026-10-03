@@ -45,7 +45,7 @@ export class ScrapersService {
 		]);
 
 		return {
-			providers: { scrapegraph },
+			providers: { scrapegraph, discovery: this.discoveryStatus() },
 			runs: runs.map(serializeRun),
 		};
 	}
@@ -63,7 +63,8 @@ export class ScrapersService {
 
 	async run(input: ScraperRunInput, userId: string) {
 		await this.access.assertMember(userId);
-		const target = input.query.trim() || this.scrapegraphTarget();
+		const requested = input.query.trim();
+		const target = requested || this.discoveryQuery();
 
 		const run = await this.db.scraperRun.create({
 			data: {
@@ -75,7 +76,9 @@ export class ScrapersService {
 		});
 
 		try {
-			const candidates = await this.runScrapeGraph(target, input.limit);
+			const candidates = isPublicUrl(requested)
+				? await this.runScrapeGraph(target, input.limit)
+				: await this.runDiscoveryPipeline(target, input.limit);
 			const safeCandidates = candidates.slice(0, input.limit);
 			const saved = await this.db.scraperRun.update({
 				where: { id: run.id },
@@ -205,10 +208,31 @@ export class ScrapersService {
 	}
 
 	private scrapegraphTarget() {
+		return this.config.get<string>("SCRAPEGRAPH_DEFAULT_URL")?.trim() || null;
+	}
+
+	private discoveryQuery() {
 		return (
-			this.config.get<string>("SCRAPEGRAPH_DEFAULT_URL")?.trim() ||
-			"https://braxel.dev"
+			this.config.get<string>("SCRAPEGRAPH_DEFAULT_QUERY")?.trim() ||
+			"Agencias de marketing digital en Bogotá, Colombia"
 		);
+	}
+
+	private discoveryStatus() {
+		const localMaps = Boolean(
+			this.config.get<string>("LOCAL_MAPS_SCRAPER_URL")?.trim(),
+		);
+		const googlePlaces = Boolean(
+			this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim(),
+		);
+		const mindcase = Boolean(
+			this.config.get<string>("MINDCASE_API_KEY")?.trim(),
+		);
+		return {
+			configured: localMaps || googlePlaces || mindcase,
+			providers: { localMaps, googlePlaces, mindcase },
+			query: this.discoveryQuery(),
+		};
 	}
 
 	private async scrapegraphStatus() {
@@ -243,7 +267,7 @@ export class ScrapersService {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ url: target }),
-				signal: AbortSignal.timeout(300_000),
+				signal: AbortSignal.timeout(30_000),
 			});
 		} catch (error) {
 			this.logger.warn({
@@ -282,6 +306,139 @@ export class ScrapersService {
 				website: firstUrl(row, ["website", "website_url"]) ?? target,
 				source_url: payload.source_url ?? target,
 			}));
+	}
+
+	private async runDiscoveryPipeline(
+		query: string,
+		limit: number,
+	): Promise<Candidate[]> {
+		const discovered = await this.discoverCandidates(query, limit);
+		if (!discovered.length)
+			throw new Error(
+				`La fuente de descubrimiento no devolvió candidatos para “${query}”.`,
+			);
+
+		// Discovery supplies the batch; ScrapeGraph enriches each public website.
+		// A small concurrency cap avoids rate spikes and keeps the CRM responsive.
+		const enriched: Candidate[] = [];
+		for (let index = 0; index < discovered.length; index += 4) {
+			const batch = discovered.slice(index, index + 4);
+			const rows = await Promise.all(
+				batch.map(async (candidate) => {
+					const website = firstUrl(candidate, [
+						"website",
+						"websiteUri",
+						"website_url",
+					]);
+					if (!website) return candidate;
+					try {
+						const research = await this.runScrapeGraph(website, 1);
+						return mergeCandidate(candidate, research[0]);
+					} catch (error) {
+						this.logger.warn({
+							message: "Website enrichment skipped",
+							website,
+							reason: safeError(error),
+						});
+						return candidate;
+					}
+				}),
+			);
+			enriched.push(...rows);
+		}
+		return enriched;
+	}
+
+	private async discoverCandidates(
+		query: string,
+		limit: number,
+	): Promise<Candidate[]> {
+		const localBase = this.config
+			.get<string>("LOCAL_MAPS_SCRAPER_URL")
+			?.trim()
+			.replace(/\/$/, "");
+		if (localBase) {
+			const response = await fetch(
+				`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
+				{ signal: AbortSignal.timeout(300_000) },
+			);
+			if (!response.ok)
+				throw new Error(
+					`El scraper anterior devolvió HTTP ${response.status}.`,
+				);
+			const rows = await response.json();
+			return Array.isArray(rows)
+				? rows.filter(isRecord).map(normalizeDiscoveryCandidate).slice(0, limit)
+				: [];
+		}
+
+		const placesKey = this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim();
+		if (placesKey) {
+			const response = await fetch(
+				"https://places.googleapis.com/v1/places:searchText",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"X-Goog-Api-Key": placesKey,
+						"X-Goog-FieldMask":
+							"places.id,places.displayName,places.formattedAddress,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.rating,places.userRatingCount",
+					},
+					body: JSON.stringify({
+						textQuery: query,
+						languageCode: "es",
+						regionCode: "CO",
+						pageSize: Math.min(limit, 20),
+					}),
+					signal: AbortSignal.timeout(30_000),
+				},
+			);
+			if (!response.ok)
+				throw new Error(`Google Places devolvió HTTP ${response.status}.`);
+			const payload: unknown = await response.json();
+			return isRecord(payload) && Array.isArray(payload.places)
+				? payload.places
+						.filter(isRecord)
+						.map(normalizeDiscoveryCandidate)
+						.slice(0, limit)
+				: [];
+		}
+
+		const mindcaseKey = this.config.get<string>("MINDCASE_API_KEY")?.trim();
+		if (mindcaseKey) {
+			const agent =
+				this.config.get<string>("MINDCASE_DISCOVERY_AGENT")?.trim() ||
+				"instagram/profiles";
+			const response = await fetch(
+				`https://api.mindcase.co/v1/data/${agent}/run?wait=true`,
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${mindcaseKey}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ params: { query, limit } }),
+					signal: AbortSignal.timeout(90_000),
+				},
+			);
+			if (!response.ok)
+				throw new Error(`Mindcase devolvió HTTP ${response.status}.`);
+			const payload: unknown = await response.json();
+			const rows =
+				isRecord(payload) && Array.isArray(payload.data)
+					? payload.data
+					: isRecord(payload) && payload.data
+						? [payload.data]
+						: [];
+			return rows
+				.filter(isRecord)
+				.map(normalizeDiscoveryCandidate)
+				.slice(0, limit);
+		}
+
+		throw new Error(
+			"No hay fuente de descubrimiento configurada. Define LOCAL_MAPS_SCRAPER_URL, GOOGLE_MAPS_API_KEY o MINDCASE_API_KEY.",
+		);
 	}
 
 	/**
@@ -428,6 +585,64 @@ function firstUrl(row: Candidate, keys: string[]) {
 	} catch {
 		return null;
 	}
+}
+
+function isPublicUrl(value: string) {
+	return /^https?:\/\//i.test(value);
+}
+
+function normalizeDiscoveryCandidate(row: Candidate): Candidate {
+	const displayName = isRecord(row.displayName)
+		? firstString(row.displayName, ["text"])
+		: null;
+	return {
+		...row,
+		company_name:
+			firstString(row, [
+				"company_name",
+				"companyName",
+				"business_name",
+				"businessName",
+				"name",
+				"displayName",
+			]) ??
+			displayName ??
+			"Candidato sin nombre",
+		website: firstUrl(row, ["website", "websiteUri", "website_url", "url"]),
+		phone: firstString(row, [
+			"phone",
+			"phone_number",
+			"nationalPhoneNumber",
+			"internationalPhoneNumber",
+		]),
+		city: firstString(row, ["city", "formattedAddress", "address", "location"]),
+		source_url: firstUrl(row, [
+			"source_url",
+			"sourceUrl",
+			"googleMapsUri",
+			"profile_url",
+		]),
+	};
+}
+
+function mergeCandidate(base: Candidate, enrichment: Candidate | undefined) {
+	if (!enrichment) return base;
+	const merged = { ...base, ...enrichment };
+	for (const key of [
+		"company_name",
+		"website",
+		"phone",
+		"email",
+		"whatsapp_url",
+		"instagram_url",
+		"facebook_url",
+		"tiktok_url",
+		"source_url",
+	]) {
+		if (enrichment[key] == null || enrichment[key] === "")
+			merged[key] = base[key];
+	}
+	return merged;
 }
 
 function nestedContact(row: Candidate): Candidate {

@@ -204,6 +204,26 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	SCRAPEGRAPH_DEFAULT_QUERY?: string;
+
+	@IsOptional()
+	@IsUrl({ require_tld: false, require_protocol: true })
+	LOCAL_MAPS_SCRAPER_URL?: string;
+
+	@IsOptional()
+	@IsString()
+	GOOGLE_MAPS_API_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	MINDCASE_API_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	MINDCASE_DISCOVERY_AGENT?: string;
+
+	@IsOptional()
+	@IsString()
 	@MinLength(32)
 	CRM_INTAKE_SECRET?: string;
 

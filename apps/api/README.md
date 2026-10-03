@@ -64,18 +64,15 @@ events plus deterministic Spanish sales signals to report `NEW`, `QUALIFYING`,
 `INTERESTED`, `OBJECTION`, `CALL_REQUESTED`, `HANDOFF` and `OPT_OUT` stages.
 Signed-in CRM users can read metrics without the pilot secret. The score and
 recommendations are operational signals, not promises of conversion.
-## ScrapeGraphAI lead generation
+## Combined lead generation
 
-The CRM exposes one scraper provider, `SCRAPEGRAPH`, through the Lead
-generation screen (`/<slug>/leads`). The button calls the configured worker's
-`POST /research` endpoint, stores the evidence in `scraperRun`, and keeps
-importing separate and review-gated. Maps and Mindcase are not used by this
-flow. Set `SCRAPEGRAPH_URL` to the public URL of the deployed worker. In
-development, the API falls back to `http://127.0.0.1:8011`; production never
-calls localhost and reports the scraper as unconfigured until this variable is set.
-and optionally `SCRAPEGRAPH_DEFAULT_URL`; the URL field in the screen can
-override that default for a single run. A worker health check is shown before
-execution, and no lead is contacted automatically.
+The CRM exposes `SCRAPEGRAPH` through the Lead generation screen
+(`/<slug>/leads`). With a URL, it researches one public company. With the URL
+left empty, the pipeline uses the configured discovery source (the legacy local
+Maps scraper, Google Places, or optional Mindcase social discovery), then sends
+each public website through ScrapeGraph for enrichment. `SCRAPEGRAPH_DEFAULT_QUERY`
+controls the default batch query. Results are stored in `scraperRun`; importing
+remains review-gated and no lead is contacted automatically.
 
 ## Consent-gated Gmail campaigns
 

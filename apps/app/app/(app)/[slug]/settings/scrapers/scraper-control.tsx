@@ -28,8 +28,8 @@ export function ScraperControl() {
 		...trpc.scrapers.status.queryOptions(),
 		refetchInterval: 15_000,
 	});
-	const [targetUrl, setTargetUrl] = useState("https://braxel.dev");
-	const [limit, setLimit] = useState("20");
+	const [targetUrl, setTargetUrl] = useState("");
+	const [limit, setLimit] = useState("30");
 	const [selected, setSelected] = useState<Run | null>(null);
 
 	const refresh = () =>
@@ -97,6 +97,14 @@ export function ScraperControl() {
 							configured={data.providers.scrapegraph.configured}
 							reachable={data.providers.scrapegraph.reachable}
 						/>
+						<p className="mt-3 text-muted-foreground text-xs">
+							Descubrimiento conectado:{" "}
+							{data.providers.discovery.configured
+								? "sí"
+								: "falta una fuente de lote"}
+							. Sin URL, el botón usa la búsqueda predeterminada y después
+							enriquece cada web con ScrapeGraph.
+						</p>
 					</CardContent>
 				</Card>
 
@@ -104,8 +112,8 @@ export function ScraperControl() {
 					<CardHeader>
 						<CardTitle>Ejecutar scraper</CardTitle>
 						<CardDescription>
-							Usa la configuración existente. Puedes dejar la URL vacía para
-							utilizar la fuente predeterminada del worker. Nada se contacta
+							Deja la URL vacía para ejecutar descubrimiento + ScrapeGraph. Una
+							URL sirve para investigar una empresa puntual. Nada se contacta
 							automáticamente.
 						</CardDescription>
 					</CardHeader>
@@ -130,7 +138,7 @@ export function ScraperControl() {
 								className="text-center"
 								inputMode="numeric"
 								min={1}
-								max={50}
+								max={100}
 								type="number"
 								value={limit}
 								onChange={(event) => setLimit(event.target.value)}
