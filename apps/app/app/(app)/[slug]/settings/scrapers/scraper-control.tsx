@@ -87,8 +87,8 @@ export function ScraperControl() {
 					<CardHeader>
 						<CardTitle>ScrapeGraphAI</CardTitle>
 						<CardDescription>
-							El único proveedor activo. Maps y Mindcase ya no forman parte de
-							este flujo.
+							Descubrimiento por lote + enriquecimiento profundo con
+							ScrapeGraph.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -132,7 +132,7 @@ export function ScraperControl() {
 							<Input
 								value={targetUrl}
 								onChange={(event) => setTargetUrl(event.target.value)}
-								placeholder="URL pública opcional (usa la configuración guardada si queda vacía)"
+								placeholder="Consulta o URL pública opcional (vacío = búsqueda predeterminada)"
 							/>
 							<Input
 								className="text-center"
