@@ -242,16 +242,30 @@ export class ScrapersService {
 		target: string,
 		limit: number,
 	): Promise<Candidate[]> {
-		const response = await fetch(`${this.scrapegraphUrl()}/research`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ url: target }),
-			signal: AbortSignal.timeout(300_000),
-		});
-		if (!response.ok)
-			throw new Error(`ScrapeGraphAI devolvió HTTP ${response.status}.`);
+		let response: Response;
+		try {
+			response = await fetch(`${this.scrapegraphUrl()}/research`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ url: target }),
+				signal: AbortSignal.timeout(300_000),
+			});
+		} catch (error) {
+			this.logger.warn({
+				message:
+					"ScrapeGraphAI worker unavailable; using direct public-page fallback",
+				reason: safeError(error),
+			});
+			return this.runDirectResearch(target, limit);
+		}
+		if (!response.ok) {
+			this.logger.warn(
+				`ScrapeGraphAI devolvió HTTP ${response.status}; usando fallback de página pública.`,
+			);
+			return this.runDirectResearch(target, limit);
+		}
 		const payload: unknown = await response.json();
 		if (!isRecord(payload))
 			throw new Error("ScrapeGraphAI devolvió un formato no compatible.");
@@ -276,6 +290,108 @@ export class ScrapersService {
 				source_url: payload.source_url ?? target,
 			}));
 	}
+
+	/**
+	 * Small dependency-free fallback for a public URL. It keeps lead generation
+	 * usable while a remote ScrapeGraph deployment is being updated and never
+	 * logs in, submits forms, or contacts a business.
+	 */
+	private async runDirectResearch(
+		target: string,
+		limit: number,
+	): Promise<Candidate[]> {
+		const url = new URL(target);
+		if (!/^https?:$/.test(url.protocol))
+			throw new Error(
+				"La URL debe ser pública y comenzar por http:// o https://.",
+			);
+		const response = await fetch(url, {
+			headers: { Accept: "text/html,application/xhtml+xml" },
+			signal: AbortSignal.timeout(30_000),
+		});
+		if (!response.ok)
+			throw new Error(`La página pública devolvió HTTP ${response.status}.`);
+
+		const html = (await response.text()).slice(0, 2_000_000);
+		const title = decodeHtml(
+			html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ??
+				url.hostname.replace(/^www\./, ""),
+		);
+		const description = decodeHtml(
+			html.match(
+				/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i,
+			)?.[1] ?? "",
+		);
+		const links = [...html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi)]
+			.map((match) => match[1] ?? "")
+			.map((href) => {
+				try {
+					return new URL(decodeHtml(href), url).toString();
+				} catch {
+					return null;
+				}
+			})
+			.filter((href): href is string => Boolean(href));
+		const emails = unique(
+			[...html.matchAll(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/gi)].map((match) =>
+				match[0].toLowerCase(),
+			),
+		);
+		const phones = unique(
+			[
+				...html.matchAll(/(?:\+?57[\s.-]?)?3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}/g),
+			].map((match) => match[0].trim()),
+		);
+		const social = (host: string) =>
+			links.find((href) => {
+				try {
+					return new URL(href).hostname.toLowerCase().includes(host);
+				} catch {
+					return false;
+				}
+			}) ?? null;
+		const whatsappUrl = links.find((href) =>
+			/^https?:\/\/(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(
+				href,
+			),
+		);
+
+		return [
+			{
+				company_name: title || url.hostname,
+				website: url.toString(),
+				source_url: url.toString(),
+				description: description || null,
+				email: emails[0] ?? null,
+				phone: phones[0] ?? null,
+				whatsapp_url: whatsappUrl ?? null,
+				instagram_url: social("instagram.com"),
+				facebook_url: social("facebook.com"),
+				tiktok_url: social("tiktok.com"),
+				_evidence: {
+					method: "public-page-fallback",
+					emails,
+					phones,
+					links: links.slice(0, 25),
+				},
+			},
+		].slice(0, limit);
+	}
+}
+
+function decodeHtml(value: string) {
+	return value
+		.replace(/&amp;/gi, "&")
+		.replace(/&quot;/gi, '"')
+		.replace(/&#39;|&apos;/gi, "'")
+		.replace(/&lt;/gi, "<")
+		.replace(/&gt;/gi, ">")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function unique(values: string[]) {
+	return [...new Set(values)];
 }
 
 function serializeRun(row: {
