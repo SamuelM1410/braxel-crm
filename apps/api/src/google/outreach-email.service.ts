@@ -11,15 +11,6 @@ import { MailboxTokenService } from "../mailbox/mailbox-token.service";
 import { marketingBody, marketingHeaders } from "./email-marketing";
 import { GmailClient } from "./gmail.client";
 
-const SENDABLE_STAGES = new Set([
-	"INTERESTED",
-	"FOLLOW_UP_ACTIVE",
-	"QUALIFIED",
-	"CLOSING_CALL_BOOKED",
-	"PROPOSAL_SENT",
-	"PAYMENT_PENDING",
-]);
-
 @Injectable()
 export class OutreachEmailService {
 	constructor(
@@ -54,11 +45,9 @@ export class OutreachEmailService {
 				"A human must approve outreach before any email can be sent.",
 			);
 		}
-		if (!SENDABLE_STAGES.has(company.salesStage)) {
-			throw new BadRequestException(
-				"Email follow-up is available only after a positive or qualified sales outcome.",
-			);
-		}
+		// An approved lead may receive the first email as well as a follow-up.
+		// The explicit outreachApprovedAt gate above remains mandatory so discovery
+		// never turns into unsolicited automatic sending by accident.
 		const dailyLimit = Math.max(
 			1,
 			Number.parseInt(process.env.GMAIL_MARKETING_DAILY_LIMIT ?? "50", 10) ||

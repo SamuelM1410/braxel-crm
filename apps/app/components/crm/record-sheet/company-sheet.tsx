@@ -449,8 +449,8 @@ function CompanyOverview({ company }: { company: Company }) {
 							}
 						>
 							{company.outreachApprovedAt
-								? "Seguimiento aprobado — retirar aprobación"
-								: "Aprobar seguimiento tras interés"}
+								? "Contacto por email aprobado — retirar aprobación"
+								: "Aprobar contacto por email"}
 						</Button>
 						<Button
 							className="mt-2 w-full"
@@ -468,7 +468,7 @@ function CompanyOverview({ company }: { company: Company }) {
 								: "Activar Eve solo para respuestas entrantes"}
 						</Button>
 						<p className="mt-3 text-muted-foreground text-xs">
-							El primer contacto sigue requiriendo aprobación. Eve puede
+							El primer contacto requiere aprobación explícita. Eve puede
 							responder automáticamente en hilos existentes y se pausa ante
 							opt-out, precio, contrato, privacidad, quejas o cualquier caso
 							ambiguo.
@@ -478,7 +478,6 @@ function CompanyOverview({ company }: { company: Company }) {
 							companyName={company.name}
 							recipient={company.email ?? company.primaryContact?.email ?? null}
 							approved={Boolean(company.outreachApprovedAt)}
-							stage={company.salesStage}
 						/>
 					</DetailSheetSection>
 					<DetailSheetSection

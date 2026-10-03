@@ -14,13 +14,11 @@ export function OutreachEmail({
 	companyName,
 	recipient,
 	approved,
-	stage,
 }: {
 	companyId: string;
 	companyName: string;
 	recipient: string | null;
 	approved: boolean;
-	stage: string;
 }) {
 	const trpc = useTRPC();
 	const cache = useCrmCache();
@@ -30,16 +28,7 @@ export function OutreachEmail({
 	const [body, setBody] = useState(
 		`Hola,\n\nSoy Samuel, de Braxel. Estuve revisando ${companyName} y vimos una oportunidad concreta para convertir mejor las visitas de su página en clientes y recuperar oportunidades que se quedan a medias.\n\n¿Te puedo compartir una idea breve, con ejemplos y sin compromiso? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
 	);
-	const allowed =
-		approved &&
-		[
-			"INTERESTED",
-			"FOLLOW_UP_ACTIVE",
-			"QUALIFIED",
-			"CLOSING_CALL_BOOKED",
-			"PROPOSAL_SENT",
-			"PAYMENT_PENDING",
-		].includes(stage);
+	const allowed = approved && Boolean(recipient);
 
 	const send = useMutation(
 		trpc.google.sendApprovedEmail.mutationOptions({
@@ -63,9 +52,10 @@ export function OutreachEmail({
 					? `Destino: ${recipient}`
 					: "No hay email verificado para esta empresa."}
 			</p>
-			{!allowed ? (
+			{!approved ? (
 				<p className="mt-2 text-muted-foreground text-xs">
-					Requiere interés/etapa positiva y aprobación humana antes de enviar.
+					Requiere aprobación humana antes de enviar. El primer contacto también
+					puede enviarse cuando el lead ya fue aprobado.
 				</p>
 			) : null}
 			<Input
@@ -94,7 +84,7 @@ export function OutreachEmail({
 				{send.isPending ? "Enviando…" : "Enviar email aprobado"}
 			</Button>
 			<p className="mt-2 text-muted-foreground text-xs">
-				Eve prepara el texto; una persona revisa y confirma este envío.
+				Eve prepara el texto personalizado; revisa el borrador y pulsa enviar.
 			</p>
 		</div>
 	);
