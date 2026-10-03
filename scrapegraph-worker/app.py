@@ -238,8 +238,27 @@ def research(request: ResearchRequest):
     if any(hostname == blocked or hostname.endswith("." + blocked) for blocked in BLOCKED_HOSTS):
         raise HTTPException(status_code=422, detail="This worker only researches public owned websites, not social networks or directories.")
     prompt = """Extract only facts visible on this public business website. Return compact JSON with:
-        company_description, visible_services, public_contact{emails,phones,whatsapp_urls}, contact_methods[{type,value,status,confidence}], conversion_assets{forms,booking_urls,cta_text}, technology_signals{analytics,meta_pixel,ecommerce_platform}, social_links[{network,url,status,confidence}], evidence_items[{claim,source_url,observed_at,confidence}].
-Never guess revenue, budget, customer count, decision makers, ad spend, or business problems. If absent, return an empty value."""
+        company_description, visible_services,
+        public_contact{
+          emails,
+          phones,
+          whatsapp_urls,
+          whatsapp_numbers
+        },
+        contact_methods[{type,value,status,confidence,source_url}],
+        conversion_assets{forms,booking_urls,cta_text},
+        technology_signals{analytics,meta_pixel,ecommerce_platform},
+        social_links[{network,url,status,confidence,source_url}],
+        evidence_items[{claim,source_url,observed_at,confidence}].
+
+        Contact extraction rules:
+        - Inspect header, footer, contact page, buttons, mailto/tel links, JSON-LD and visible text.
+        - Extract every public phone number, preserving the displayed value and also returning a normalized digits-only value when possible.
+        - Treat a WhatsApp link as WhatsApp only when it is an explicit wa.me, api.whatsapp.com/send, chat.whatsapp.com or whatsapp:// link. Do not infer WhatsApp merely from a phone number.
+        - Follow only same-site public contact/about links needed to find official contact channels; do not log in or message anyone.
+        - Record the exact source URL for every channel and leave absent values empty.
+        - Social links must be official profile/page URLs visibly linked by the business website. Never invent a profile from the company name.
+        Never guess revenue, budget, customer count, decision makers, ad spend, or business problems. If absent, return an empty value."""
     config = {
         "llm": {"model": os.getenv("SCRAPEGRAPH_MODEL", "ollama/qwen2.5:3b"), "model_tokens": 4096, "format": "json"},
         "verbose": False,
@@ -269,7 +288,12 @@ def normalize_contact_channels(result: Any, source_url: str) -> list[dict[str, A
         return []
     channels: list[dict[str, Any]] = []
     public = result.get("public_contact") or {}
-    for kind, values in (("email", public.get("emails")), ("phone", public.get("phones")), ("whatsapp", public.get("whatsapp_urls"))):
+    for kind, values in (
+        ("email", public.get("emails")),
+        ("phone", public.get("phones")),
+        ("whatsapp", public.get("whatsapp_urls")),
+        ("whatsapp", public.get("whatsapp_numbers")),
+    ):
         if isinstance(values, str):
             values = [values]
         if isinstance(values, list):

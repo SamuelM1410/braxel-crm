@@ -47,6 +47,11 @@ export class CompaniesRouter {
 		return this.companies.options(q);
 	}
 
+	@Query()
+	async coverage() {
+		return this.companies.coverage();
+	}
+
 	@Mutation({ input: companyCreateInput })
 	async create(@Input() input: z.infer<typeof companyCreateInput>) {
 		return this.companies.create(input);

@@ -325,6 +325,51 @@ export class CompaniesService {
 		});
 	}
 
+	/** Channel coverage for the workspace's company records. */
+	async coverage() {
+		const [
+			total,
+			phone,
+			whatsappUrl,
+			whatsappReady,
+			email,
+			instagram,
+			facebook,
+			tiktok,
+			linkedin,
+		] = await Promise.all([
+			this.db.company.count(),
+			this.db.company.count({ where: { phone: { not: null } } }),
+			this.db.company.count({ where: { whatsappUrl: { not: null } } }),
+			this.db.company.count({
+				where: {
+					OR: [{ phone: { not: null } }, { whatsappUrl: { not: null } }],
+				},
+			}),
+			this.db.company.count({ where: { email: { not: null } } }),
+			this.db.company.count({ where: { instagramUrl: { not: null } } }),
+			this.db.company.count({ where: { facebookUrl: { not: null } } }),
+			this.db.company.count({ where: { tiktokUrl: { not: null } } }),
+			this.db.company.count({ where: { linkedinUrl: { not: null } } }),
+		]);
+		const percentage = (count: number) =>
+			total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
+		return {
+			total,
+			phone: { count: phone, percentage: percentage(phone) },
+			whatsappUrl: { count: whatsappUrl, percentage: percentage(whatsappUrl) },
+			whatsappReady: {
+				count: whatsappReady,
+				percentage: percentage(whatsappReady),
+			},
+			email: { count: email, percentage: percentage(email) },
+			instagram: { count: instagram, percentage: percentage(instagram) },
+			facebook: { count: facebook, percentage: percentage(facebook) },
+			tiktok: { count: tiktok, percentage: percentage(tiktok) },
+			linkedin: { count: linkedin, percentage: percentage(linkedin) },
+		};
+	}
+
 	async create(input: CompanyCreateInput) {
 		const domain = normalizeDomain(input.domain);
 

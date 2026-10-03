@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@crm/ui/components/badge";
+import { Card, CardContent } from "@crm/ui/components/card";
 import {
 	DataTable,
 	type DataTableColumn,
@@ -211,6 +212,7 @@ export function CompaniesTable() {
 				? ENRICHMENT_POLL_MS
 				: false,
 	});
+	const coverage = useQuery(trpc.companies.coverage.queryOptions());
 	const users = useQuery(trpc.users.list.queryOptions());
 
 	const rows = companies.data?.rows ?? [];
@@ -252,26 +254,57 @@ export function CompaniesTable() {
 	const columns = useMemo(() => [...COLUMNS, ...fieldColumns], [fieldColumns]);
 
 	return (
-		<DataTable
-			query={query}
-			search={<ListSearch placeholder="Search companies by name or domain…" />}
-			columns={columns}
-			rows={rows}
-			total={companies.data?.total ?? 0}
-			facetCounts={facetCounts}
-			facets={facets}
-			selection={{
-				state: selection,
-				actions: (
-					<CompaniesBulkActions ids={selection.ids} onDone={selection.clear} />
-				),
-				rowLabel: (row) => row.name,
-			}}
-			getRowId={(row) => row.id}
-			loading={companies.isFetching}
-			onRowHover={(row) => prefetchRecord({ kind: "company", id: row.id })}
-			onRowClick={(row) => openRecord({ kind: "company", id: row.id })}
-			empty="No companies match this view."
-		/>
+		<div className="flex min-h-0 flex-1 flex-col gap-3">
+			{coverage.data ? (
+				<Card>
+					<CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3 text-sm">
+						<span className="font-medium">Cobertura de canales</span>
+						<span className="text-muted-foreground">
+							{coverage.data.total} empresas
+						</span>
+						<span>
+							<strong>{coverage.data.whatsappReady.count}</strong> con
+							WhatsApp/teléfono ({coverage.data.whatsappReady.percentage}%)
+						</span>
+						<span>
+							<strong>{coverage.data.email.count}</strong> con email (
+							{coverage.data.email.percentage}%)
+						</span>
+						<span className="text-muted-foreground text-xs">
+							La métrica se calcula sobre todos los registros, no solo la página
+							actual.
+						</span>
+					</CardContent>
+				</Card>
+			) : null}
+			<div className="min-h-0 flex-1">
+				<DataTable
+					query={query}
+					search={
+						<ListSearch placeholder="Search companies by name or domain…" />
+					}
+					columns={columns}
+					rows={rows}
+					total={companies.data?.total ?? 0}
+					facetCounts={facetCounts}
+					facets={facets}
+					selection={{
+						state: selection,
+						actions: (
+							<CompaniesBulkActions
+								ids={selection.ids}
+								onDone={selection.clear}
+							/>
+						),
+						rowLabel: (row) => row.name,
+					}}
+					getRowId={(row) => row.id}
+					loading={companies.isFetching}
+					onRowHover={(row) => prefetchRecord({ kind: "company", id: row.id })}
+					onRowClick={(row) => openRecord({ kind: "company", id: row.id })}
+					empty="No companies match this view."
+				/>
+			</div>
+		</div>
 	);
 }

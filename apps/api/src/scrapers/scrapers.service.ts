@@ -345,9 +345,21 @@ function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 			"whatsapp_number",
 		]);
 	if (!value) return null;
-	if (/^https?:\/\//i.test(value)) return value;
+	if (/^https?:\/\//i.test(value)) {
+		try {
+			const url = new URL(value);
+			const host = url.hostname.toLowerCase();
+			return host === "wa.me" || host.endsWith(".whatsapp.com")
+				? url.toString()
+				: null;
+		} catch {
+			return null;
+		}
+	}
 	const digits = value.replace(/[^\d]/g, "");
-	return digits.length >= 7 ? `https://wa.me/${digits}` : null;
+	if (digits.length === 10 && digits.startsWith("3"))
+		return `https://wa.me/57${digits}`;
+	return digits.length >= 10 ? `https://wa.me/${digits}` : null;
 }
 
 function firstEmail(row: Candidate, keys: string[]) {
