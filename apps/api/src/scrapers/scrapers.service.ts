@@ -63,17 +63,7 @@ export class ScrapersService {
 
 	async run(input: ScraperRunInput, userId: string) {
 		await this.access.assertMember(userId);
-		if (!this.scrapegraphUrl()) {
-			throw new BadRequestException(
-				"ScrapeGraphAI no está configurado en producción. Define SCRAPEGRAPH_URL con la URL pública del worker en el proyecto braxel-api.",
-			);
-		}
 		const target = input.query.trim() || this.scrapegraphTarget();
-		if (!target) {
-			throw new BadRequestException(
-				"Configura SCRAPEGRAPH_DEFAULT_URL o introduce una URL pública para investigar.",
-			);
-		}
 
 		const run = await this.db.scraperRun.create({
 			data: {
