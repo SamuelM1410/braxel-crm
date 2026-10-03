@@ -1,4 +1,3 @@
 {
-	"installCommand": "bun install",
-	"buildCommand": "bun run --filter=app build"
+	"installCommand": "bun install"
 }
