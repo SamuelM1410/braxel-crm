@@ -7,18 +7,6 @@ import { z } from "zod";
 export const scraperProvider = z.enum(["SCRAPEGRAPH"]);
 export type ScraperProvider = z.infer<typeof scraperProvider>;
 
-export const mindcaseAgent = z.enum([
-	"instagram/profiles",
-	"instagram/posts",
-	"tiktok/profiles",
-	"tiktok/posts",
-	"linkedin/profiles",
-	"linkedin/companies",
-	"linkedin/posts",
-	"facebook/pages",
-	"facebook/posts-groups",
-]);
-
 export const scraperRunInput = z.object({
 	provider: scraperProvider,
 	query: z.string().trim().max(500).default(""),

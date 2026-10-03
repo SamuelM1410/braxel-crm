@@ -48,12 +48,6 @@ export function capabilitiesFrom(
 				"a person's real name, current title, employer and tenure, self-reported, and so authoritative on identity",
 		},
 		{
-			...fromEnv("MINDCASE_API_KEY"),
-			label: "Mindcase social discovery",
-			gives:
-				"public company profiles and social signals from supported channels",
-		},
-		{
 			...fromEnv("GOOGLE_MAPS_API_KEY"),
 			label: "Google Maps discovery",
 			gives:

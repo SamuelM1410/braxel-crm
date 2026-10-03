@@ -47,6 +47,10 @@ whatsapp-web-pilot/.wwebjs_cache/
 /.wwebjs_auth/
 /.wwebjs_cache/
 
+# Local browser scraper runtime
+local-gmaps-scraper/.venv/
+local-gmaps-scraper/__pycache__/
+
 # Agent worktrees
 .claude/worktrees/
 .agents/
