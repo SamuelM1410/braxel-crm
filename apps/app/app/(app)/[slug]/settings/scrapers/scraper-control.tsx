@@ -93,7 +93,7 @@ export function ScraperControl() {
 					</CardHeader>
 					<CardContent>
 						<SourceStatus
-							label="Worker local configurado"
+							label="Worker público configurado"
 							configured={data.providers.scrapegraph.configured}
 							reachable={data.providers.scrapegraph.reachable}
 						/>
