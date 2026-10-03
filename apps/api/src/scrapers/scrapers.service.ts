@@ -219,18 +219,21 @@ export class ScrapersService {
 	}
 
 	private discoveryStatus() {
+		const localMapsFallback = process.env.NODE_ENV !== "production";
 		const localMaps = Boolean(
-			this.config.get<string>("LOCAL_MAPS_SCRAPER_URL")?.trim(),
+			this.config.get<string>("LOCAL_MAPS_SCRAPER_URL")?.trim() ||
+				(localMapsFallback && "http://127.0.0.1:8001"),
 		);
 		const googlePlaces = Boolean(
 			this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim(),
 		);
-		const mindcase = Boolean(
-			this.config.get<string>("MINDCASE_API_KEY")?.trim(),
-		);
 		return {
-			configured: localMaps || googlePlaces || mindcase,
-			providers: { localMaps, googlePlaces, mindcase },
+			configured: localMaps || googlePlaces,
+			providers: {
+				localMaps,
+				localMapsFallback,
+				googlePlaces,
+			},
 			query: this.discoveryQuery(),
 		};
 	}
@@ -353,10 +356,14 @@ export class ScrapersService {
 		query: string,
 		limit: number,
 	): Promise<Candidate[]> {
-		const localBase = this.config
-			.get<string>("LOCAL_MAPS_SCRAPER_URL")
-			?.trim()
-			.replace(/\/$/, "");
+		const localBase =
+			this.config
+				.get<string>("LOCAL_MAPS_SCRAPER_URL")
+				?.trim()
+				.replace(/\/$/, "") ||
+			(process.env.NODE_ENV !== "production"
+				? "http://127.0.0.1:8001"
+				: undefined);
 		if (localBase) {
 			const response = await fetch(
 				`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
@@ -404,40 +411,10 @@ export class ScrapersService {
 				: [];
 		}
 
-		const mindcaseKey = this.config.get<string>("MINDCASE_API_KEY")?.trim();
-		if (mindcaseKey) {
-			const agent =
-				this.config.get<string>("MINDCASE_DISCOVERY_AGENT")?.trim() ||
-				"instagram/profiles";
-			const response = await fetch(
-				`https://api.mindcase.co/v1/data/${agent}/run?wait=true`,
-				{
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${mindcaseKey}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ params: { query, limit } }),
-					signal: AbortSignal.timeout(90_000),
-				},
-			);
-			if (!response.ok)
-				throw new Error(`Mindcase devolvió HTTP ${response.status}.`);
-			const payload: unknown = await response.json();
-			const rows =
-				isRecord(payload) && Array.isArray(payload.data)
-					? payload.data
-					: isRecord(payload) && payload.data
-						? [payload.data]
-						: [];
-			return rows
-				.filter(isRecord)
-				.map(normalizeDiscoveryCandidate)
-				.slice(0, limit);
-		}
-
 		throw new Error(
-			"No hay fuente de descubrimiento configurada. Define LOCAL_MAPS_SCRAPER_URL, GOOGLE_MAPS_API_KEY o MINDCASE_API_KEY.",
+			process.env.NODE_ENV !== "production"
+				? "El scraper local no está disponible en http://127.0.0.1:8001. Inícialo con local-gmaps-scraper/main_api.py o define LOCAL_MAPS_SCRAPER_URL."
+				: "No hay fuente de descubrimiento configurada. Define LOCAL_MAPS_SCRAPER_URL o GOOGLE_MAPS_API_KEY.",
 		);
 	}
 

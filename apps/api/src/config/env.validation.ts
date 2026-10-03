@@ -216,14 +216,6 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
-	MINDCASE_API_KEY?: string;
-
-	@IsOptional()
-	@IsString()
-	MINDCASE_DISCOVERY_AGENT?: string;
-
-	@IsOptional()
-	@IsString()
 	@MinLength(32)
 	CRM_INTAKE_SECRET?: string;
 

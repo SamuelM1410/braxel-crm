@@ -69,8 +69,10 @@ recommendations are operational signals, not promises of conversion.
 The CRM exposes `SCRAPEGRAPH` through the Lead generation screen
 (`/<slug>/leads`). With a URL, it researches one public company. With the URL
 left empty, the pipeline uses the configured discovery source (the legacy local
-Maps scraper, Google Places, or optional Mindcase social discovery), then sends
-each public website through ScrapeGraph for enrichment. `SCRAPEGRAPH_DEFAULT_QUERY`
+Maps scraper or Google Places), then sends each public website through
+ScrapeGraph for enrichment. In local development, the old scraper is attempted
+automatically at `http://127.0.0.1:8001`; production requires a public
+`LOCAL_MAPS_SCRAPER_URL` or `GOOGLE_MAPS_API_KEY`. `SCRAPEGRAPH_DEFAULT_QUERY`
 controls the default batch query. Results are stored in `scraperRun`; importing
 remains review-gated and no lead is contacted automatically.
 

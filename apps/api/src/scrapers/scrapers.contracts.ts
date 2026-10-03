@@ -2,8 +2,8 @@ import { z } from "zod";
 
 // ScrapeGraphAI remains the lead-research provider exposed by the CRM. When
 // the query is not a URL, the service first uses a configured discovery source
-// (the legacy local Maps scraper, Google Places, or Mindcase) and then enriches
-// each public website with ScrapeGraph.
+// (the legacy local Maps scraper or Google Places) and then enriches each
+// public website with ScrapeGraph.
 export const scraperProvider = z.enum(["SCRAPEGRAPH"]);
 export type ScraperProvider = z.infer<typeof scraperProvider>;
 
