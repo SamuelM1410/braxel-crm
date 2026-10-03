@@ -215,7 +215,10 @@ export class ScrapersService {
 	}
 
 	private scrapegraphTarget() {
-		return this.config.get<string>("SCRAPEGRAPH_DEFAULT_URL")?.trim() || null;
+		return (
+			this.config.get<string>("SCRAPEGRAPH_DEFAULT_URL")?.trim() ||
+			"https://braxel.dev"
+		);
 	}
 
 	private async scrapegraphStatus() {

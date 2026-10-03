@@ -28,7 +28,7 @@ export function ScraperControl() {
 		...trpc.scrapers.status.queryOptions(),
 		refetchInterval: 15_000,
 	});
-	const [targetUrl, setTargetUrl] = useState("");
+	const [targetUrl, setTargetUrl] = useState("https://braxel.dev");
 	const [limit, setLimit] = useState("20");
 	const [selected, setSelected] = useState<Run | null>(null);
 
