@@ -260,11 +260,11 @@ def research(request: ResearchRequest):
         - Social links must be official profile/page URLs visibly linked by the business website. Never invent a profile from the company name.
         Never guess revenue, budget, customer count, decision makers, ad spend, or business problems. If absent, return an empty value."""
     config = {
-        # `model_tokens` was forwarded verbatim to OpenAI's completions API by
-        # the current ScrapeGraphAI/LangChain adapter.  OpenAI expects
-        # `max_tokens`; keeping the adapter-specific name caused every
-        # research request to fail with an opaque 502.
-        "llm": {"model": os.getenv("SCRAPEGRAPH_MODEL", "ollama/qwen2.5:3b"), "max_tokens": 4096, "format": "json"},
+        # Keep the provider block limited to the model name.  ScrapeGraphAI
+        # forwards unknown keys to the OpenAI client; options such as
+        # `model_tokens` and `format` therefore fail at runtime with an opaque
+        # `unexpected keyword argument` error.
+        "llm": {"model": os.getenv("SCRAPEGRAPH_MODEL", "ollama/qwen2.5:3b")},
         "verbose": False,
         "headless": True,
     }
