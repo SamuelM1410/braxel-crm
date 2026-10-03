@@ -1,5 +1,4 @@
 {
-	"framework": "nextjs",
 	"installCommand": "bun install",
 	"buildCommand": "bun run --filter=app build"
 }
