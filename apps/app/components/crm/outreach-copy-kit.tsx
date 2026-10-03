@@ -150,6 +150,19 @@ export function OutreachCopyKit({
 								<Copy size={16} />
 								Copiar Gmail
 							</Button>
+							<Button variant="outline" size="sm" disabled={!hasEmail} asChild>
+								<a
+									href={
+										hasEmail
+											? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email ?? "")}&su=${encodeURIComponent(emailDraft.subject)}&body=${encodeURIComponent(emailDraft.body)}`
+											: undefined
+									}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Abrir Gmail
+								</a>
+							</Button>
 						</div>
 						<Textarea
 							value={`Asunto: ${emailDraft.subject}\n\n${emailDraft.body}`}
