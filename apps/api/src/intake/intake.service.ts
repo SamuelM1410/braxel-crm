@@ -15,6 +15,7 @@ type IntakeLead = {
 	instagramUrl?: string | null;
 	facebookUrl?: string | null;
 	tiktokUrl?: string | null;
+	linkedinUrl?: string | null;
 	whatsappUrl?: string | null;
 	contactName?: string | null;
 	contactRole?: string | null;
@@ -82,6 +83,7 @@ export class IntakeService {
 							instagramUrl: clean(lead.instagramUrl),
 							facebookUrl: clean(lead.facebookUrl),
 							tiktokUrl: clean(lead.tiktokUrl),
+							linkedinUrl: clean(lead.linkedinUrl),
 							whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 							description,
 							source: RecordSource.IMPORT,
@@ -133,6 +135,7 @@ export class IntakeService {
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
+						linkedinUrl: clean(lead.linkedinUrl),
 						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
@@ -147,6 +150,7 @@ export class IntakeService {
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
+						linkedinUrl: clean(lead.linkedinUrl),
 						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
@@ -170,6 +174,7 @@ export class IntakeService {
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
+						linkedinUrl: clean(lead.linkedinUrl),
 						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
@@ -209,6 +214,7 @@ function companyData(
 		instagramUrl: clean(lead.instagramUrl),
 		facebookUrl: clean(lead.facebookUrl),
 		tiktokUrl: clean(lead.tiktokUrl),
+		linkedinUrl: clean(lead.linkedinUrl),
 		whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 		description,
 		source: RecordSource.IMPORT,

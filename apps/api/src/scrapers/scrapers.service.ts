@@ -166,6 +166,7 @@ export class ScrapersService {
 					instagramUrl: firstUrl(row, ["instagram_url", "instagramUrl"]),
 					facebookUrl: firstUrl(row, ["facebook_url", "facebookUrl"]),
 					tiktokUrl: firstUrl(row, ["tiktok_url", "tiktokUrl"]),
+					linkedinUrl: firstUrl(row, ["linkedin_url", "linkedinUrl"]),
 					whatsappUrl: normalizeWhatsAppUrl(firstWhatsApp(row, contact)),
 					contactName:
 						firstString(row, ["contact_name", "contactName", "owner_name"]) ??
@@ -497,6 +498,7 @@ export class ScrapersService {
 				instagram_url: social("instagram.com"),
 				facebook_url: social("facebook.com"),
 				tiktok_url: social("tiktok.com"),
+				linkedin_url: social("linkedin.com"),
 				_evidence: {
 					method: "public-page-fallback",
 					emails,
@@ -618,6 +620,7 @@ function mergeCandidate(base: Candidate, enrichment: Candidate | undefined) {
 		"instagram_url",
 		"facebook_url",
 		"tiktok_url",
+		"linkedin_url",
 		"source_url",
 	]) {
 		if (enrichment[key] == null || enrichment[key] === "")

@@ -24,6 +24,7 @@ const leadSchema = z.object({
 	instagramUrl: webUrl.optional().nullable(),
 	facebookUrl: webUrl.optional().nullable(),
 	tiktokUrl: webUrl.optional().nullable(),
+	linkedinUrl: webUrl.optional().nullable(),
 	whatsappUrl: webUrl.optional().nullable(),
 	contactName: z.string().trim().max(180).optional().nullable(),
 	contactRole: z.string().trim().max(180).optional().nullable(),
