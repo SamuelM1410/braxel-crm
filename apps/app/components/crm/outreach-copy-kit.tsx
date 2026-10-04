@@ -7,13 +7,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 function buildWhatsAppMessage(companyName: string): string {
-	return `Hola, ${companyName}. Soy Samuel, de Braxel 👋 Ayudamos a negocios a convertir más visitas de su página en conversaciones y ventas. Una pregunta rápida: ¿hoy el reto está en atraer visitas o en convertirlas en clientes?`;
+	return `Hola, ${companyName}. Soy Samuel, de Braxel 👋 Ayudamos a tiendas online a mejorar su página y recuperar ventas cuando un cliente deja el carrito, usando automatizaciones por WhatsApp. Una pregunta rápida: ¿ustedes venden online actualmente?`;
 }
 
 function buildEmail(companyName: string): { subject: string; body: string } {
 	return {
-		subject: `Una idea para mejorar las conversiones de ${companyName}`,
-		body: `Hola,\n\nSoy Samuel, de Braxel. Estuve revisando ${companyName} y vimos una oportunidad concreta para convertir mejor las visitas de su página en clientes y recuperar oportunidades que se quedan a medias.\n\n¿Te puedo compartir una idea breve, con ejemplos y sin compromiso? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
+		subject: `Una idea para recuperar ventas en ${companyName}`,
+		body: `Hola,\n\nSoy Samuel, de Braxel. Ayudamos a tiendas online a mejorar la página para convertir mejor y a recuperar ventas cuando alguien deja un carrito pendiente mediante automatizaciones por WhatsApp.\n\n¿Ustedes venden online actualmente? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
 	};
 }
 
