@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 function buildWhatsAppMessage(companyName: string): string {
-	return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi su negocio y creo que podemos ayudarles a convertir mejor las visitas de su página en clientes y recuperar oportunidades que se quedan a medias. ¿Te puedo compartir una idea breve y sin compromiso?`;
+	return `Hola, ${companyName}. Soy Samuel, de Braxel 👋 Ayudamos a negocios a convertir más visitas de su página en conversaciones y ventas. Una pregunta rápida: ¿hoy el reto está en atraer visitas o en convertirlas en clientes?`;
 }
 
 function buildEmail(companyName: string): { subject: string; body: string } {
