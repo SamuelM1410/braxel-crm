@@ -25,6 +25,7 @@ const SECTIONS = [
 	"/deals",
 	"/impact",
 	"/lead-finance",
+	"/solutions",
 	"/settings",
 ];
 

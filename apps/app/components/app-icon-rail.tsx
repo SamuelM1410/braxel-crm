@@ -1,5 +1,6 @@
 "use client";
 
+import Application from "@carbon/icons-react/es/Application";
 import Building from "@carbon/icons-react/es/Building";
 import type { CarbonIconType } from "@carbon/icons-react/es/CarbonIcon";
 import ChartLineData from "@carbon/icons-react/es/ChartLineData";
@@ -62,6 +63,12 @@ const ITEMS: RailItem[] = [
 	{ title: "Impact", href: "/impact", icon: ChartLineData, match: "prefix" },
 	{ title: "Finance", href: "/lead-finance", icon: Currency, match: "prefix" },
 	{ title: "Lead generation", href: "/leads", icon: Renew, match: "prefix" },
+	{
+		title: "Custom solutions",
+		href: "/solutions",
+		icon: Application,
+		match: "prefix",
+	},
 	{ title: "Gmail outreach", href: "/email", icon: Email, match: "prefix" },
 	{ title: "Settings", href: "/settings", icon: Settings, match: "prefix" },
 ];
