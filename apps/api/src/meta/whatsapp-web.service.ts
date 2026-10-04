@@ -224,10 +224,21 @@ function contactPhoneCandidates(phone: string | null): string[] {
 
 function enforceSingleQuestion(text: string): string {
 	let questionCount = 0;
-	return text.replace(/¿[^?]*\?/g, (question) => {
+	const withOnePairedQuestion = text.replace(/¿[^?]*\?/g, (question) => {
 		questionCount += 1;
 		if (questionCount === 1) return question;
-		return `${question.slice(1, -1).trim()}.`;
+		return `${question
+			.slice(1, -1)
+			.trim()
+			.replace(/[.!?]+$/, "")}.`;
+	});
+	// Models occasionally omit the opening `¿`. Keep the first remaining
+	// question mark and turn any later ones into sentence punctuation so a
+	// single reply never interrogates a prospect repeatedly.
+	let questionMarkCount = 0;
+	return withOnePairedQuestion.replace(/\?/g, () => {
+		questionMarkCount += 1;
+		return questionMarkCount === 1 ? "?" : ".";
 	});
 }
 

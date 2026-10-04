@@ -67,7 +67,7 @@ export function LeadDossierPanel({
 	const dossier = parseDossier(description);
 	if (!dossier) return null;
 	const assessment = completeAssessment(dossier);
-	const contact = recommendedContact(channels);
+	const contact = recommendedContact(channels, dossier);
 	const review = parseLeadReview(description);
 
 	return (
@@ -247,39 +247,75 @@ function ReviewDecision({ review }: { review: LeadReview }) {
 	);
 }
 
-function recommendedContact(raw: ContactChannels) {
+function recommendedContact(raw: ContactChannels, dossier: Dossier) {
 	// Every link here reached us from research or from the intake endpoint, so a
 	// `javascript:` href would be a one-click script in the rep's session.
 	const channels: ContactChannels = {
 		website: safeHref(raw.website),
-		phone: raw.phone,
-		email: raw.email,
-		whatsappUrl: safeHref(raw.whatsappUrl),
+		phone: normalizeContactPhone(raw.phone),
+		email: normalizeContactEmail(raw.email),
+		whatsappUrl: validWhatsAppHref(raw.whatsappUrl),
 		instagramUrl: safeHref(raw.instagramUrl),
 		facebookUrl: safeHref(raw.facebookUrl),
 		tiktokUrl: safeHref(raw.tiktokUrl),
 		linkedinUrl: safeHref(raw.linkedinUrl),
 	};
 
+	const profileText = [
+		dossier.classification.scenario,
+		dossier.commercial_assessment.recommended_offer,
+		dossier.commercial_assessment.problem,
+	]
+		.join(" ")
+		.toLocaleLowerCase("es");
+	const commerceSignal =
+		/\b(e-?commerce|tienda|retail|ventas|carrito|catálogo|catalogo|online|comercio)\b/.test(
+			profileText,
+		);
+
+	// A WhatsApp URL is a verified direct channel. A plain phone number is not:
+	// it may be landline-only or malformed, so it must never be labelled as
+	// WhatsApp without an explicit wa.me/api.whatsapp.com link.
+	if (channels.whatsappUrl && commerceSignal)
+		return {
+			label: "WhatsApp",
+			href: channels.whatsappUrl,
+			external: true,
+			reason:
+				"WhatsApp está verificado y el perfil muestra una operación comercial/online; es el primer canal recomendado para una conversación breve.",
+			nextAction:
+				"Revisa el dossier y aprueba manualmente el primer mensaje antes de enviarlo.",
+		};
+	if (channels.email && !commerceSignal)
+		return {
+			label: "email",
+			href: `mailto:${channels.email}`,
+			external: false,
+			reason:
+				"El perfil parece B2B/servicios y hay un correo válido; el email permite explicar el contexto sin asumir que el teléfono acepta WhatsApp.",
+			nextAction:
+				"Revisa el correo personalizado, confirma que salga desde la cuenta de Braxel y envíalo solo tras aprobarlo.",
+		};
+	if (channels.phone)
+		return {
+			label: "llamada",
+			href: `tel:+${channels.phone}`,
+			external: false,
+			reason: commerceSignal
+				? "Hay un número válido, pero no una URL que confirme WhatsApp; úsalo para una llamada humana y pide el canal comercial adecuado."
+				: "Hay un número válido y el perfil no confirma WhatsApp; la llamada es más fiable que asumir que acepta mensajes.",
+			nextAction:
+				"Prepara la apertura sugerida y llama solo después de validar responsable y horario.",
+		};
 	if (channels.whatsappUrl)
 		return {
 			label: "WhatsApp",
 			href: channels.whatsappUrl,
 			external: true,
 			reason:
-				"WhatsApp fue encontrado como canal comercial público. Verifica que sea el número correcto y que el contacto sea apropiado.",
+				"WhatsApp está verificado, pero el perfil no muestra todavía una señal clara de comercio online; confirma primero que este sea el canal comercial correcto.",
 			nextAction:
-				"Revisa el dossier y aprueba manualmente el primer mensaje antes de enviarlo.",
-		};
-	if (channels.phone)
-		return {
-			label: "llamada",
-			href: `tel:${channels.phone}`,
-			external: false,
-			reason:
-				"Hay teléfono público disponible; una llamada humana es el canal prioritario cuando el lead tiene alta prioridad.",
-			nextAction:
-				"Prepara la apertura sugerida y llama solo después de validar responsable y horario.",
+				"Envía solo un saludo breve aprobado y detente si indican que no es el canal adecuado.",
 		};
 	if (channels.instagramUrl)
 		return {
@@ -349,6 +385,46 @@ function recommendedContact(raw: ContactChannels) {
 		nextAction:
 			"Investiga sitio oficial, Google Business o responsable antes de intentar contacto.",
 	};
+}
+
+function normalizeContactEmail(value: string | null): string | null {
+	if (!value) return null;
+	const email = value.trim().toLowerCase();
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return null;
+	if (/^(noreply|no-reply|donotreply|do-not-reply)@/i.test(email)) return null;
+	if (/@(example|test|localhost)\./i.test(email)) return null;
+	return email;
+}
+
+function normalizeContactPhone(value: string | null): string | null {
+	if (!value) return null;
+	const digits = value.replace(/\D/g, "");
+	if (!digits || /^([0-9])\1+$/.test(digits)) return null;
+	if (/^(?:0123456789|1234567890|0987654321|9876543210)/.test(digits))
+		return null;
+	// Colombia mobile numbers are 10 digits beginning with 3. Keep a leading
+	// country code when present; reject 9-digit or short placeholders such as
+	// 1111, 6666, and malformed values like 3050 09 391.
+	if (digits.length === 12 && digits.startsWith("57")) {
+		return digits.slice(2).startsWith("3") ? digits : null;
+	}
+	if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`;
+	return null;
+}
+
+function validWhatsAppHref(value: string | null): string | null {
+	if (!value) return null;
+	try {
+		const url = new URL(value);
+		if (!/(^|\.)wa\.me$|(^|\.)api\.whatsapp\.com$/.test(url.hostname))
+			return null;
+		const phone = url.hostname.endsWith("wa.me")
+			? url.pathname.replace(/\//g, "")
+			: url.searchParams.get("phone");
+		return normalizeContactPhone(phone) ? url.toString() : null;
+	} catch {
+		return null;
+	}
 }
 
 function completeAssessment(
