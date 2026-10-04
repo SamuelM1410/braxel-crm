@@ -39,6 +39,21 @@ function whatsappChatUrl(destination: string, message: string): string | null {
 	return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
+function gmailComposeUrl(
+	email: string,
+	draft: { subject: string; body: string },
+): string {
+	const params = new URLSearchParams({
+		authuser: "braxeldev@gmail.com",
+		view: "cm",
+		fs: "1",
+		to: email,
+		su: draft.subject,
+		body: draft.body,
+	});
+	return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
 async function copyText(text: string, label: string): Promise<void> {
 	try {
 		await navigator.clipboard.writeText(text);
@@ -68,6 +83,9 @@ export function OutreachCopyKit({
 	const hasWhatsApp = Boolean(whatsappHref);
 	const usingPhoneFallback = !whatsappUrl?.trim() && Boolean(phone?.trim());
 	const hasEmail = Boolean(email?.trim());
+	const gmailHref = hasEmail
+		? gmailComposeUrl(email?.trim() ?? "", emailDraft)
+		: undefined;
 
 	return (
 		<div className="rounded-md border bg-muted/20 p-3">
@@ -151,19 +169,15 @@ export function OutreachCopyKit({
 								Copiar Gmail
 							</Button>
 							<Button variant="outline" size="sm" disabled={!hasEmail} asChild>
-								<a
-									href={
-										hasEmail
-											? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email ?? "")}&su=${encodeURIComponent(emailDraft.subject)}&body=${encodeURIComponent(emailDraft.body)}`
-											: undefined
-									}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
+								<a href={gmailHref} target="_blank" rel="noopener noreferrer">
 									Abrir Gmail
 								</a>
 							</Button>
 						</div>
+						<p className="mt-1 text-muted-foreground text-xs">
+							Se abrirá la cuenta de Braxel. Si no está iniciada, Gmail pedirá
+							seleccionarla antes de mostrar el borrador.
+						</p>
 						<Textarea
 							value={`Asunto: ${emailDraft.subject}\n\n${emailDraft.body}`}
 							readOnly
