@@ -20,7 +20,12 @@ import {
 	type StampTargets,
 } from "../crm/activity-stamp.service";
 import { type BulkResult, requireOwner, runBulk } from "../crm/bulk";
-import { blankToNull, toCents } from "../crm/values";
+import {
+	blankToNull,
+	normalizePhone,
+	normalizeWhatsAppUrl,
+	toCents,
+} from "../crm/values";
 import { ConversionService } from "../currency/conversion.service";
 import { InjectDatabase } from "../database/database.constants";
 import { FieldsService } from "../fields/fields.service";
@@ -297,13 +302,17 @@ export class CompaniesService {
 
 		return {
 			...rest,
+			phone: normalizePhone(rest.phone),
+			whatsappUrl: normalizeWhatsAppUrl(rest.whatsappUrl),
 			fields: await this.fields.valuesFor("COMPANY", id),
 			queued: await this.queue.isQueued({ companyId: id }),
 			createdAt: createdAt.toISOString(),
 			enrichedAt: enrichedAt?.toISOString() ?? null,
 			nextSalesActionAt: nextSalesActionAt?.toISOString() ?? null,
 			primaryContactId: primaryContact?.id ?? null,
-			primaryContact,
+			primaryContact: primaryContact
+				? { ...primaryContact, phone: normalizePhone(primaryContact.phone) }
+				: null,
 			reportingCurrency: await this.conversion.reportingCurrency(),
 			deals: deals.map((deal) => ({
 				...deal,
@@ -432,7 +441,7 @@ export class CompaniesService {
 			data.stateCode = blankToNull(input.stateCode);
 		}
 		if (input.country !== undefined) data.country = blankToNull(input.country);
-		if (input.phone !== undefined) data.phone = blankToNull(input.phone);
+		if (input.phone !== undefined) data.phone = normalizePhone(input.phone);
 		if (input.email !== undefined) data.email = blankToNull(input.email);
 		if (input.linkedinUrl !== undefined) {
 			data.linkedinUrl = blankToNull(input.linkedinUrl);
@@ -444,7 +453,7 @@ export class CompaniesService {
 		if (input.tiktokUrl !== undefined)
 			data.tiktokUrl = blankToNull(input.tiktokUrl);
 		if (input.whatsappUrl !== undefined)
-			data.whatsappUrl = blankToNull(input.whatsappUrl);
+			data.whatsappUrl = normalizeWhatsAppUrl(input.whatsappUrl);
 		if (input.salesStage !== undefined) data.salesStage = input.salesStage;
 		if (input.preferredContactChannel !== undefined) {
 			data.preferredContactChannel = input.preferredContactChannel;

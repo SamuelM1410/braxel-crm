@@ -1,5 +1,6 @@
 import { type Db, RecordSource } from "@crm/db";
 import { Injectable, Logger } from "@nestjs/common";
+import { normalizePhone, normalizeWhatsAppUrl } from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
 import type { LeadOsDossier } from "./lead-os-dossier";
 
@@ -57,7 +58,10 @@ export class IntakeService {
 				(domain
 					? await tx.company.findUnique({ where: { domain } })
 					: await tx.company.findFirst({
-							where: { name: lead.companyName, phone: clean(lead.phone) },
+							where: {
+								name: lead.companyName,
+								phone: normalizePhone(lead.phone),
+							},
 						}));
 			if (!existing && lead.updateOnly) return null;
 
@@ -73,12 +77,12 @@ export class IntakeService {
 							website: clean(lead.websiteUrl),
 							city: clean(lead.city),
 							industry: clean(lead.niche),
-							phone: clean(lead.phone),
+							phone: normalizePhone(lead.phone),
 							email: clean(lead.email),
 							instagramUrl: clean(lead.instagramUrl),
 							facebookUrl: clean(lead.facebookUrl),
 							tiktokUrl: clean(lead.tiktokUrl),
-							whatsappUrl: clean(lead.whatsappUrl),
+							whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 							description,
 							source: RecordSource.IMPORT,
 							enrichmentStatus: "SKIPPED",
@@ -125,11 +129,11 @@ export class IntakeService {
 					update: {
 						firstName,
 						lastName: lastName.join(" ") || null,
-						phone: clean(lead.phone),
+						phone: normalizePhone(lead.phone),
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
-						whatsappUrl: clean(lead.whatsappUrl),
+						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -139,11 +143,11 @@ export class IntakeService {
 						firstName,
 						lastName: lastName.join(" ") || null,
 						email,
-						phone: clean(lead.phone),
+						phone: normalizePhone(lead.phone),
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
-						whatsappUrl: clean(lead.whatsappUrl),
+						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -162,11 +166,11 @@ export class IntakeService {
 						firstName,
 						lastName: lastName.join(" ") || null,
 						email,
-						phone: clean(lead.phone),
+						phone: normalizePhone(lead.phone),
 						instagramUrl: clean(lead.instagramUrl),
 						facebookUrl: clean(lead.facebookUrl),
 						tiktokUrl: clean(lead.tiktokUrl),
-						whatsappUrl: clean(lead.whatsappUrl),
+						whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 						title: clean(lead.contactRole),
 						source: RecordSource.IMPORT,
 						enrichmentStatus: "SKIPPED",
@@ -200,12 +204,12 @@ function companyData(
 		website: clean(lead.websiteUrl),
 		city: clean(lead.city),
 		industry: clean(lead.niche),
-		phone: clean(lead.phone),
+		phone: normalizePhone(lead.phone),
 		email: clean(lead.email),
 		instagramUrl: clean(lead.instagramUrl),
 		facebookUrl: clean(lead.facebookUrl),
 		tiktokUrl: clean(lead.tiktokUrl),
-		whatsappUrl: clean(lead.whatsappUrl),
+		whatsappUrl: normalizeWhatsAppUrl(lead.whatsappUrl),
 		description,
 		source: RecordSource.IMPORT,
 		enrichmentStatus: "SKIPPED" as const,

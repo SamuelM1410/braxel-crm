@@ -211,7 +211,7 @@ export async function companyPreamble(
 		company.description
 			? "There is already a description on the record."
 			: "There is no description on the record yet.",
-		"When recommending outreach, rank verified direct phone/WhatsApp first, then verified business social inbox, named decision-maker LinkedIn, and finally business email. Never claim a channel exists unless read_company_history shows it.",
+		"When recommending outreach, treat a verified wa.me/api.whatsapp.com link as WhatsApp; never infer WhatsApp from a phone number. For an e-commerce profile, prefer verified WhatsApp, then a valid phone for a call. For B2B/services, prefer valid business email, then a valid phone for a call. Social and LinkedIn links are research signals unless an approved inbox/API is available. Never claim a channel exists unless read_company_history shows it.",
 		"",
 		"Start with `read_company_history` on this company id — it returns the people, the deals, the correspondence and the notes in one free call.",
 		"",

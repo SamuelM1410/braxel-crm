@@ -21,7 +21,13 @@ import {
 	type StampTargets,
 } from "../crm/activity-stamp.service";
 import { type BulkResult, requireOwner, runBulk } from "../crm/bulk";
-import { blankToNull, normalizeEmail, toCents } from "../crm/values";
+import {
+	blankToNull,
+	normalizeEmail,
+	normalizePhone,
+	normalizeWhatsAppUrl,
+	toCents,
+} from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
 import { FieldsService } from "../fields/fields.service";
 import {
@@ -307,7 +313,7 @@ export class ContactsService {
 					firstName: input.firstName.trim(),
 					lastName: blankToNull(input.lastName ?? ""),
 					email,
-					phone: blankToNull(input.phone ?? ""),
+					phone: normalizePhone(input.phone),
 					title: blankToNull(input.title ?? ""),
 					companyId,
 					ownerId: input.ownerId ?? null,
@@ -408,7 +414,7 @@ export class ContactsService {
 		if (input.lastName !== undefined)
 			data.lastName = blankToNull(input.lastName);
 		if (input.email !== undefined) data.email = normalizeEmail(input.email);
-		if (input.phone !== undefined) data.phone = blankToNull(input.phone);
+		if (input.phone !== undefined) data.phone = normalizePhone(input.phone);
 		if (input.title !== undefined) data.title = blankToNull(input.title);
 		if (input.linkedinUrl !== undefined) {
 			data.linkedinUrl = blankToNull(input.linkedinUrl);
@@ -426,7 +432,7 @@ export class ContactsService {
 		if (input.tiktokUrl !== undefined)
 			data.tiktokUrl = blankToNull(input.tiktokUrl);
 		if (input.whatsappUrl !== undefined)
-			data.whatsappUrl = blankToNull(input.whatsappUrl);
+			data.whatsappUrl = normalizeWhatsAppUrl(input.whatsappUrl);
 		if (input.companyId !== undefined) {
 			data.company = input.companyId
 				? { connect: { id: input.companyId } }

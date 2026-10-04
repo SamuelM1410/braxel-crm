@@ -2,6 +2,7 @@ import type { Db, Prisma } from "@crm/db";
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AgentAccessService } from "../agent/agent-access.service";
+import { normalizePhone, normalizeWhatsAppUrl } from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
 import { IntakeService } from "../intake/intake.service";
 import type { ScraperRunInput } from "./scrapers.contracts";
@@ -153,18 +154,19 @@ export class ScrapersService {
 					websiteUrl,
 					city: firstString(row, ["city", "formattedAddress", "address"]),
 					niche: firstString(row, ["industry", "category"]),
-					phone:
+					phone: normalizePhone(
 						firstString(row, [
 							"phone",
 							"phone_number",
 							"nationalPhoneNumber",
 							"internationalPhoneNumber",
 						]) ?? firstString(contact, ["phone", "phone_number"]),
+					),
 					email: firstEmail(row, ["email"]) ?? firstEmail(contact, ["email"]),
 					instagramUrl: firstUrl(row, ["instagram_url", "instagramUrl"]),
 					facebookUrl: firstUrl(row, ["facebook_url", "facebookUrl"]),
 					tiktokUrl: firstUrl(row, ["tiktok_url", "tiktokUrl"]),
-					whatsappUrl: firstWhatsApp(row, contact),
+					whatsappUrl: normalizeWhatsAppUrl(firstWhatsApp(row, contact)),
 					contactName:
 						firstString(row, ["contact_name", "contactName", "owner_name"]) ??
 						firstString(contact, ["name", "full_name", "fullName"]),
@@ -490,8 +492,8 @@ export class ScrapersService {
 				source_url: url.toString(),
 				description: description || null,
 				email: emails[0] ?? null,
-				phone: phones[0] ?? null,
-				whatsapp_url: whatsappUrl ?? null,
+				phone: normalizePhone(phones[0]),
+				whatsapp_url: normalizeWhatsAppUrl(whatsappUrl),
 				instagram_url: social("instagram.com"),
 				facebook_url: social("facebook.com"),
 				tiktok_url: social("tiktok.com"),
@@ -586,12 +588,14 @@ function normalizeDiscoveryCandidate(row: Candidate): Candidate {
 			displayName ??
 			"Candidato sin nombre",
 		website: firstUrl(row, ["website", "websiteUri", "website_url", "url"]),
-		phone: firstString(row, [
-			"phone",
-			"phone_number",
-			"nationalPhoneNumber",
-			"internationalPhoneNumber",
-		]),
+		phone: normalizePhone(
+			firstString(row, [
+				"phone",
+				"phone_number",
+				"nationalPhoneNumber",
+				"internationalPhoneNumber",
+			]),
+		),
 		city: firstString(row, ["city", "formattedAddress", "address", "location"]),
 		source_url: firstUrl(row, [
 			"source_url",
@@ -657,10 +661,8 @@ function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 			return null;
 		}
 	}
-	const digits = value.replace(/[^\d]/g, "");
-	if (digits.length === 10 && digits.startsWith("3"))
-		return `https://wa.me/57${digits}`;
-	return digits.length >= 10 ? `https://wa.me/${digits}` : null;
+	const normalized = normalizePhone(value);
+	return normalized ? `https://wa.me/${normalized.replace(/\D/g, "")}` : null;
 }
 
 function firstEmail(row: Candidate, keys: string[]) {

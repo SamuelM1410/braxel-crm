@@ -402,13 +402,14 @@ function normalizeContactPhone(value: string | null): string | null {
 	if (!digits || /^([0-9])\1+$/.test(digits)) return null;
 	if (/^(?:0123456789|1234567890|0987654321|9876543210)/.test(digits))
 		return null;
-	// Colombia mobile numbers are 10 digits beginning with 3. Keep a leading
-	// country code when present; reject 9-digit or short placeholders such as
-	// 1111, 6666, and malformed values like 3050 09 391.
+	// Colombian mobile numbers begin with 3 and fixed lines with 6. Keep a
+	// leading country code when present; reject 9-digit or short placeholders
+	// such as 1111, 6666, and malformed values like 3050 09 391.
 	if (digits.length === 12 && digits.startsWith("57")) {
-		return digits.slice(2).startsWith("3") ? digits : null;
+		return /^(?:3|6)\d{9}$/.test(digits.slice(2)) ? digits : null;
 	}
-	if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`;
+	if (digits.length === 10 && /^(?:3|6)\d{9}$/.test(digits))
+		return `57${digits}`;
 	return null;
 }
 
