@@ -24,3 +24,12 @@ la ruta derivada por defecto no es correcta. El CRM conserva la revisión
 humana para respuestas sensibles. El piloto transcribe mensajes de audio cuando
 `OPENAI_API_KEY` está disponible. El estado `audioTranscriptionConfigured` lo
 confirma sin exponer la clave.
+
+Si WhatsApp aparece conectado pero Eve no responde, revisa en `/health`
+`replyReady` y `replyDisabledReason`. Las causas habituales son que falte
+`CRM_REPLY_URL` o `CRM_REPLY_SECRET`, que `AUTO_REPLY_ENABLED=false`, que
+`WHATSAPP_INBOUND_ONLY=true`, que el API no tenga
+`WHATSAPP_AUTO_REPLY_MODE=smart`, o que la respuesta haya quedado en revisión
+humana por ser sensible, ambigua, una solicitud de precio o una petición de
+llamada. En esos casos no es una desconexión de la sesión: es una decisión de
+seguridad del flujo.

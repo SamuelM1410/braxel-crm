@@ -1,8 +1,13 @@
 import "dotenv/config";
-import { createDecipheriv, createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
+import {
+	createDecipheriv,
+	createHmac,
+	hkdfSync,
+	timingSafeEqual,
+} from "node:crypto";
 import express from "express";
-import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
+import qrcode from "qrcode-terminal";
 import pkg from "whatsapp-web.js";
 
 const { Client, LocalAuth } = pkg;
@@ -48,6 +53,14 @@ let lastDraftAt = null;
 let lastOutboundAt = null;
 let lastOutboundError = null;
 
+function replyDisabledReason() {
+	if (inboundOnly) return "WHATSAPP_INBOUND_ONLY=true";
+	if (!autoReplyEnabled) return "AUTO_REPLY_ENABLED=false";
+	if (!crmReplyUrl) return "CRM_REPLY_URL is not configured";
+	if (!crmReplySecret) return "CRM_REPLY_SECRET is not configured";
+	return null;
+}
+
 function accountSummary() {
 	const info = client.info;
 	const wid = info?.wid;
@@ -83,15 +96,24 @@ function mediaKeyBuffer(value) {
 	if (value instanceof Uint8Array) return Buffer.from(value);
 	if (typeof value === "string") {
 		const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-		return Buffer.from(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="), "base64");
+		return Buffer.from(
+			normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="),
+			"base64",
+		);
 	}
-	if (value && typeof value === "object") return Buffer.from(Object.values(value));
+	if (value && typeof value === "object")
+		return Buffer.from(Object.values(value));
 	return null;
 }
 
 async function downloadMediaDirect(messageOrData) {
 	const data = messageOrData._data || messageOrData;
-	if (!data.directPath || !data.mediaKey || !data.filehash || !data.encFilehash) {
+	if (
+		!data.directPath ||
+		!data.mediaKey ||
+		!data.filehash ||
+		!data.encFilehash
+	) {
 		return null;
 	}
 	const mediaKey = mediaKeyBuffer(data.mediaKey);
@@ -108,7 +130,8 @@ async function downloadMediaDirect(messageOrData) {
 	);
 	if (!response.ok) throw new Error(`WhatsApp media HTTP ${response.status}`);
 	const encrypted = Buffer.from(await response.arrayBuffer());
-	if (encrypted.length <= 10) throw new Error("WhatsApp media payload was empty");
+	if (encrypted.length <= 10)
+		throw new Error("WhatsApp media payload was empty");
 	const ciphertext = encrypted.subarray(0, -10);
 	const actualMac = encrypted.subarray(-10);
 	const info =
@@ -133,7 +156,9 @@ async function downloadMediaDirect(messageOrData) {
 		if (expandedKey) break;
 	}
 	if (!expandedKey) {
-		throw new Error(`WhatsApp media integrity check failed (key ${mediaKey.length} bytes, payload ${encrypted.length} bytes)`);
+		throw new Error(
+			`WhatsApp media integrity check failed (key ${mediaKey.length} bytes, payload ${encrypted.length} bytes)`,
+		);
 	}
 	const decipher = createDecipheriv(
 		"aes-256-cbc",
@@ -179,30 +204,36 @@ async function transcribeAudio(message) {
 		}
 	}
 	if (!media?.data) {
-		const detail = lastError instanceof Error ? lastError.message : String(lastError);
+		const detail =
+			lastError instanceof Error ? lastError.message : String(lastError);
 		let pageDiagnostics = null;
 		try {
-			pageDiagnostics = await message.client.pupPage.evaluate(async (messageId) => {
-				const msg =
-					window.require("WAWebCollections").Msg.get(messageId) ||
-					(
-						await window
-							.require("WAWebCollections")
-							.Msg.getMessagesById([messageId])
-					)?.messages?.[0];
-				const mediaData = msg?.mediaData;
-				return {
-					exists: Boolean(msg),
-					mediaStage: mediaData?.mediaStage || null,
-					mediaKeys: mediaData ? Object.keys(mediaData) : [],
-					directPath: Boolean(msg?.directPath || mediaData?.directPath),
-					mediaKey: Boolean(msg?.mediaKey || mediaData?.mediaKey),
-					fileHash: Boolean(msg?.filehash || mediaData?.filehash),
-					encFileHash: Boolean(msg?.encFilehash || mediaData?.encFilehash),
-				};
-			}, messageId);
+			pageDiagnostics = await message.client.pupPage.evaluate(
+				async (messageId) => {
+					const msg =
+						window.require("WAWebCollections").Msg.get(messageId) ||
+						(
+							await window
+								.require("WAWebCollections")
+								.Msg.getMessagesById([messageId])
+						)?.messages?.[0];
+					const mediaData = msg?.mediaData;
+					return {
+						exists: Boolean(msg),
+						mediaStage: mediaData?.mediaStage || null,
+						mediaKeys: mediaData ? Object.keys(mediaData) : [],
+						directPath: Boolean(msg?.directPath || mediaData?.directPath),
+						mediaKey: Boolean(msg?.mediaKey || mediaData?.mediaKey),
+						fileHash: Boolean(msg?.filehash || mediaData?.filehash),
+						encFileHash: Boolean(msg?.encFilehash || mediaData?.encFilehash),
+					};
+				},
+				messageId,
+			);
 		} catch (error) {
-			pageDiagnostics = { error: error instanceof Error ? error.message : String(error) };
+			pageDiagnostics = {
+				error: error instanceof Error ? error.message : String(error),
+			};
 		}
 		console.error("Audio media diagnostics:", {
 			type: message.type,
@@ -215,7 +246,9 @@ async function transcribeAudio(message) {
 			filename: message._data?.filename || null,
 			duration: message._data?.duration || null,
 			dataKeys: message._data ? Object.keys(message._data) : [],
-			mediaDataKeys: message._data?.mediaData ? Object.keys(message._data.mediaData) : [],
+			mediaDataKeys: message._data?.mediaData
+				? Object.keys(message._data.mediaData)
+				: [],
 			directPath: message._data?.directPath || null,
 			mediaKey: Boolean(message._data?.mediaKey),
 			fileHash: Boolean(message._data?.filehash),
@@ -302,17 +335,19 @@ async function recordCrmOutbound(event) {
 }
 
 app.get("/health", (_req, res) => {
+	const disabledReason = replyDisabledReason();
 	res.json({
 		ok: state === "ready",
 		state,
 		inboundOnly,
 		autoReplyEnabled,
+		replyReady: state === "ready" && !disabledReason,
+		replyDisabledReason: disabledReason,
 		crmConfigured: Boolean(crmReplyUrl),
 		crmAuthConfigured: Boolean(crmReplyUrl && crmReplySecret),
 		crmOutboundConfigured: Boolean(crmOutboundUrl && crmReplySecret),
 		audioTranscriptionConfigured: Boolean(openAiApiKey),
-		audioTranscriptionModel:
-			process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1",
+		audioTranscriptionModel: process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1",
 		lastQrAt,
 		lastMessageAt,
 		lastMessageId,
@@ -347,6 +382,10 @@ client.on("authenticated", () => {
 client.on("ready", () => {
 	state = "ready";
 	console.log("WhatsApp Web listo. Modo inbound-only:", inboundOnly);
+	console.log(
+		"Respuesta automática:",
+		replyDisabledReason() || "habilitada para respuestas smart de bajo riesgo",
+	);
 });
 client.on("auth_failure", (message) => {
 	state = "auth_failure";
@@ -432,7 +471,10 @@ client.on("message", async (message) => {
 	} catch (error) {
 		lastOutboundError =
 			error instanceof Error ? error.message : "WhatsApp reply failed";
-		console.error("No se pudo enviar la respuesta de WhatsApp:", lastOutboundError);
+		console.error(
+			"No se pudo enviar la respuesta de WhatsApp:",
+			lastOutboundError,
+		);
 		return;
 	}
 	try {
