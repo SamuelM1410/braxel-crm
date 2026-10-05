@@ -30,6 +30,10 @@ progresiva. `WHATSAPP_RECONNECT_BASE_MS` y `WHATSAPP_RECONNECT_MAX_MS` controlan
 esa espera. El proceso debe seguir ejecutándose en un worker persistente. Vercel
 no mantiene una sesión de navegador entre invocaciones.
 
+Railway puede desplegar este directorio con `Dockerfile` y `railway.json`.
+Configura un volumen en `/app/.wwebjs_auth` antes de escanear el QR. Sin ese
+volumen, el worker pierde la sesión cuando se reinicia.
+
 Si WhatsApp aparece conectado pero Eve no responde, revisa en `/health`
 `replyReady` y `replyDisabledReason`. Las causas habituales son que falte
 `CRM_REPLY_URL` o `CRM_REPLY_SECRET`, que `AUTO_REPLY_ENABLED=false`, que
