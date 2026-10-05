@@ -56,6 +56,7 @@ let lastOutboundAt = null;
 let lastOutboundError = null;
 let reconnectTimer = null;
 let reconnectAttempts = 0;
+let reconnectInFlight = false;
 
 function replyDisabledReason() {
 	if (inboundOnly) return "WHATSAPP_INBOUND_ONLY=true";
@@ -66,7 +67,7 @@ function replyDisabledReason() {
 }
 
 function scheduleReconnect(reason) {
-	if (reconnectTimer || state === "awaiting_qr") return;
+	if (reconnectTimer || reconnectInFlight || state === "awaiting_qr") return;
 	const delay = Math.min(
 		reconnectBaseMs * 2 ** Math.min(reconnectAttempts, 6),
 		reconnectMaxMs,
@@ -75,19 +76,24 @@ function scheduleReconnect(reason) {
 	console.warn(`Reinicio de WhatsApp programado en ${delay} ms:`, reason);
 	reconnectTimer = setTimeout(async () => {
 		reconnectTimer = null;
+		reconnectInFlight = true;
 		state = "reconnecting";
+		let initialized = false;
 		try {
 			await client.destroy();
 		} catch {}
 		try {
 			await client.initialize();
+			initialized = true;
 		} catch (error) {
 			console.error(
 				"No se pudo reiniciar WhatsApp Web:",
 				error instanceof Error ? error.message : error,
 			);
-			scheduleReconnect("initialize failed");
+		} finally {
+			reconnectInFlight = false;
 		}
+		if (!initialized) scheduleReconnect("initialize failed");
 	}, delay);
 }
 
