@@ -1,0 +1,18 @@
+{
+	"manifest_version": 3,
+	"name": "Braxel WhatsApp Sender",
+	"description": "Envía desde WhatsApp Web el mensaje preparado desde Braxel CRM.",
+	"version": "0.1.0",
+	"action": {
+		"default_title": "Braxel WhatsApp Sender",
+		"default_popup": "popup.html"
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://web.whatsapp.com/*"],
+			"js": ["content.js"],
+			"run_at": "document_idle"
+		}
+	],
+	"host_permissions": ["https://web.whatsapp.com/*"]
+}

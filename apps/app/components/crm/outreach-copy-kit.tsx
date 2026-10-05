@@ -1,6 +1,7 @@
 "use client";
 
 import Copy from "@carbon/icons-react/es/Copy";
+import Send from "@carbon/icons-react/es/Send";
 import { Button } from "@crm/ui/components/button";
 import { Textarea } from "@crm/ui/components/textarea";
 import { useState } from "react";
@@ -37,6 +38,32 @@ function whatsappChatUrl(destination: string, message: string): string | null {
 	const phone =
 		digits.length === 10 && digits.startsWith("3") ? `57${digits}` : digits;
 	return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
+function whatsappWebUrl(destination: string, message: string): string | null {
+	const value = destination.trim();
+	if (!value) return null;
+
+	let phone = value;
+	if (/^https?:\/\//i.test(value)) {
+		try {
+			const url = new URL(value);
+			phone = url.searchParams.get("phone") ?? url.pathname.replace(/^\/+/, "");
+		} catch {
+			return null;
+		}
+	}
+
+	const digits = phone.replace(/\D/g, "");
+	if (!digits) return null;
+	const normalizedPhone =
+		digits.length === 10 && digits.startsWith("3") ? `57${digits}` : digits;
+	const params = new URLSearchParams({
+		phone: normalizedPhone,
+		text: message,
+		braxel_auto_send: "1",
+	});
+	return `https://web.whatsapp.com/send?${params.toString()}`;
 }
 
 function gmailComposeUrl(
@@ -80,6 +107,7 @@ export function OutreachCopyKit({
 	const emailDraft = buildEmail(companyName);
 	const whatsappDestination = whatsappUrl?.trim() || phone?.trim() || "";
 	const whatsappHref = whatsappChatUrl(whatsappDestination, whatsapp);
+	const whatsappWebHref = whatsappWebUrl(whatsappDestination, whatsapp);
 	const hasWhatsApp = Boolean(whatsappHref);
 	const usingPhoneFallback = !whatsappUrl?.trim() && Boolean(phone?.trim());
 	const hasEmail = Boolean(email?.trim());
@@ -93,9 +121,9 @@ export function OutreachCopyKit({
 				<div>
 					<p className="font-medium text-sm">Mensajes listos para enviar</p>
 					<p className="mt-1 text-muted-foreground text-xs">
-						Revisa el texto y cópialo manualmente después de confirmar que
-						tienes permiso para contactar a este lead. Braxel no envía nada
-						automáticamente.
+						Revisa el texto y confirma que tienes permiso para contactar a este
+						lead. El botón de WhatsApp abre el chat y envía el mensaje mediante
+						la extensión local de Chrome.
 					</p>
 				</div>
 				<Button
@@ -113,6 +141,22 @@ export function OutreachCopyKit({
 						<div className="mb-1 flex items-center justify-between gap-2">
 							<span className="font-medium text-xs">WhatsApp</span>
 							<div className="flex gap-2">
+								<Button
+									variant="default"
+									size="sm"
+									disabled={!whatsappWebHref}
+									onClick={() => {
+										if (!whatsappWebHref) return;
+										window.open(
+											whatsappWebHref,
+											"_blank",
+											"noopener,noreferrer",
+										);
+									}}
+								>
+									<Send size={16} />
+									Enviar por WhatsApp
+								</Button>
 								<Button variant="outline" size="sm" asChild>
 									<a
 										href={whatsappHref ?? undefined}
@@ -139,6 +183,9 @@ export function OutreachCopyKit({
 								</Button>
 							</div>
 						</div>
+						<p className="mb-2 text-muted-foreground text-xs">
+							Requiere la extensión local Braxel WhatsApp Sender en Chrome.
+						</p>
 						<Textarea value={whatsapp} readOnly className="min-h-24 text-xs" />
 						{!hasWhatsApp ? (
 							<p className="mt-1 text-muted-foreground text-xs">
