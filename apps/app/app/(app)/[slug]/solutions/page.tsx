@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 	title: "Custom solutions",
 };
 
+export const instant = false;
+
 export default function SolutionsPage() {
 	return (
 		<PageShell>
