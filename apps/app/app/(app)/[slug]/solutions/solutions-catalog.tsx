@@ -1,11 +1,9 @@
 "use client";
 
 import Application from "@carbon/icons-react/es/Application";
-import Calendar from "@carbon/icons-react/es/Calendar";
 import type { CarbonIconType } from "@carbon/icons-react/es/CarbonIcon";
 import ChartLineData from "@carbon/icons-react/es/ChartLineData";
 import Email from "@carbon/icons-react/es/Email";
-import InventoryManagement from "@carbon/icons-react/es/InventoryManagement";
 import Search from "@carbon/icons-react/es/Search";
 import { Badge } from "@crm/ui/components/badge";
 import { Button } from "@crm/ui/components/button";
@@ -36,79 +34,81 @@ type Solution = {
 
 const SOLUTIONS: Solution[] = [
 	{
-		id: "research",
-		title: "Investigador de empresas",
+		id: "websites",
+		title: "Páginas web que convierten",
 		icon: Search,
+		short: "Diseña una web clara, confiable y orientada a generar contactos.",
+		idealFor: "Empresas de servicios y negocios con presencia digital.",
+		scope: [
+			"Arquitectura y contenido orientados al objetivo comercial",
+			"Diseño responsive con llamadas a la acción claras",
+			"Formularios y canales de contacto medibles",
+		],
+		inputs: "Objetivo, oferta, audiencia y referencias visuales",
+		output: "Página publicada con una ruta clara hacia el contacto",
+		complexity: "Sencillo",
+	},
+	{
+		id: "web-apps",
+		title: "Aplicaciones web a medida",
+		icon: Application,
 		short:
-			"Convierte una web en un diagnóstico y una siguiente acción comercial.",
-		idealFor: "Cualquier empresa con presencia digital.",
+			"Convierte procesos repetitivos en una aplicación útil para el negocio.",
+		idealFor:
+			"Empresas que necesitan una herramienta interna o para sus clientes.",
 		scope: [
-			"Analizar web pública con ScrapeGraph",
-			"Validar email, teléfono, WhatsApp y redes",
-			"Recomendar canal y generar un borrador",
+			"Definir el flujo principal y los roles",
+			"Construir pantallas, estados y validaciones",
+			"Entregar una primera versión medible y ampliable",
 		],
-		inputs: "URL o empresa ya guardada en el CRM",
-		output: "Dossier comercial con evidencia y canal recomendado",
-		complexity: "Sencillo",
-	},
-	{
-		id: "conversion",
-		title: "Auditoría web y conversión",
-		icon: ChartLineData,
-		short: "Detecta qué está frenando contactos, ventas o solicitudes.",
-		idealFor: "Negocios con web, catálogo o landing existente.",
-		scope: [
-			"Revisar propuesta, navegación y llamadas a la acción",
-			"Detectar formularios o canales faltantes",
-			"Entregar prioridades de mejora y ejemplo de solución",
-		],
-		inputs: "Sitio web público",
-		output: "Informe priorizado con cambios concretos",
-		complexity: "Sencillo",
-	},
-	{
-		id: "commerce",
-		title: "E-commerce y WhatsApp",
-		icon: Email,
-		short: "Ayuda a recuperar oportunidades de compra y responder mejor.",
-		idealFor: "Tiendas online con consultas o carritos abandonados.",
-		scope: [
-			"Capturar eventos de carrito o consulta",
-			"Preparar mensajes contextuales",
-			"Registrar respuestas y escalar casos sensibles",
-		],
-		inputs: "Tienda, webhook o exportación de pedidos",
-		output: "Flujo de seguimiento con aprobación y métricas",
+		inputs: "Proceso actual, usuarios y resultado esperado",
+		output: "Aplicación web funcional con el flujo prioritario",
 		complexity: "Intermedio",
 	},
 	{
-		id: "booking",
-		title: "Reservas y recordatorios",
-		icon: Calendar,
-		short: "Organiza solicitudes, citas y confirmaciones en un solo flujo.",
-		idealFor: "Clínicas, salones, consultores y servicios locales.",
+		id: "ecommerce",
+		title: "Tienda online",
+		icon: Email,
+		short: "Construye o mejora una experiencia de compra lista para vender.",
+		idealFor: "Marcas que venden productos por internet.",
 		scope: [
-			"Formulario o entrada desde correo",
-			"Calendario y estados de confirmación",
-			"Recordatorios y lista de pendientes",
+			"Catálogo, fichas de producto y navegación",
+			"Checkout y puntos de confianza",
+			"Medición de eventos y oportunidades de mejora",
 		],
-		inputs: "Disponibilidad y reglas del negocio",
-		output: "Agenda operativa con seguimiento",
+		inputs: "Catálogo, proceso de pago y objetivos de venta",
+		output: "Ecommerce preparado para recibir y medir compras",
+		complexity: "Intermedio",
+	},
+	{
+		id: "conversion",
+		title: "Rediseño y CRO",
+		icon: ChartLineData,
+		short: "Mejora claridad, confianza y conversión sin rehacer todo a ciegas.",
+		idealFor: "Negocios con una web que recibe visitas pero convierte poco.",
+		scope: [
+			"Auditar propuesta, recorrido y llamadas a la acción",
+			"Priorizar cambios por impacto y esfuerzo",
+			"Probar mejoras con medición y aprendizaje",
+		],
+		inputs: "Sitio actual, analítica disponible y objetivo comercial",
+		output: "Plan priorizado y cambios de conversión verificables",
 		complexity: "Sencillo",
 	},
 	{
-		id: "operations",
-		title: "Panel operativo",
-		icon: InventoryManagement,
-		short: "Un tablero simple para pedidos, entregas, inventario o estados.",
-		idealFor: "Empresas que hoy trabajan con hojas y muchos mensajes.",
+		id: "ecommerce-retention",
+		title: "Recompra y recuperación para ecommerce",
+		icon: Email,
+		short:
+			"Recupera oportunidades y aumenta la recompra con flujos contextuales.",
+		idealFor: "Tiendas online con carritos abandonados o clientes inactivos.",
 		scope: [
-			"Estados y responsables",
-			"Filtros, métricas y alertas básicas",
-			"Importación CSV o conexión con una API existente",
+			"Bienvenida, segmentación y recuperación de carritos",
+			"Reseñas poscompra y campañas de recompra",
+			"Experimentos A/B y métricas de respuesta",
 		],
-		inputs: "CSV, formulario o API del cliente",
-		output: "Vista operativa específica para el proceso elegido",
+		inputs: "Tienda, eventos de compra y canales autorizados",
+		output: "Flujo medible de retención y recuperación de ventas",
 		complexity: "Intermedio",
 	},
 ];

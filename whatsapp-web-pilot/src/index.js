@@ -22,6 +22,8 @@ const crmReplySecret = process.env.CRM_REPLY_SECRET?.trim() || "";
 const crmTimeoutMs = Number(process.env.CRM_REPLY_TIMEOUT_MS || 12000);
 const openAiApiKey = process.env.OPENAI_API_KEY?.trim() || "";
 const audioTimeoutMs = Number(process.env.WHATSAPP_AUDIO_TIMEOUT_MS || 20000);
+const reconnectBaseMs = Number(process.env.WHATSAPP_RECONNECT_BASE_MS || 5000);
+const reconnectMaxMs = Number(process.env.WHATSAPP_RECONNECT_MAX_MS || 60000);
 const audioDownloadAttempts = 5;
 
 const app = express();
@@ -52,6 +54,8 @@ let lastCrmResult = null;
 let lastDraftAt = null;
 let lastOutboundAt = null;
 let lastOutboundError = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
 
 function replyDisabledReason() {
 	if (inboundOnly) return "WHATSAPP_INBOUND_ONLY=true";
@@ -59,6 +63,32 @@ function replyDisabledReason() {
 	if (!crmReplyUrl) return "CRM_REPLY_URL is not configured";
 	if (!crmReplySecret) return "CRM_REPLY_SECRET is not configured";
 	return null;
+}
+
+function scheduleReconnect(reason) {
+	if (reconnectTimer || state === "awaiting_qr") return;
+	const delay = Math.min(
+		reconnectBaseMs * 2 ** Math.min(reconnectAttempts, 6),
+		reconnectMaxMs,
+	);
+	reconnectAttempts += 1;
+	console.warn(`Reinicio de WhatsApp programado en ${delay} ms:`, reason);
+	reconnectTimer = setTimeout(async () => {
+		reconnectTimer = null;
+		state = "reconnecting";
+		try {
+			await client.destroy();
+		} catch {}
+		try {
+			await client.initialize();
+		} catch (error) {
+			console.error(
+				"No se pudo reiniciar WhatsApp Web:",
+				error instanceof Error ? error.message : error,
+			);
+			scheduleReconnect("initialize failed");
+		}
+	}, delay);
 }
 
 function accountSummary() {
@@ -377,10 +407,12 @@ client.on("qr", async (qr) => {
 
 client.on("authenticated", () => {
 	state = "authenticated";
+	reconnectAttempts = 0;
 	console.log("WhatsApp Web autenticado.");
 });
 client.on("ready", () => {
 	state = "ready";
+	reconnectAttempts = 0;
 	console.log("WhatsApp Web listo. Modo inbound-only:", inboundOnly);
 	console.log(
 		"Respuesta automática:",
@@ -394,6 +426,11 @@ client.on("auth_failure", (message) => {
 client.on("disconnected", (reason) => {
 	state = "disconnected";
 	console.warn("WhatsApp Web desconectado:", reason);
+	scheduleReconnect(reason);
+});
+client.on("change_state", (nextState) => {
+	if (nextState === "CONFLICT") scheduleReconnect(nextState);
+	if (nextState === "UNPAIRED") state = "awaiting_qr";
 });
 
 client.on("message", async (message) => {

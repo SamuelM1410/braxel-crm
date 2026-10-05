@@ -25,6 +25,11 @@ humana para respuestas sensibles. El piloto transcribe mensajes de audio cuando
 `OPENAI_API_KEY` está disponible. El estado `audioTranscriptionConfigured` lo
 confirma sin exponer la clave.
 
+Si WhatsApp Web se desconecta, el piloto reinicia el cliente con espera
+progresiva. `WHATSAPP_RECONNECT_BASE_MS` y `WHATSAPP_RECONNECT_MAX_MS` controlan
+esa espera. El proceso debe seguir ejecutándose en un worker persistente. Vercel
+no mantiene una sesión de navegador entre invocaciones.
+
 Si WhatsApp aparece conectado pero Eve no responde, revisa en `/health`
 `replyReady` y `replyDisabledReason`. Las causas habituales son que falte
 `CRM_REPLY_URL` o `CRM_REPLY_SECRET`, que `AUTO_REPLY_ENABLED=false`, que
