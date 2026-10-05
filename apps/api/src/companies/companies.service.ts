@@ -22,6 +22,7 @@ import {
 import { type BulkResult, requireOwner, runBulk } from "../crm/bulk";
 import {
 	blankToNull,
+	normalizeEmail,
 	normalizePhone,
 	normalizeWhatsAppUrl,
 	toCents,
@@ -80,6 +81,15 @@ export type CompanyRow = {
 	createdAt: string;
 	fields: Record<string, string | number | boolean | null>;
 	leadOs: LeadOsListMeta | null;
+	channel: CompanyChannelMeta;
+};
+
+export type CompanyChannelKind = "WHATSAPP" | "PHONE" | "EMAIL" | "RESEARCH";
+
+export type CompanyChannelMeta = {
+	kind: CompanyChannelKind;
+	hasWhatsApp: boolean;
+	highPriority: boolean;
 };
 
 type LeadOsListMeta = {
@@ -143,6 +153,9 @@ export class CompaniesService {
 					logoUrl: true,
 					brandColor: true,
 					industry: true,
+					phone: true,
+					email: true,
+					whatsappUrl: true,
 					enrichmentStatus: true,
 					source: true,
 					owner: { select: OWNER_SELECT },
@@ -162,10 +175,11 @@ export class CompaniesService {
 
 		const visibleRows = prioritizedLeadView
 			? [...rows]
-					.sort(
-						(left, right) =>
-							leadOsRank(right.description) - leadOsRank(left.description),
-					)
+					.sort((left, right) => {
+						const rightRank = companyPriorityRank(right);
+						const leftRank = companyPriorityRank(left);
+						return rightRank - leftRank || left.name.localeCompare(right.name);
+					})
 					.slice(skip, skip + take)
 			: rows;
 		const ids = visibleRows.map((row) => row.id);
@@ -196,6 +210,7 @@ export class CompaniesService {
 				createdAt: row.createdAt.toISOString(),
 				fields: tableFields.get(row.id) ?? {},
 				leadOs: leadOsListMeta(row.description),
+				channel: companyChannelMeta(row),
 			})),
 			total,
 			facetCounts,
@@ -765,6 +780,50 @@ function leadOsRank(description: string | null) {
 		lead.evidenceScore * 100 +
 		reviewBonus
 	);
+}
+
+type CompanyChannelSource = {
+	name: string;
+	phone: string | null;
+	email: string | null;
+	whatsappUrl: string | null;
+	description: string | null;
+};
+
+/**
+ * Keep the first-touch queue honest: an ordinary phone number is not silently
+ * treated as WhatsApp. A record only receives the WhatsApp category when its
+ * explicit wa.me/WhatsApp URL passes the same validation used on write/read.
+ */
+function companyChannelMeta(row: CompanyChannelSource): CompanyChannelMeta {
+	const whatsapp = normalizeWhatsAppUrl(row.whatsappUrl);
+	const phone = normalizePhone(row.phone);
+	const email = normalizeEmail(row.email ?? "");
+	const lead = leadOsListMeta(row.description);
+
+	if (whatsapp) {
+		return {
+			kind: "WHATSAPP",
+			hasWhatsApp: true,
+			highPriority: (lead?.priorityScore ?? 0) >= 70,
+		};
+	}
+	if (phone) return { kind: "PHONE", hasWhatsApp: false, highPriority: false };
+	if (email) return { kind: "EMAIL", hasWhatsApp: false, highPriority: false };
+	return { kind: "RESEARCH", hasWhatsApp: false, highPriority: false };
+}
+
+function companyPriorityRank(row: CompanyChannelSource) {
+	const channel = companyChannelMeta(row);
+	const channelRank =
+		channel.kind === "WHATSAPP"
+			? 4
+			: channel.kind === "PHONE"
+				? 3
+				: channel.kind === "EMAIL"
+					? 2
+					: 1;
+	return channelRank * 1_000_000_000_000 + leadOsRank(row.description);
 }
 
 function leadOsListMeta(description: string | null): LeadOsListMeta | null {

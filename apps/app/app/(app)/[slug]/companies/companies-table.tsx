@@ -88,6 +88,40 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 			),
 	},
 	{
+		id: "channel",
+		header: "Priority channel",
+		label: "Recommended first-touch channel",
+		width: "w-[15%]",
+		hideBelow: "md",
+		cell: (row) => {
+			const channel = row.channel;
+			if (!channel) return <EmptyCellValue />;
+			const label =
+				channel.kind === "WHATSAPP"
+					? channel.highPriority
+						? "WhatsApp · high priority"
+						: "WhatsApp"
+					: channel.kind === "PHONE"
+						? "Phone · verify WhatsApp"
+						: channel.kind === "EMAIL"
+							? "Email"
+							: "Needs research";
+			return (
+				<Badge
+					variant={
+						channel.kind === "WHATSAPP"
+							? channel.highPriority
+								? "default"
+								: "secondary"
+							: "outline"
+					}
+				>
+					{label}
+				</Badge>
+			);
+		},
+	},
+	{
 		id: "recommended-offer",
 		header: "Recommended offer",
 		label: "Recommended offer",
