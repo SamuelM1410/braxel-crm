@@ -856,8 +856,9 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 				evidenceScore: dossier.scores?.evidence_quality ?? 0,
 				opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
 				priorityScore: dossier.scores?.contact_priority ?? 0,
-				recommendedOffer:
+				recommendedOffer: normalizeCommercialOffer(
 					dossier.commercial_assessment?.recommended_offer ?? null,
+				),
 			};
 		} catch {}
 	}
@@ -868,7 +869,9 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 		evidenceScore: score,
 		opportunityScore: score,
 		priorityScore: score,
-		recommendedOffer: line("Oferta recomendada") || legacyOffer(line("Dolor")),
+		recommendedOffer: normalizeCommercialOffer(
+			line("Oferta recomendada") || legacyOffer(line("Dolor")),
+		),
 	};
 }
 
@@ -882,6 +885,26 @@ function legacyOffer(problem: string) {
 	)
 		return "Rediseño web orientado a conversión";
 	if (normalized.includes("seguimiento") || normalized.includes("agenda"))
-		return "Sistema de captación, CRM y seguimiento";
+		return "Aplicación web a medida";
 	return problem ? "Diagnóstico comercial y automatización por fases" : null;
+}
+
+function normalizeCommercialOffer(value: string | null) {
+	if (!value) return null;
+	const normalized = value.toLocaleLowerCase("es");
+	if (
+		normalized.includes("crm") ||
+		normalized.includes("captación de leads") ||
+		normalized.includes("captacion de leads") ||
+		normalized.includes("sistema de captación") ||
+		normalized.includes("sistema de captacion") ||
+		normalized.includes("seguimiento de leads")
+	)
+		return "Aplicación web a medida";
+	if (
+		normalized.includes("web de conversión") ||
+		normalized.includes("web de conversion")
+	)
+		return "Páginas web que convierten";
+	return value;
 }

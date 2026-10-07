@@ -34,7 +34,16 @@ const dossierSchema = z.object({
 	}),
 	commercial_assessment: z.object({
 		problem: text,
-		recommended_offer: z.string().trim().min(1).max(120),
+		recommended_offer: z
+			.string()
+			.trim()
+			.min(1)
+			.max(120)
+			.refine(
+				(value) =>
+					!/\bcrm\b|captaci[oó]n de leads|sistema de captaci[oó]n/i.test(value),
+				"Use una oferta vendible de Braxel; el CRM y la captación de leads son internos.",
+			),
 		offer_code: z.string().trim().min(1).max(120).optional(),
 		why_this_offer: text,
 		implementation_plan: z.array(text).min(1).max(12),

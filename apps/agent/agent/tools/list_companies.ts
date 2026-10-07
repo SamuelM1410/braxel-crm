@@ -65,8 +65,9 @@ export default defineTool({
 						[row.city, row.countryCode].filter(Boolean).join(", ") || null,
 					leadReview: dossier?.classification ?? null,
 					scores: dossier?.scores ?? null,
-					recommendedOffer:
+					recommendedOffer: normalizeCommercialOffer(
 						dossier?.commercial_assessment?.recommended_offer ?? null,
+					),
 					commercialAssessment: dossier?.commercial_assessment ?? null,
 					contactChannels: {
 						phone: row.phone,
@@ -99,3 +100,23 @@ export default defineTool({
 		};
 	},
 });
+
+function normalizeCommercialOffer(value: string | null) {
+	if (!value) return null;
+	const normalized = value.toLocaleLowerCase("es");
+	if (
+		normalized.includes("crm") ||
+		normalized.includes("captación de leads") ||
+		normalized.includes("captacion de leads") ||
+		normalized.includes("sistema de captación") ||
+		normalized.includes("sistema de captacion") ||
+		normalized.includes("seguimiento de leads")
+	)
+		return "Aplicación web a medida";
+	if (
+		normalized.includes("web de conversión") ||
+		normalized.includes("web de conversion")
+	)
+		return "Páginas web que convierten";
+	return value;
+}

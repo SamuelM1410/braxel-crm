@@ -471,16 +471,33 @@ function completeAssessment(
 
 function offerLabel(value: string) {
 	const labels: Record<string, string> = {
-		WEB_SOCIAL_CONVERSION: "Web de conversión + WhatsApp + catálogo",
-		STARTER_WEB: "Web comercial de conversión",
-		FULL_GROWTH_SYSTEM: "Sistema completo de captación, CRM y seguimiento",
+		WEB_SOCIAL_CONVERSION: "Páginas web que convierten",
+		STARTER_WEB: "Páginas web que convierten",
+		FULL_GROWTH_SYSTEM: "Aplicaciones web a medida",
+		WEB_APP_CUSTOM: "Aplicaciones web a medida",
 		CONVERSION_WEB: "Rediseño web orientado a conversión",
-		APPOINTMENT_SYSTEM: "Sistema de agenda y seguimiento",
-		AUTOMATION_CRM: "Automatización de leads + CRM",
+		APPOINTMENT_SYSTEM: "Aplicaciones web a medida",
+		AUTOMATION_CRM: "Aplicaciones web a medida",
 		NO_CONTACT_NOW: "No contactar por ahora",
 		RESEARCH_MORE: "Investigar antes de contactar",
 	};
-	return labels[value] ?? value;
+	const label = labels[value] ?? value;
+	const normalized = label.toLocaleLowerCase("es");
+	if (
+		normalized.includes("crm") ||
+		normalized.includes("captación de leads") ||
+		normalized.includes("captacion de leads") ||
+		normalized.includes("sistema de captación") ||
+		normalized.includes("sistema de captacion") ||
+		normalized.includes("seguimiento de leads")
+	)
+		return "Aplicaciones web a medida";
+	if (
+		normalized.includes("web de conversión") ||
+		normalized.includes("web de conversion")
+	)
+		return "Páginas web que convierten";
+	return label;
 }
 
 export function descriptionWithoutLeadDossier(description: string | null) {
@@ -575,7 +592,7 @@ function legacyDossier(description: string | null): Dossier | null {
 		},
 		commercial_assessment: {
 			problem: pain,
-			recommended_offer: "Sistema de captación y seguimiento de leads",
+			recommended_offer: "Aplicación web a medida",
 			implementation_plan: research
 				.split("→")
 				.map((item) => item.trim())

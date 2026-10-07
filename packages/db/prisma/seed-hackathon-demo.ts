@@ -195,9 +195,9 @@ const SPECS: Spec[] = [
 		presence: { instagram: true, facebook: true, whatsapp: true },
 		problem:
 			"No hay registro del historial de cada moto, por lo que no se puede avisar cuándo toca el siguiente servicio.",
-		offer: "AUTOMATION_CRM",
+		offer: "WEB_APP_CUSTOM",
 		whyOffer:
-			"La clientela es recurrente. Un CRM simple con recordatorios de mantenimiento convierte el historial en ventas repetidas.",
+			"La clientela es recurrente. Una aplicación web a medida puede organizar el historial de mantenimiento y activar recordatorios útiles.",
 		plan: [
 			"Registrar cada moto y su historial de servicios",
 			"Enviar recordatorios de mantenimiento aprobados por el propietario",
