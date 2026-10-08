@@ -179,7 +179,7 @@ export class CompaniesService {
 		]);
 
 		const fitRows = rows.filter((row) =>
-			matchesLeadFit(leadOsListMeta(row.description), input.fit),
+			matchesLeadFit(leadOsListMeta(row.description, row.name), input.fit),
 		);
 		const orderedRows = prioritizedLeadView
 			? [...fitRows].sort((left, right) => {
@@ -218,7 +218,7 @@ export class CompaniesService {
 				lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
 				createdAt: row.createdAt.toISOString(),
 				fields: tableFields.get(row.id) ?? {},
-				leadOs: leadOsListMeta(row.description),
+				leadOs: leadOsListMeta(row.description, row.name),
 				channel: companyChannelMeta(row),
 			})),
 			total: localLeadView ? orderedRows.length : total,
@@ -816,7 +816,7 @@ function companyChannelMeta(row: CompanyChannelSource): CompanyChannelMeta {
 	const whatsapp = normalizeWhatsAppUrl(row.whatsappUrl);
 	const phone = normalizePhone(row.phone);
 	const email = normalizeEmail(row.email ?? "");
-	const lead = leadOsListMeta(row.description);
+	const lead = leadOsListMeta(row.description, row.name);
 
 	if (whatsapp) {
 		return {
@@ -844,7 +844,10 @@ function companyPriorityRank(row: CompanyChannelSource) {
 	return channelRank * 1_000_000_000_000 + leadOsRank(row.description);
 }
 
-function leadOsListMeta(description: string | null): LeadOsListMeta | null {
+function leadOsListMeta(
+	description: string | null,
+	companyName?: string,
+): LeadOsListMeta | null {
 	if (!description?.includes("Lead OS source:")) return null;
 	const line = (label: string) =>
 		description.match(new RegExp(`^${label}:\\s*(.+)$`, "m"))?.[1]?.trim() ??
@@ -870,20 +873,23 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 			const reviewStatus = line("Revisión") || "PENDING";
 			const recommendedOffer =
 				dossier.commercial_assessment?.recommended_offer ?? null;
-			return {
-				stage,
-				fit: resolveLeadFit(
-					dossier.classification?.fit,
+			return applyRecordExclusions(
+				{
 					stage,
+					fit: resolveLeadFit(
+						dossier.classification?.fit,
+						stage,
+						reviewStatus,
+						recommendedOffer,
+					),
 					reviewStatus,
-					recommendedOffer,
-				),
-				reviewStatus,
-				evidenceScore: dossier.scores?.evidence_quality ?? 0,
-				opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
-				priorityScore: dossier.scores?.contact_priority ?? 0,
-				recommendedOffer: normalizeCommercialOffer(recommendedOffer),
-			};
+					evidenceScore: dossier.scores?.evidence_quality ?? 0,
+					opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
+					priorityScore: dossier.scores?.contact_priority ?? 0,
+					recommendedOffer: normalizeCommercialOffer(recommendedOffer),
+				},
+				companyName,
+			);
 		} catch {}
 	}
 	const score = Number(line("Score").match(/\d+/)?.[0] ?? 0);
@@ -891,15 +897,28 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 	const reviewStatus = line("Revisión") || "PENDING";
 	const recommendedOffer =
 		line("Oferta recomendada") || legacyOffer(line("Dolor"));
-	return {
-		stage,
-		fit: resolveLeadFit(null, stage, reviewStatus, recommendedOffer),
-		reviewStatus,
-		evidenceScore: score,
-		opportunityScore: score,
-		priorityScore: score,
-		recommendedOffer: normalizeCommercialOffer(recommendedOffer),
-	};
+	return applyRecordExclusions(
+		{
+			stage,
+			fit: resolveLeadFit(null, stage, reviewStatus, recommendedOffer),
+			reviewStatus,
+			evidenceScore: score,
+			opportunityScore: score,
+			priorityScore: score,
+			recommendedOffer: normalizeCommercialOffer(recommendedOffer),
+		},
+		companyName,
+	);
+}
+
+function applyRecordExclusions(lead: LeadOsListMeta, companyName?: string) {
+	if (
+		companyName &&
+		/\b(?:prueba|test|demo|sandbox|no contactar)\b/i.test(companyName)
+	) {
+		return { ...lead, fit: "NO_FIT" as const };
+	}
+	return lead;
 }
 
 function resolveLeadFit(
@@ -931,7 +950,8 @@ function matchesLeadFit(
 function fitCounts(rows: CompanyChannelSource[]) {
 	const counts: Record<string, number> = {};
 	for (const row of rows) {
-		const fit = leadOsListMeta(row.description)?.fit ?? "NEEDS_RESEARCH";
+		const fit =
+			leadOsListMeta(row.description, row.name)?.fit ?? "NEEDS_RESEARCH";
 		const key =
 			fit === "STRONG_FIT"
 				? "strong"
