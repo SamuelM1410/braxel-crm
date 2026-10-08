@@ -8,6 +8,10 @@ export const leadOsDossierSchema = z.object({
 	generated_at: z.string().trim().max(80),
 	classification: z.object({
 		status: z.string().trim().max(80),
+		fit: z
+			.enum(["STRONG_FIT", "POTENTIAL_FIT", "NO_FIT"])
+			.optional()
+			.default("POTENTIAL_FIT"),
 		scenario: z.string().trim().max(120),
 		possible_competitor: z.boolean(),
 	}),
@@ -40,7 +44,15 @@ export const leadOsDossierSchema = z.object({
 					!/\bcrm\b|captaci[oó]n de leads|sistema de captaci[oó]n/i.test(value),
 				"Use una oferta vendible de Braxel; el CRM y la captación de leads son internos.",
 			),
-		offer_code: z.string().trim().min(1).max(120).optional(),
+		offer_code: z
+			.enum([
+				"CONVERSION_WEBSITE",
+				"WEB_APP_CUSTOM",
+				"ECOMMERCE_STORE",
+				"CRO_REDESIGN",
+				"ECOMMERCE_RETENTION",
+			])
+			.optional(),
 		why_this_offer: text,
 		implementation_plan: z.array(text).max(12),
 		price_guidance: text,

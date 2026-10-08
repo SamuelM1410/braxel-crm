@@ -436,7 +436,7 @@ function work(
 		case "social-reply":
 			return socialReplyWork(payload);
 		case "company-profile":
-			return "This company's brand, industry, location and links are filled in separately and may already be there. Read the account, fill anything still missing, and write a brief if there is something worth saying.";
+			return "This company's brand, industry, location and links are filled in separately and may already be there. Read the account, fill anything still missing, and write a brief if there is something worth saying. If this is a Lead OS company, load lead-os-commercial-evaluation and write a dossier that marks strong fit, potential fit or no fit before a person contacts it.";
 		case "workspace-profile":
 			return "Write the profile of the company you work for, so that every other session knows who we are. Read our own site and keep it short.";
 		default:

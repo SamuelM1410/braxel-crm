@@ -94,12 +94,15 @@ export type CompanyChannelMeta = {
 
 type LeadOsListMeta = {
 	stage: string;
+	fit: LeadFit;
 	reviewStatus: string;
 	evidenceScore: number;
 	opportunityScore: number;
 	priorityScore: number;
 	recommendedOffer: string | null;
 };
+
+type LeadFit = "STRONG_FIT" | "POTENTIAL_FIT" | "NEEDS_RESEARCH" | "NO_FIT";
 
 const SORTABLE: Record<
 	string,
@@ -133,12 +136,14 @@ export class CompaniesService {
 		const where = this.buildWhere(input);
 		const { skip, take } = paginate(input);
 		const prioritizedLeadView = input.sort === "";
+		const fitFilteredView = input.fit !== FACET_ALL;
+		const localLeadView = prioritizedLeadView || fitFilteredView;
 
 		const [rows, total, facetCounts] = await Promise.all([
 			this.db.company.findMany({
 				where,
-				skip: prioritizedLeadView ? undefined : skip,
-				take: prioritizedLeadView ? undefined : take,
+				skip: localLeadView ? undefined : skip,
+				take: localLeadView ? undefined : take,
 				orderBy: resolveOrderBy(input, SORTABLE, {
 					createdAt: "desc",
 				}),
@@ -173,15 +178,19 @@ export class CompaniesService {
 			this.facetCounts(input),
 		]);
 
-		const visibleRows = prioritizedLeadView
-			? [...rows]
-					.sort((left, right) => {
-						const rightRank = companyPriorityRank(right);
-						const leftRank = companyPriorityRank(left);
-						return rightRank - leftRank || left.name.localeCompare(right.name);
-					})
-					.slice(skip, skip + take)
-			: rows;
+		const fitRows = rows.filter((row) =>
+			matchesLeadFit(leadOsListMeta(row.description), input.fit),
+		);
+		const orderedRows = prioritizedLeadView
+			? [...fitRows].sort((left, right) => {
+					const rightRank = companyPriorityRank(right);
+					const leftRank = companyPriorityRank(left);
+					return rightRank - leftRank || left.name.localeCompare(right.name);
+				})
+			: fitRows;
+		const visibleRows = localLeadView
+			? orderedRows.slice(skip, skip + take)
+			: orderedRows;
 		const ids = visibleRows.map((row) => row.id);
 		const [queued, tableFields] = await Promise.all([
 			this.queue.queuedCompanies(ids),
@@ -212,8 +221,11 @@ export class CompaniesService {
 				leadOs: leadOsListMeta(row.description),
 				channel: companyChannelMeta(row),
 			})),
-			total,
-			facetCounts,
+			total: localLeadView ? orderedRows.length : total,
+			facetCounts: {
+				...facetCounts,
+				fit: fitCounts(rows),
+			},
 		};
 	}
 
@@ -766,8 +778,12 @@ function leadOsRank(description: string | null) {
 	const lead = leadOsListMeta(description);
 	if (!lead) return -1;
 	const inactive =
-		lead.reviewStatus === "REJECTED" || lead.stage === "DISQUALIFIED";
+		lead.reviewStatus === "REJECTED" ||
+		lead.stage === "DISQUALIFIED" ||
+		lead.fit === "NO_FIT";
 	if (inactive) return 0;
+	const fitBonus =
+		lead.fit === "STRONG_FIT" ? 3 : lead.fit === "POTENTIAL_FIT" ? 1 : 0;
 	const reviewBonus =
 		lead.stage === "REVIEW_REQUIRED" && lead.reviewStatus === "PENDING"
 			? 2
@@ -778,6 +794,7 @@ function leadOsRank(description: string | null) {
 		lead.priorityScore * 1_000_000 +
 		lead.opportunityScore * 10_000 +
 		lead.evidenceScore * 100 +
+		fitBonus * 10 +
 		reviewBonus
 	);
 }
@@ -805,7 +822,8 @@ function companyChannelMeta(row: CompanyChannelSource): CompanyChannelMeta {
 		return {
 			kind: "WHATSAPP",
 			hasWhatsApp: true,
-			highPriority: (lead?.priorityScore ?? 0) >= 70,
+			highPriority:
+				lead?.fit === "STRONG_FIT" && (lead.priorityScore ?? 0) >= 70,
 		};
 	}
 	if (phone) return { kind: "PHONE", hasWhatsApp: false, highPriority: false };
@@ -839,7 +857,7 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 			const dossier = JSON.parse(
 				dossierLine.slice("Dossier Lead OS: ".length),
 			) as {
-				classification?: { status?: string };
+				classification?: { status?: string; fit?: string };
 				scores?: {
 					evidence_quality?: number;
 					commercial_opportunity?: number;
@@ -847,12 +865,13 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 				};
 				commercial_assessment?: { recommended_offer?: string };
 			};
+			const stage =
+				line("Etapa Lead OS") || dossier.classification?.status || "RESEARCHED";
+			const reviewStatus = line("Revisión") || "PENDING";
 			return {
-				stage:
-					line("Etapa Lead OS") ||
-					dossier.classification?.status ||
-					"RESEARCHED",
-				reviewStatus: line("Revisión") || "PENDING",
+				stage,
+				fit: resolveLeadFit(dossier.classification?.fit, stage, reviewStatus),
+				reviewStatus,
 				evidenceScore: dossier.scores?.evidence_quality ?? 0,
 				opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
 				priorityScore: dossier.scores?.contact_priority ?? 0,
@@ -863,9 +882,12 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 		} catch {}
 	}
 	const score = Number(line("Score").match(/\d+/)?.[0] ?? 0);
+	const stage = line("Etapa Lead OS") || "REVIEW_REQUIRED";
+	const reviewStatus = line("Revisión") || "PENDING";
 	return {
-		stage: line("Etapa Lead OS") || "REVIEW_REQUIRED",
-		reviewStatus: line("Revisión") || "PENDING",
+		stage,
+		fit: resolveLeadFit(null, stage, reviewStatus),
+		reviewStatus,
 		evidenceScore: score,
 		opportunityScore: score,
 		priorityScore: score,
@@ -873,6 +895,46 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 			line("Oferta recomendada") || legacyOffer(line("Dolor")),
 		),
 	};
+}
+
+function resolveLeadFit(
+	value: string | null | undefined,
+	stage: string,
+	reviewStatus: string,
+): LeadFit {
+	if (stage === "DISQUALIFIED" || reviewStatus === "REJECTED") return "NO_FIT";
+	if (value === "STRONG_FIT" || value === "POTENTIAL_FIT" || value === "NO_FIT")
+		return value;
+	return "NEEDS_RESEARCH";
+}
+
+function matchesLeadFit(
+	lead: LeadOsListMeta | null,
+	view: CompanyListInput["fit"],
+) {
+	if (view === FACET_ALL) return true;
+	if (!lead) return false;
+	if (view === "strong") return lead.fit === "STRONG_FIT";
+	if (view === "potential") return lead.fit === "POTENTIAL_FIT";
+	if (view === "research") return lead.fit === "NEEDS_RESEARCH";
+	return lead.fit === "NO_FIT";
+}
+
+function fitCounts(rows: CompanyChannelSource[]) {
+	const counts: Record<string, number> = {};
+	for (const row of rows) {
+		const fit = leadOsListMeta(row.description)?.fit ?? "NEEDS_RESEARCH";
+		const key =
+			fit === "STRONG_FIT"
+				? "strong"
+				: fit === "POTENTIAL_FIT"
+					? "potential"
+					: fit === "NO_FIT"
+						? "excluded"
+						: "research";
+		counts[key] = (counts[key] ?? 0) + 1;
+	}
+	return counts;
 }
 
 function legacyOffer(problem: string) {
@@ -891,7 +953,15 @@ function legacyOffer(problem: string) {
 
 function normalizeCommercialOffer(value: string | null) {
 	if (!value) return null;
-	const normalized = value.toLocaleLowerCase("es");
+	const label =
+		{
+			CONVERSION_WEBSITE: "Páginas web que convierten",
+			WEB_APP_CUSTOM: "Aplicaciones web a medida",
+			ECOMMERCE_STORE: "Tiendas online para ecommerce",
+			CRO_REDESIGN: "Rediseño y CRO",
+			ECOMMERCE_RETENTION: "Recuperación y recompra para ecommerce",
+		}[value] ?? value;
+	const normalized = label.toLocaleLowerCase("es");
 	if (
 		normalized.includes("crm") ||
 		normalized.includes("captación de leads") ||
@@ -906,5 +976,5 @@ function normalizeCommercialOffer(value: string | null) {
 		normalized.includes("web de conversion")
 	)
 		return "Páginas web que convierten";
-	return value;
+	return label;
 }

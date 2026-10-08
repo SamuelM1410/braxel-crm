@@ -13,7 +13,10 @@ import {
 import { requireSession } from "@/lib/session";
 import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
-import { companiesSearchParams } from "./companies-search-params";
+import {
+	companiesSearchParams,
+	companyListQueryInput,
+} from "./companies-search-params";
 import { CompaniesTable } from "./companies-table";
 import { CreateCompanySheet } from "./create-company-sheet";
 
@@ -59,7 +62,9 @@ async function Companies({
 	const queryClient = getServerQueryClient();
 	await Promise.all([
 		queryClient.prefetchQuery(
-			trpc.companies.list.queryOptions(companiesSearchParams.toInput(values)),
+			trpc.companies.list.queryOptions(
+				companyListQueryInput(companiesSearchParams.toInput(values)),
+			),
 		),
 		queryClient.prefetchQuery(trpc.users.list.queryOptions()),
 	]);

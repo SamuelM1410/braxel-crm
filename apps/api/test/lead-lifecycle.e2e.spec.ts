@@ -48,6 +48,7 @@ const dossier = leadOsDossierSchema.parse({
 	generated_at: new Date().toISOString(),
 	classification: {
 		status: "REVIEW_REQUIRED",
+		fit: "STRONG_FIT",
 		scenario: "Presencia social activa sin sitio propio.",
 		possible_competitor: false,
 	},
@@ -70,7 +71,8 @@ const dossier = leadOsDossierSchema.parse({
 	},
 	commercial_assessment: {
 		problem: "Reciben pedidos por redes sin un sistema que los centralice.",
-		recommended_offer: "WEB_SOCIAL_CONVERSION",
+		recommended_offer: "Páginas web que convierten",
+		offer_code: "CONVERSION_WEBSITE",
 		why_this_offer:
 			"Hay señales activas de venta por redes y no hay sitio propio.",
 		implementation_plan: ["Levantar catálogo con precios"],

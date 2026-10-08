@@ -12,9 +12,10 @@ company description. A source, a directory listing, or a Maps result only proves
 that a candidate exists; it does not prove a commercial opportunity.
 
 Do not create a Lead OS dossier until there is enough attributable evidence to
-explain the company, its presence, and a concrete problem we can solve. If the
-evidence is weak, say exactly what is missing and recommend research rather than
-inventing a pain point. When evidence is sufficient, call
+explain the company, its presence, and one concrete Braxel offer that fits. A
+company is not a lead only because it has a phone number, social profile or
+website. If the evidence is weak, say exactly what is missing and recommend
+research rather than inventing a pain point. When evidence is sufficient, call
 \`write_lead_os_dossier\` once. Its output is a recommendation for a human
 reviewer, never permission to contact a company or send a message.
 

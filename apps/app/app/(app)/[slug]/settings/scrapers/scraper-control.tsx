@@ -56,7 +56,7 @@ export function ScraperControl() {
 			onSuccess: (result) => {
 				refresh();
 				toast.success(
-					`${result.imported} candidatos importados para revisión.`,
+					`${result.imported} candidatos importados. ${result.evaluation.queued} quedaron en evaluación comercial.`,
 				);
 			},
 			onError: (error) => toast.error(error.message),

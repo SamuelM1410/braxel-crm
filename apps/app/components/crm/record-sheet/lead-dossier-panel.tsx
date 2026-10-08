@@ -15,7 +15,11 @@ import { type LeadReview, parseLeadReview, safeHref } from "@crm/validation";
 
 type Evidence = { claim: string; source: string; strength: number };
 type Dossier = {
-	classification: { status: string; scenario: string };
+	classification: {
+		status: string;
+		scenario: string;
+		fit?: "STRONG_FIT" | "POTENTIAL_FIT" | "NO_FIT";
+	};
 	scores: {
 		evidence_quality: number;
 		commercial_opportunity: number;
@@ -472,9 +476,13 @@ function completeAssessment(
 function offerLabel(value: string) {
 	const labels: Record<string, string> = {
 		WEB_SOCIAL_CONVERSION: "Páginas web que convierten",
+		CONVERSION_WEBSITE: "Páginas web que convierten",
 		STARTER_WEB: "Páginas web que convierten",
 		FULL_GROWTH_SYSTEM: "Aplicaciones web a medida",
 		WEB_APP_CUSTOM: "Aplicaciones web a medida",
+		ECOMMERCE_STORE: "Tiendas online para ecommerce",
+		CRO_REDESIGN: "Rediseño y CRO",
+		ECOMMERCE_RETENTION: "Recuperación y recompra para ecommerce",
 		CONVERSION_WEB: "Rediseño web orientado a conversión",
 		APPOINTMENT_SYSTEM: "Aplicaciones web a medida",
 		AUTOMATION_CRM: "Aplicaciones web a medida",

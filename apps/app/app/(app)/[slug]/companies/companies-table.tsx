@@ -31,7 +31,10 @@ import {
 import { useTRPC } from "@/lib/trpc/client";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { CompaniesBulkActions } from "./companies-bulk-actions";
-import { companiesSearchParams } from "./companies-search-params";
+import {
+	companiesSearchParams,
+	companyListQueryInput,
+} from "./companies-search-params";
 
 type CompanyRow = RouterOutputs["companies"]["list"]["rows"][number];
 
@@ -54,6 +57,30 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 				<span className="truncate font-medium">{row.name}</span>
 			</span>
 		),
+	},
+	{
+		id: "fit",
+		header: "Commercial fit",
+		label: "Commercial fit",
+		width: "w-[13%]",
+		hideBelow: "lg",
+		cell: (row) => {
+			const fit = row.leadOs?.fit;
+			if (!fit) return <EmptyCellValue />;
+			const label =
+				fit === "STRONG_FIT"
+					? "Strong fit"
+					: fit === "POTENTIAL_FIT"
+						? "Potential fit"
+						: fit === "NO_FIT"
+							? "Excluded"
+							: "Not evaluated";
+			return (
+				<Badge variant={fit === "STRONG_FIT" ? "default" : "secondary"}>
+					{label}
+				</Badge>
+			);
+		},
 	},
 	{
 		id: "lead-review",
@@ -237,7 +264,7 @@ export function CompaniesTable() {
 	const { query, input } = useTableQuery(companiesSearchParams);
 
 	const companies = useQuery({
-		...trpc.companies.list.queryOptions(input),
+		...trpc.companies.list.queryOptions(companyListQueryInput(input)),
 		placeholderData: (previous) => previous,
 		refetchInterval: (query) =>
 			query.state.data?.rows.some((row) =>
@@ -257,6 +284,16 @@ export function CompaniesTable() {
 	const facetCounts = companies.data?.facetCounts;
 
 	const facets: DataTableFacet[] = [
+		{
+			id: "fit",
+			label: "Commercial fit",
+			options: [
+				{ value: "strong", label: "Strong fit" },
+				{ value: "potential", label: "Potential fit" },
+				{ value: "research", label: "Needs research" },
+				{ value: "excluded", label: "Excluded" },
+			].filter((option) => (facetCounts?.fit?.[option.value] ?? 0) > 0),
+		},
 		{
 			id: "owner",
 			label: "Owner",

@@ -9,6 +9,9 @@ export const companyListInput = listInput.extend({
 	industry: z.string().default("all"),
 	enrichment: z.string().default("all"),
 	source: z.string().default("all"),
+	fit: z
+		.enum(["all", "strong", "potential", "research", "excluded"])
+		.default("strong"),
 });
 
 export type CompanyListInput = z.infer<typeof companyListInput>;

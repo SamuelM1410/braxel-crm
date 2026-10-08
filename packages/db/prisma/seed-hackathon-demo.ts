@@ -31,6 +31,7 @@ type Spec = {
 	presence: { instagram: boolean; facebook: boolean; whatsapp: boolean };
 	problem: string;
 	offer: string;
+	fit: "STRONG_FIT" | "NO_FIT";
 	whyOffer: string;
 	plan: string[];
 	price: string;
@@ -57,7 +58,8 @@ const SPECS: Spec[] = [
 		presence: { instagram: true, facebook: true, whatsapp: true },
 		problem:
 			"Reciben pedidos por WhatsApp e Instagram sin un sistema que centralice la conversación, y en horas pico se pierden confirmaciones y seguimientos.",
-		offer: "WEB_SOCIAL_CONVERSION",
+		offer: "ECOMMERCE_STORE",
+		fit: "STRONG_FIT",
 		whyOffer:
 			"No hay sitio propio, pero sí señales activas de venta por redes y WhatsApp. Consolidar en un catálogo con conversión reduce pedidos perdidos sin rehacer lo que ya funciona.",
 		plan: [
@@ -110,7 +112,8 @@ const SPECS: Spec[] = [
 		presence: { instagram: true, facebook: false, whatsapp: true },
 		problem:
 			"Las citas se agendan por mensajes sueltos y las reseñas mencionan cancelaciones sin aviso, lo que deja horas sin ocupar.",
-		offer: "APPOINTMENT_SYSTEM",
+		offer: "WEB_APP_CUSTOM",
+		fit: "STRONG_FIT",
 		whyOffer:
 			"La demanda ya llega por redes. Un sistema de agenda con recordatorios reduce inasistencias sin cambiar el canal que los pacientes ya usan.",
 		plan: [
@@ -154,7 +157,8 @@ const SPECS: Spec[] = [
 		presence: { instagram: false, facebook: true, whatsapp: false },
 		problem:
 			"Los clientes piden cotizaciones por publicaciones de Facebook, sin un canal que registre la solicitud ni el seguimiento.",
-		offer: "STARTER_WEB",
+		offer: "CONVERSION_WEBSITE",
+		fit: "STRONG_FIT",
 		whyOffer:
 			"Hay demanda visible pero dispersa. Una web comercial con formulario de cotización centraliza las solicitudes.",
 		plan: [
@@ -196,6 +200,7 @@ const SPECS: Spec[] = [
 		problem:
 			"No hay registro del historial de cada moto, por lo que no se puede avisar cuándo toca el siguiente servicio.",
 		offer: "WEB_APP_CUSTOM",
+		fit: "STRONG_FIT",
 		whyOffer:
 			"La clientela es recurrente. Una aplicación web a medida puede organizar el historial de mantenimiento y activar recordatorios útiles.",
 		plan: [
@@ -245,6 +250,7 @@ const SPECS: Spec[] = [
 		problem:
 			"No se confirma que la sede decida sobre herramientas digitales; probablemente lo gestiona la casa matriz.",
 		offer: "NO_CONTACT_NOW",
+		fit: "NO_FIT",
 		whyOffer:
 			"Sin evidencia de autonomía de compra, contactar a esta sede desperdicia esfuerzo y puede afectar la reputación.",
 		plan: [
@@ -281,7 +287,8 @@ function dossierFor(spec: Spec) {
 		version: "lead-os-eve-v1",
 		generated_at: new Date().toISOString(),
 		classification: {
-			status: "REVIEW_REQUIRED",
+			status: spec.fit === "NO_FIT" ? "DISQUALIFIED" : "REVIEW_REQUIRED",
+			fit: spec.fit,
 			scenario: spec.scenario,
 			possible_competitor: spec.competitor,
 		},
@@ -305,7 +312,7 @@ function dossierFor(spec: Spec) {
 		commercial_assessment: {
 			problem: spec.problem,
 			recommended_offer: spec.offer,
-			offer_code: spec.offer,
+			offer_code: spec.fit === "NO_FIT" ? undefined : spec.offer,
 			why_this_offer: spec.whyOffer,
 			implementation_plan: spec.plan,
 			price_guidance: spec.price,

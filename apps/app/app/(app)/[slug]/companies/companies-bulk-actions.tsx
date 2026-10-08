@@ -88,7 +88,7 @@ export function CompaniesBulkActions({
 				<DropdownMenuGroup>
 					<DropdownMenuItem onSelect={() => enrich.mutate({ ids })}>
 						<Renew />
-						Re-enrich
+						Re-evaluate commercial fit
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />

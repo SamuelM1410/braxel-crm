@@ -12,6 +12,7 @@ const dossierSchema = z.object({
 	generated_at: z.string().datetime(),
 	classification: z.object({
 		status: z.enum(["REVIEW_REQUIRED", "RESEARCH_MORE", "DISQUALIFIED"]),
+		fit: z.enum(["STRONG_FIT", "POTENTIAL_FIT", "NO_FIT"]),
 		scenario: z.string().trim().min(1).max(120),
 		possible_competitor: z.boolean(),
 	}),
@@ -44,7 +45,15 @@ const dossierSchema = z.object({
 					!/\bcrm\b|captaci[oó]n de leads|sistema de captaci[oó]n/i.test(value),
 				"Use una oferta vendible de Braxel; el CRM y la captación de leads son internos.",
 			),
-		offer_code: z.string().trim().min(1).max(120).optional(),
+		offer_code: z
+			.enum([
+				"CONVERSION_WEBSITE",
+				"WEB_APP_CUSTOM",
+				"ECOMMERCE_STORE",
+				"CRO_REDESIGN",
+				"ECOMMERCE_RETENTION",
+			])
+			.optional(),
 		why_this_offer: text,
 		implementation_plan: z.array(text).min(1).max(12),
 		price_guidance: text,

@@ -2,6 +2,7 @@ import type { Db, Prisma } from "@crm/db";
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AgentAccessService } from "../agent/agent-access.service";
+import { AgentTriggerService } from "../agent/agent-trigger.service";
 import { normalizePhone, normalizeWhatsAppUrl } from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
 import { IntakeService } from "../intake/intake.service";
@@ -30,6 +31,7 @@ export class ScrapersService {
 		@InjectDatabase() private readonly db: Db,
 		private readonly config: ConfigService,
 		private readonly access: AgentAccessService,
+		private readonly agent: AgentTriggerService,
 		private readonly intake: IntakeService,
 	) {}
 
@@ -189,11 +191,22 @@ export class ScrapersService {
 			];
 		});
 		const result = await this.intake.import(leads);
+		const companyIds = result.imported.flatMap((item) =>
+			item.skipped || !item.companyId ? [] : [item.companyId],
+		);
+		const evaluation = await this.agent.backfill({
+			kind: "company-profile",
+			reason:
+				"Evaluate commercial fit against Braxel's current offer catalogue",
+			companyIds,
+			budget: 8,
+		});
 		return {
 			id: run.id,
 			imported: result.imported.filter((item) => !item.skipped).length,
 			skipped: result.imported.filter((item) => item.skipped).length,
 			total: leads.length,
+			evaluation,
 		};
 	}
 

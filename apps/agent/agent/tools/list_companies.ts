@@ -103,7 +103,15 @@ export default defineTool({
 
 function normalizeCommercialOffer(value: string | null) {
 	if (!value) return null;
-	const normalized = value.toLocaleLowerCase("es");
+	const label =
+		{
+			CONVERSION_WEBSITE: "Páginas web que convierten",
+			WEB_APP_CUSTOM: "Aplicaciones web a medida",
+			ECOMMERCE_STORE: "Tiendas online para ecommerce",
+			CRO_REDESIGN: "Rediseño y CRO",
+			ECOMMERCE_RETENTION: "Recuperación y recompra para ecommerce",
+		}[value] ?? value;
+	const normalized = label.toLocaleLowerCase("es");
 	if (
 		normalized.includes("crm") ||
 		normalized.includes("captación de leads") ||
@@ -118,5 +126,5 @@ function normalizeCommercialOffer(value: string | null) {
 		normalized.includes("web de conversion")
 	)
 		return "Páginas web que convierten";
-	return value;
+	return label;
 }
