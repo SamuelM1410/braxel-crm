@@ -868,32 +868,37 @@ function leadOsListMeta(description: string | null): LeadOsListMeta | null {
 			const stage =
 				line("Etapa Lead OS") || dossier.classification?.status || "RESEARCHED";
 			const reviewStatus = line("Revisión") || "PENDING";
+			const recommendedOffer =
+				dossier.commercial_assessment?.recommended_offer ?? null;
 			return {
 				stage,
-				fit: resolveLeadFit(dossier.classification?.fit, stage, reviewStatus),
+				fit: resolveLeadFit(
+					dossier.classification?.fit,
+					stage,
+					reviewStatus,
+					recommendedOffer,
+				),
 				reviewStatus,
 				evidenceScore: dossier.scores?.evidence_quality ?? 0,
 				opportunityScore: dossier.scores?.commercial_opportunity ?? 0,
 				priorityScore: dossier.scores?.contact_priority ?? 0,
-				recommendedOffer: normalizeCommercialOffer(
-					dossier.commercial_assessment?.recommended_offer ?? null,
-				),
+				recommendedOffer: normalizeCommercialOffer(recommendedOffer),
 			};
 		} catch {}
 	}
 	const score = Number(line("Score").match(/\d+/)?.[0] ?? 0);
 	const stage = line("Etapa Lead OS") || "REVIEW_REQUIRED";
 	const reviewStatus = line("Revisión") || "PENDING";
+	const recommendedOffer =
+		line("Oferta recomendada") || legacyOffer(line("Dolor"));
 	return {
 		stage,
-		fit: resolveLeadFit(null, stage, reviewStatus),
+		fit: resolveLeadFit(null, stage, reviewStatus, recommendedOffer),
 		reviewStatus,
 		evidenceScore: score,
 		opportunityScore: score,
 		priorityScore: score,
-		recommendedOffer: normalizeCommercialOffer(
-			line("Oferta recomendada") || legacyOffer(line("Dolor")),
-		),
+		recommendedOffer: normalizeCommercialOffer(recommendedOffer),
 	};
 }
 
@@ -901,11 +906,14 @@ function resolveLeadFit(
 	value: string | null | undefined,
 	stage: string,
 	reviewStatus: string,
+	recommendedOffer: string | null,
 ): LeadFit {
 	if (stage === "DISQUALIFIED" || reviewStatus === "REJECTED") return "NO_FIT";
 	if (value === "STRONG_FIT" || value === "POTENTIAL_FIT" || value === "NO_FIT")
 		return value;
-	return "NEEDS_RESEARCH";
+	const offer = normalizeCommercialOffer(recommendedOffer);
+	if (!offer) return "POTENTIAL_FIT";
+	return isCurrentBraxelOffer(offer) ? "STRONG_FIT" : "POTENTIAL_FIT";
 }
 
 function matchesLeadFit(
@@ -956,9 +964,13 @@ function normalizeCommercialOffer(value: string | null) {
 	const label =
 		{
 			CONVERSION_WEBSITE: "Páginas web que convierten",
+			WEB_SOCIAL_CONVERSION: "Páginas web que convierten",
+			STARTER_WEB: "Páginas web que convierten",
 			WEB_APP_CUSTOM: "Aplicaciones web a medida",
+			APPOINTMENT_SYSTEM: "Aplicaciones web a medida",
 			ECOMMERCE_STORE: "Tiendas online para ecommerce",
 			CRO_REDESIGN: "Rediseño y CRO",
+			CONVERSION_WEB: "Rediseño y CRO",
 			ECOMMERCE_RETENTION: "Recuperación y recompra para ecommerce",
 		}[value] ?? value;
 	const normalized = label.toLocaleLowerCase("es");
@@ -970,11 +982,21 @@ function normalizeCommercialOffer(value: string | null) {
 		normalized.includes("sistema de captacion") ||
 		normalized.includes("seguimiento de leads")
 	)
-		return "Aplicación web a medida";
+		return null;
 	if (
 		normalized.includes("web de conversión") ||
 		normalized.includes("web de conversion")
 	)
 		return "Páginas web que convierten";
 	return label;
+}
+
+function isCurrentBraxelOffer(value: string) {
+	return [
+		"Páginas web que convierten",
+		"Aplicaciones web a medida",
+		"Tiendas online para ecommerce",
+		"Rediseño y CRO",
+		"Recuperación y recompra para ecommerce",
+	].includes(value);
 }

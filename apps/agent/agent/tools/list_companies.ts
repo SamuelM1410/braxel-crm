@@ -106,9 +106,13 @@ function normalizeCommercialOffer(value: string | null) {
 	const label =
 		{
 			CONVERSION_WEBSITE: "Páginas web que convierten",
+			WEB_SOCIAL_CONVERSION: "Páginas web que convierten",
+			STARTER_WEB: "Páginas web que convierten",
 			WEB_APP_CUSTOM: "Aplicaciones web a medida",
+			APPOINTMENT_SYSTEM: "Aplicaciones web a medida",
 			ECOMMERCE_STORE: "Tiendas online para ecommerce",
 			CRO_REDESIGN: "Rediseño y CRO",
+			CONVERSION_WEB: "Rediseño y CRO",
 			ECOMMERCE_RETENTION: "Recuperación y recompra para ecommerce",
 		}[value] ?? value;
 	const normalized = label.toLocaleLowerCase("es");
@@ -120,7 +124,7 @@ function normalizeCommercialOffer(value: string | null) {
 		normalized.includes("sistema de captacion") ||
 		normalized.includes("seguimiento de leads")
 	)
-		return "Aplicación web a medida";
+		return null;
 	if (
 		normalized.includes("web de conversión") ||
 		normalized.includes("web de conversion")
