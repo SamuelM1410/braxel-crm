@@ -43,6 +43,7 @@ export class ScrapersService {
 
 	async status(userId: string) {
 		await this.access.assertMember(userId);
+		await this.failStaleRuns(userId);
 		const [scrapegraph, runs] = await Promise.all([
 			this.scrapegraphStatus(),
 			this.db.scraperRun.findMany({
@@ -61,6 +62,7 @@ export class ScrapersService {
 
 	async history(limit: number, userId: string) {
 		await this.access.assertMember(userId);
+		await this.failStaleRuns(userId);
 		const rows = await this.db.scraperRun.findMany({
 			where: { createdById: userId },
 			orderBy: { createdAt: "desc" },
@@ -68,6 +70,22 @@ export class ScrapersService {
 			select: RUN_SELECT,
 		});
 		return rows.map(serializeRun);
+	}
+
+	private async failStaleRuns(userId: string) {
+		const finishedAt = new Date();
+		await this.db.scraperRun.updateMany({
+			where: {
+				createdById: userId,
+				status: "RUNNING",
+				startedAt: { lt: new Date(finishedAt.getTime() - 5 * 60_000) },
+			},
+			data: {
+				status: "FAILED",
+				error: "La ejecución excedió el tiempo máximo y se detuvo sin importar datos.",
+				finishedAt,
+			},
+		});
 	}
 
 	async run(input: ScraperRunInput, userId: string) {
