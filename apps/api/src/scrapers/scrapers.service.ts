@@ -378,10 +378,33 @@ export class ScrapersService {
 			);
 			enriched.push(...rows);
 		}
-		return enriched;
+		return isFootballCampaign(query)
+			? enriched.filter(isFootballApparelOpportunity)
+			: enriched;
 	}
 
 	private async discoverCandidates(
+		query: string,
+		limit: number,
+	): Promise<Candidate[]> {
+		const candidates: Candidate[] = [];
+		for (const discoveryQuery of discoveryQueries(query)) {
+			const remaining = limit - candidates.length;
+			if (remaining <= 0) break;
+			const discovered = await this.discoverCandidatesForQuery(
+				discoveryQuery,
+				Math.min(20, remaining),
+			);
+			for (const candidate of discovered) {
+				if (!candidates.some((item) => sameCandidate(item, candidate))) {
+					candidates.push(candidate);
+				}
+			}
+		}
+		return candidates.slice(0, limit);
+	}
+
+	private async discoverCandidatesForQuery(
 		query: string,
 		limit: number,
 	): Promise<Candidate[]> {
@@ -588,6 +611,50 @@ function campaignIndustry(query: string) {
 	return query.trim() === CURRENT_DISCOVERY_CAMPAIGN
 		? CURRENT_CAMPAIGN_INDUSTRY
 		: null;
+}
+
+function isFootballCampaign(query: string) {
+	return query.trim() === CURRENT_DISCOVERY_CAMPAIGN;
+}
+
+function discoveryQueries(query: string) {
+	if (!isFootballCampaign(query)) return [query];
+	return [
+		query,
+		"camisetas de fútbol Colombia",
+		"uniformes de fútbol Colombia",
+		"tienda de ropa deportiva fútbol Colombia",
+	];
+}
+
+function sameCandidate(left: Candidate, right: Candidate) {
+	const leftId = firstString(left, ["id"]);
+	const rightId = firstString(right, ["id"]);
+	if (leftId && rightId) return leftId === rightId;
+	const leftName = firstString(left, ["company_name", "name"])?.toLowerCase();
+	const rightName = firstString(right, ["company_name", "name"])?.toLowerCase();
+	const leftPhone = firstString(left, ["phone"]);
+	const rightPhone = firstString(right, ["phone"]);
+	return Boolean(leftName && leftName === rightName && leftPhone === rightPhone);
+}
+
+function isFootballApparelOpportunity(candidate: Candidate) {
+	const phone = normalizePhone(firstString(candidate, ["phone"]));
+	if (!phone || !/^\+573\d{9}$/.test(phone)) return false;
+	const website = firstUrl(candidate, ["website", "websiteUri", "website_url"]);
+	if (!website) return true;
+	try {
+		const hostname = new URL(website).hostname.toLowerCase();
+		return [
+			"facebook.com",
+			"instagram.com",
+			"tiktok.com",
+			"wa.me",
+			"whatsapp.com",
+		].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+	} catch {
+		return false;
+	}
 }
 
 function firstUrl(row: Candidate, keys: string[]) {
