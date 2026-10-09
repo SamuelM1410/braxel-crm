@@ -12,6 +12,7 @@ type Candidate = Record<string, unknown>;
 
 const CURRENT_DISCOVERY_CAMPAIGN =
 	"Marcas de ropa de fútbol sin página web con WhatsApp en Colombia";
+const CURRENT_CAMPAIGN_INDUSTRY = "Ropa de fútbol";
 const LEGACY_DISCOVERY_QUERY =
 	"Agencias de marketing digital en Bogotá, Colombia";
 
@@ -160,7 +161,9 @@ export class ScrapersService {
 					companyName,
 					websiteUrl,
 					city: firstString(row, ["city", "formattedAddress", "address"]),
-					niche: firstString(row, ["industry", "category"]),
+					niche:
+						campaignIndustry(run.query) ??
+						firstString(row, ["industry", "category"]),
 					phone: normalizePhone(
 						firstString(row, [
 							"phone",
@@ -579,6 +582,12 @@ function firstString(row: Candidate, keys: string[]) {
 		if (typeof value === "number") return String(value);
 	}
 	return null;
+}
+
+function campaignIndustry(query: string) {
+	return query.trim() === CURRENT_DISCOVERY_CAMPAIGN
+		? CURRENT_CAMPAIGN_INDUSTRY
+		: null;
 }
 
 function firstUrl(row: Candidate, keys: string[]) {
