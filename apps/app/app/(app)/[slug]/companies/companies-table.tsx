@@ -60,8 +60,8 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 	},
 	{
 		id: "fit",
-		header: "Commercial fit",
-		label: "Commercial fit",
+		header: "Estado comercial",
+		label: "Estado comercial",
 		width: "w-[13%]",
 		hideBelow: "lg",
 		cell: (row) => {
@@ -69,12 +69,12 @@ const COLUMNS: DataTableColumn<CompanyRow>[] = [
 			if (!fit) return <EmptyCellValue />;
 			const label =
 				fit === "STRONG_FIT"
-					? "Strong fit"
+					? "Listo para contactar"
 					: fit === "POTENTIAL_FIT"
-						? "Potential fit"
+						? "Revisar antes"
 						: fit === "NO_FIT"
-							? "Excluded"
-							: "Not evaluated";
+							? "No usar"
+							: "Buscar información";
 			return (
 				<Badge variant={fit === "STRONG_FIT" ? "default" : "secondary"}>
 					{label}
@@ -286,12 +286,12 @@ export function CompaniesTable() {
 	const facets: DataTableFacet[] = [
 		{
 			id: "fit",
-			label: "Commercial fit",
+			label: "Estado comercial",
 			options: [
-				{ value: "strong", label: "Strong fit" },
-				{ value: "potential", label: "Potential fit" },
-				{ value: "research", label: "Needs research" },
-				{ value: "excluded", label: "Excluded" },
+				{ value: "strong", label: "Listos para contactar" },
+				{ value: "potential", label: "Revisar antes" },
+				{ value: "research", label: "Buscar información" },
+				{ value: "excluded", label: "No usar" },
 			].filter((option) => (facetCounts?.fit?.[option.value] ?? 0) > 0),
 		},
 		{
