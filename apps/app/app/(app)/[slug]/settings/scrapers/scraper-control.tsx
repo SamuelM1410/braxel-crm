@@ -102,8 +102,10 @@ export function ScraperControl() {
 							{data.providers.discovery.configured
 								? "sí"
 								: "falta una fuente de lote"}
-							. Sin URL, el botón usa la búsqueda predeterminada y después
-							enriquece cada web con ScrapeGraph.
+							. Campaña actual:{" "}
+							<strong>{data.providers.discovery.query}</strong>. Sin URL, el
+							botón usa esta búsqueda y después enriquece cada web con
+							ScrapeGraph.
 						</p>
 					</CardContent>
 				</Card>
@@ -132,7 +134,7 @@ export function ScraperControl() {
 							<Input
 								value={targetUrl}
 								onChange={(event) => setTargetUrl(event.target.value)}
-								placeholder="Consulta o URL pública opcional (vacío = búsqueda predeterminada)"
+								placeholder="Consulta o URL pública opcional (vacío = campaña actual)"
 							/>
 							<Input
 								className="text-center"
@@ -154,8 +156,9 @@ export function ScraperControl() {
 							</Button>
 						</form>
 						<p className="mt-3 text-muted-foreground text-xs">
-							Los candidatos importados quedan en revisión y con “No contactar”
-							activo hasta que una persona los verifique.
+							Solo se priorizan marcas de ropa de fútbol sin página propia y con
+							WhatsApp comercial. Los demás candidatos quedan en revisión y con
+							“No contactar” activo.
 						</p>
 					</CardContent>
 				</Card>
