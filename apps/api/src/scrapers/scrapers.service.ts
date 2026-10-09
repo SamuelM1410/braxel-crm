@@ -150,11 +150,15 @@ export class ScrapersService {
 					"companyName",
 					"business_name",
 				]) ?? `Candidate ${index + 1}`;
-			const websiteUrl = firstUrl(row, [
+			const discoveredUrl = firstUrl(row, [
 				"website",
 				"website_url",
 				"websiteUri",
 			]);
+			const websiteUrl =
+				discoveredUrl && !isSocialOrMessagingUrl(discoveredUrl)
+					? discoveredUrl
+					: null;
 			return [
 				{
 					sourceId: `scraper:${run.provider.toLowerCase()}:${run.id}:${index}`,
@@ -173,11 +177,20 @@ export class ScrapersService {
 						]) ?? firstString(contact, ["phone", "phone_number"]),
 					),
 					email: firstEmail(row, ["email"]) ?? firstEmail(contact, ["email"]),
-					instagramUrl: firstUrl(row, ["instagram_url", "instagramUrl"]),
-					facebookUrl: firstUrl(row, ["facebook_url", "facebookUrl"]),
-					tiktokUrl: firstUrl(row, ["tiktok_url", "tiktokUrl"]),
+					instagramUrl:
+						firstUrl(row, ["instagram_url", "instagramUrl"]) ??
+						socialProfileUrl(discoveredUrl, "instagram.com"),
+					facebookUrl:
+						firstUrl(row, ["facebook_url", "facebookUrl"]) ??
+						socialProfileUrl(discoveredUrl, "facebook.com"),
+					tiktokUrl:
+						firstUrl(row, ["tiktok_url", "tiktokUrl"]) ??
+						socialProfileUrl(discoveredUrl, "tiktok.com"),
 					linkedinUrl: firstUrl(row, ["linkedin_url", "linkedinUrl"]),
-					whatsappUrl: normalizeWhatsAppUrl(firstWhatsApp(row, contact)),
+					whatsappUrl: normalizeWhatsAppUrl(
+						firstWhatsApp(row, contact) ??
+							socialProfileUrl(discoveredUrl, "wa.me", "whatsapp.com"),
+					),
 					contactName:
 						firstString(row, ["contact_name", "contactName", "owner_name"]) ??
 						firstString(contact, ["name", "full_name", "fullName"]),
@@ -654,6 +667,33 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 		].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
 	} catch {
 		return false;
+	}
+}
+
+function isSocialOrMessagingUrl(value: string) {
+	return Boolean(
+		socialProfileUrl(
+			value,
+			"facebook.com",
+			"instagram.com",
+			"tiktok.com",
+			"wa.me",
+			"whatsapp.com",
+		),
+	);
+}
+
+function socialProfileUrl(value: string | null, ...domains: string[]) {
+	if (!value) return null;
+	try {
+		const hostname = new URL(value).hostname.toLowerCase();
+		return domains.some(
+			(domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+		)
+			? value
+			: null;
+	} catch {
+		return null;
 	}
 }
 
