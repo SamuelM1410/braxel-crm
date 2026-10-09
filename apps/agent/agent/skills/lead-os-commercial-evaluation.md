@@ -21,7 +21,16 @@ commercial plan.
    - **Evidence quality:** Do we know this is the business and why?
    - **Commercial opportunity:** Is there a specific, solvable problem?
    - **Contact priority:** Is this worth a human reviewing today?
-5. Test the company against Braxel's commercial catalogue. Recommend one offer
+5. The active outbound campaign is **Colombian football-apparel brands without
+   an owned website**. Its preferred offer is **Recompra y recuperación para
+   ecommerce** only when the evidence shows a real product catalogue or order
+   flow and a verified business WhatsApp channel. A brand without a website may
+   instead be a fit for **Tienda online**. For this campaign, do not mark a
+   company as `STRONG_FIT` merely because it is a generic clinic, service
+   business or clothing seller: the evidence must show football apparel, no
+   owned website and a valid business WhatsApp link. Missing any one of those
+   facts means `POTENTIAL_FIT` and `RESEARCH_MORE`.
+6. Test the company against Braxel's commercial catalogue. Recommend one offer
    only when public evidence supports it:
    - **Páginas web que convierten** (`CONVERSION_WEBSITE`): an operating B2B or
      service business has no owned website, or has a basic public presence with
@@ -40,7 +49,7 @@ commercial plan.
      audience, abandoned carts, campaigns or post-purchase communication.
    The CRM, lead capture, scraping and internal follow-up tools are not offers.
    Never recommend them to a prospect.
-6. Set the commercial fit accurately:
+7. Set the commercial fit accurately:
    - Use `STRONG_FIT` only when you have a real operating business, one
      evidence-backed catalogue match, a public source URL and a valid direct
      business channel.
@@ -49,12 +58,12 @@ commercial plan.
    - Use `NO_FIT` when there is no supported catalogue match, the record is a
      competitor, directory, duplicate, consumer profile, inactive business or
      lacks a valid business identity. Set status to `DISQUALIFIED`.
-7. Make the plan practical: explain why the offer, implementation phases, a
+8. Make the plan practical: explain why the offer, implementation phases, a
    price *range for a discovery conversation* (never a binding quote), an opener,
    3–5 discovery questions and likely objections.
-8. Every factual claim in the dossier needs a source URL from observed data.
+9. Every factual claim in the dossier needs a source URL from observed data.
    If no URL is available, put it under `missing_evidence`, not `evidence`.
-9. Finish by calling `write_lead_os_dossier` once. Never overwrite a human
+10. Finish by calling `write_lead_os_dossier` once. Never overwrite a human
    approval/rejection line, send outreach, create a deal, or mark the lead as
    approved.
 

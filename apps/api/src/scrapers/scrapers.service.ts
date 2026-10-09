@@ -10,6 +10,11 @@ import type { ScraperRunInput } from "./scrapers.contracts";
 
 type Candidate = Record<string, unknown>;
 
+const CURRENT_DISCOVERY_CAMPAIGN =
+	"Marcas de ropa de fútbol sin página web con WhatsApp en Colombia";
+const LEGACY_DISCOVERY_QUERY =
+	"Agencias de marketing digital en Bogotá, Colombia";
+
 const RUN_SELECT = {
 	id: true,
 	provider: true,
@@ -228,10 +233,15 @@ export class ScrapersService {
 	}
 
 	private discoveryQuery() {
-		return (
-			this.config.get<string>("SCRAPEGRAPH_DEFAULT_QUERY")?.trim() ||
-			"Agencias de marketing digital en Bogotá, Colombia"
-		);
+		const configured = this.config
+			.get<string>("SCRAPEGRAPH_DEFAULT_QUERY")
+			?.trim();
+		// Keep old production configuration from silently sending the current
+		// campaign back to agencies. Reps can still enter another query explicitly
+		// in the CRM when they intentionally want to research another segment.
+		return configured && configured !== LEGACY_DISCOVERY_QUERY
+			? configured
+			: CURRENT_DISCOVERY_CAMPAIGN;
 	}
 
 	private discoveryStatus() {
