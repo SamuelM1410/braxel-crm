@@ -375,7 +375,7 @@ export class ScrapersService {
 						"websiteUri",
 						"website_url",
 					]);
-					if (!website) return candidate;
+					if (!website || isSocialOrMessagingUrl(website)) return candidate;
 					try {
 						const research = await this.runScrapeGraph(website, 1);
 						return mergeCandidate(candidate, research[0]);
@@ -750,10 +750,11 @@ function normalizeDiscoveryCandidate(row: Candidate): Candidate {
 function mergeCandidate(base: Candidate, enrichment: Candidate | undefined) {
 	if (!enrichment) return base;
 	const merged = { ...base, ...enrichment };
+	for (const key of ["company_name", "phone", "city", "source_url"]) {
+		if (base[key] != null && base[key] !== "") merged[key] = base[key];
+	}
 	for (const key of [
-		"company_name",
 		"website",
-		"phone",
 		"email",
 		"whatsapp_url",
 		"instagram_url",
