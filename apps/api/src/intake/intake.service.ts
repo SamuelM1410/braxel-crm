@@ -49,21 +49,27 @@ export class IntakeService {
 
 	private async importLead(lead: IntakeLead) {
 		const domain = domainFromUrl(lead.websiteUrl);
+		const phone = normalizePhone(lead.phone);
 		const description = descriptionFor(lead);
 		const company = await this.db.$transaction(async (tx) => {
 			const imported = await tx.company.findFirst({
 				where: { description: { startsWith: sourceMarker(lead.sourceId) } },
 			});
-			const existing =
+			const exactMatch =
 				imported ??
 				(domain
 					? await tx.company.findUnique({ where: { domain } })
 					: await tx.company.findFirst({
 							where: {
 								name: lead.companyName,
-								phone: normalizePhone(lead.phone),
+								phone,
 							},
 						}));
+			const existing =
+				exactMatch ??
+				(!domain && lead.sourceId.startsWith("scraper:") && phone
+					? await tx.company.findFirst({ where: { phone } })
+					: null);
 			if (!existing && lead.updateOnly) return null;
 
 			return existing
