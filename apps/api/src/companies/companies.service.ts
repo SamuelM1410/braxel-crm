@@ -178,8 +178,10 @@ export class CompaniesService {
 			this.facetCounts(input),
 		]);
 
-		const fitRows = rows.filter((row) =>
-			matchesLeadFit(leadOsListMeta(row.description, row.name), input.fit),
+		const fitRows = rows.filter(
+			(row) =>
+				!isLowQualityCompanyName(row.name) &&
+				matchesLeadFit(leadOsListMeta(row.description, row.name), input.fit),
 		);
 		const orderedRows = prioritizedLeadView
 			? [...fitRows].sort((left, right) => {
@@ -972,15 +974,16 @@ function leadOsListMeta(
 }
 
 function applyRecordExclusions(lead: LeadOsListMeta, companyName?: string) {
-	if (
-		companyName &&
-		/\b(?:prueba|test|demo|sandbox|no contactar|tiktok|instagram|facebook|youtube|google maps|make your day)\b/i.test(
-			companyName,
-		)
-	) {
+	if (companyName && isLowQualityCompanyName(companyName)) {
 		return { ...lead, fit: "NO_FIT" as const };
 	}
 	return lead;
+}
+
+function isLowQualityCompanyName(name: string) {
+	return /\b(?:tiktok|instagram|facebook|youtube|google maps|make your day|official app|support center)\b/i.test(
+		name,
+	);
 }
 
 function resolveLeadFit(
