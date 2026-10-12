@@ -378,6 +378,8 @@ function CompanyOverview({ company }: { company: Company }) {
 							industry={company.industry}
 							website={company.website}
 							description={company.description}
+							instagramUrl={company.instagramUrl}
+							tiktokUrl={company.tiktokUrl}
 							whatsappUrl={company.whatsappUrl}
 							phone={company.phone}
 							email={company.email ?? company.primaryContact?.email ?? null}

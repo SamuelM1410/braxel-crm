@@ -12,58 +12,120 @@ function buildWhatsAppMessage({
 	industry,
 	website,
 	description,
+	instagramUrl,
+	tiktokUrl,
 }: {
 	companyName: string;
 	industry: string | null;
 	website: string | null;
 	description: string | null;
+	instagramUrl: string | null;
+	tiktokUrl: string | null;
 }): string {
 	const sports = /f[uú]tbol|deport|camiseta|uniforme|soccer|sport/i.test(
 		`${industry ?? ""} ${companyName}`,
 	);
-	const websiteEvidence = hasWebsiteEvidence(website, description);
-	if (websiteEvidence) {
-		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen presencia web y no quiero ofrecerte algo que ya resolvieron. Trabajamos mejoras de conversión y una automatización de WhatsApp para recuperar carritos abandonados y volver a activar a quienes mostraron interés. ¿Hoy tienen identificado cuántas ventas se quedan a medias por carritos abandonados?`;
+	const research = researchSummary(website, description);
+	if (!research.ownedWebsite) {
+		const social = instagramUrl
+			? "Instagram"
+			: tiktokUrl
+				? "TikTok"
+				: "sus canales sociales";
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando ${social} y la forma en que presentan sus productos. En la investigación no aparece un sitio web propio para centralizar el catálogo y los pedidos. Podemos construirles una tienda enfocada en camisetas y llevar el cierre a WhatsApp, sin reemplazar lo que ya les funciona en redes. ¿Hoy reciben los pedidos por mensajes o tienen un catálogo centralizado?`;
+	}
+	if (research.hasCommerce && !research.hasAutomation) {
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen una tienda y un canal de WhatsApp para atender pedidos; no encontré evidencia pública de una automatización que recupere carritos o consultas que quedan a medias. ¿Hoy hacen ese seguimiento manualmente o ya tienen un flujo automático?`;
+	}
+	if (research.hasCommerce) {
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé cómo presentan sus productos y vi una oportunidad concreta para mejorar el paso de visita a compra. No quiero ofrecerles una tienda que ya tienen: me interesa entender dónde se pierden pedidos o consultas. ¿El reto hoy está en conversión, seguimiento por WhatsApp o carritos abandonados?`;
 	}
 	return sports
-		? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia online de la marca y vi una oportunidad para convertir mejor el interés en pedidos. Trabajamos optimización de tiendas y una automatización de WhatsApp para recuperar carritos abandonados. ¿Hoy tienen medido cuántas personas preguntan y luego no terminan comprando?`
-		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la presencia online del negocio y vi una oportunidad para mejorar el paso de interés a solicitud o compra. ¿Hoy el mayor reto está en atraer consultas, convertirlas o recuperar oportunidades que se quedan a medias?`;
+		? `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta de ${companyName} y confirmé que ya tienen un sitio; la oportunidad parece estar en convertir mejor el interés por sus camisetas en pedidos. ¿Hoy reciben las consultas desde la web, WhatsApp o redes, y en qué punto suelen perderse?`
+		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta pública de ${companyName} y encontré una oportunidad concreta para convertir mejor las consultas en solicitudes o compras. ¿Hoy el mayor reto está en atraer clientes, convertirlos o hacer seguimiento?`;
 }
 
 function buildEmail({
 	companyName,
 	website,
 	description,
+	instagramUrl,
+	tiktokUrl,
 }: {
 	companyName: string;
 	website: string | null;
 	description: string | null;
+	instagramUrl: string | null;
+	tiktokUrl: string | null;
 }): { subject: string; body: string } {
-	const websiteEvidence = hasWebsiteEvidence(website, description);
-	const subject = websiteEvidence
-		? `Una idea para recuperar carritos en ${companyName}`
-		: `Una pregunta sobre el canal de ventas de ${companyName}`;
-	const observation = websiteEvidence
-		? `Estuve revisando la presencia pública de ${companyName} y vi que ya cuentan con presencia web. Por eso no quiero proponerte una página nueva: la oportunidad podría estar en mejorar la conversión y recuperar carritos abandonados mediante WhatsApp.`
-		: `Estuve revisando la presencia online de ${companyName} y vi una oportunidad para mejorar el paso de interés a pedido. No quiero enviarte una propuesta genérica: primero quiero entender dónde se quedan las oportunidades.`;
+	const research = researchSummary(website, description);
+	const subject = !research.ownedWebsite
+		? `Una tienda propia para ${companyName}`
+		: research.hasCommerce && !research.hasAutomation
+			? `Una idea para recuperar carritos en ${companyName}`
+			: `Una pregunta sobre el canal de ventas de ${companyName}`;
+	const social = instagramUrl
+		? "Instagram"
+		: tiktokUrl
+			? "TikTok"
+			: "sus redes";
+	const observation = !research.ownedWebsite
+		? `Estuve revisando ${social} y la forma en que ${companyName} presenta sus productos. En la investigación pública no aparece un sitio web propio para centralizar catálogo y pedidos. Braxel puede construirles una tienda enfocada en conversión, conectada con WhatsApp y sin perder el tráfico que ya llega desde redes.`
+		: research.hasCommerce && !research.hasAutomation
+			? `Estuve revisando la tienda de ${companyName}. Ya tienen el canal de venta y WhatsApp, pero no encontré evidencia pública de recuperación automática de carritos o consultas. La oportunidad sería automatizar ese seguimiento, no reemplazar su web.`
+			: `Estuve revisando la oferta pública de ${companyName} y encontré una oportunidad concreta en el paso de interés a pedido. No quiero enviarte una propuesta genérica: primero quiero confirmar cómo están gestionando ese punto.`;
 	return {
 		subject,
 		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\n¿Hoy el principal reto está en atraer solicitudes, convertir mejor las visitas o recuperar personas que dejan el carrito a medias? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
 	};
 }
 
-function hasWebsiteEvidence(
+type ResearchSummary = {
+	ownedWebsite: boolean;
+	hasCommerce: boolean;
+	hasAutomation: boolean;
+};
+
+function researchSummary(
 	website: string | null,
 	description: string | null,
-): boolean {
-	if (website?.trim()) return true;
-	const text = description ?? "";
-	// Intake stores the research dossier in the description. Treat an explicit
-	// owned website or a URL in that dossier as evidence; otherwise remain
-	// agnostic instead of making a false "no website" claim.
-	return /"owned_website"\s*:\s*true|"website_url"\s*:\s*"https?:\/\//i.test(
-		text,
-	);
+): ResearchSummary {
+	const dossier = parseDossier(description);
+	const text = (description ?? "").toLowerCase();
+	const ownedWebsite =
+		dossier?.digital_presence?.owned_website ?? Boolean(website);
+	const hasCommerce =
+		/tienda|ecommerce|e-commerce|catalogo|carrito|checkout|comprar|productos/.test(
+			text,
+		) ||
+		Boolean(
+			dossier?.commercial_assessment?.recommended_offer?.match(
+				/cro|carrito|whatsapp/i,
+			),
+		);
+	const hasAutomation =
+		/carrito abandonado|recuperar carrito|automatiz.*whatsapp|chatbot|bot de whatsapp|respuestas automaticas/.test(
+			text,
+		);
+	return { ownedWebsite, hasCommerce, hasAutomation };
+}
+
+function parseDossier(description: string | null): {
+	digital_presence?: { owned_website?: boolean };
+	commercial_assessment?: { recommended_offer?: string };
+} | null {
+	const line = description
+		?.split("\n")
+		.find((value) => value.startsWith("Dossier Lead OS: "));
+	if (!line) return null;
+	try {
+		return JSON.parse(line.slice("Dossier Lead OS: ".length)) as {
+			digital_presence?: { owned_website?: boolean };
+			commercial_assessment?: { recommended_offer?: string };
+		};
+	} catch {
+		return null;
+	}
 }
 
 function whatsappChatUrl(destination: string, message: string): string | null {
@@ -143,6 +205,8 @@ export function OutreachCopyKit({
 	industry,
 	website,
 	description,
+	instagramUrl,
+	tiktokUrl,
 	whatsappUrl,
 	phone,
 	email,
@@ -151,6 +215,8 @@ export function OutreachCopyKit({
 	industry: string | null;
 	website: string | null;
 	description: string | null;
+	instagramUrl: string | null;
+	tiktokUrl: string | null;
 	whatsappUrl: string | null;
 	phone: string | null;
 	email: string | null;
@@ -162,11 +228,15 @@ export function OutreachCopyKit({
 		industry,
 		website,
 		description,
+		instagramUrl,
+		tiktokUrl,
 	});
 	const emailDraft = buildEmail({
 		companyName,
 		website,
 		description,
+		instagramUrl,
+		tiktokUrl,
 	});
 	// A phone-shaped value is not proof that the line is registered on
 	// WhatsApp. Only an explicit wa.me/WhatsApp URL enables WhatsApp actions.
