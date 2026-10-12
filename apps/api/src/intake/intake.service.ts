@@ -71,11 +71,19 @@ export class IntakeService {
 					? await tx.company.findFirst({ where: { phone } })
 					: null);
 			if (!existing && lead.updateOnly) return null;
+			const domainOwner = domain
+				? await tx.company.findUnique({
+						where: { domain },
+						select: { id: true },
+					})
+				: null;
+			const safeDomain =
+				domainOwner && domainOwner.id !== existing?.id ? null : domain;
 
 			return existing
 				? tx.company.update({
 						where: { id: existing.id },
-						data: companyData(lead, domain, description),
+						data: companyData(lead, safeDomain, description),
 					})
 				: tx.company.create({
 						data: {
