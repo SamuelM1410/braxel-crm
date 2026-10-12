@@ -951,6 +951,7 @@ function leadOsListMeta(
 					recommendedOffer: normalizeCommercialOffer(recommendedOffer),
 				},
 				companyName,
+				description,
 			);
 		} catch {}
 	}
@@ -970,14 +971,45 @@ function leadOsListMeta(
 			recommendedOffer: normalizeCommercialOffer(recommendedOffer),
 		},
 		companyName,
+		description,
 	);
 }
 
-function applyRecordExclusions(lead: LeadOsListMeta, companyName?: string) {
+function applyRecordExclusions(
+	lead: LeadOsListMeta,
+	companyName?: string,
+	description?: string | null,
+) {
 	if (companyName && isLowQualityCompanyName(companyName)) {
 		return { ...lead, fit: "NO_FIT" as const };
 	}
+	if (hasCompleteExistingStack(description)) {
+		return {
+			...lead,
+			fit: "NO_FIT" as const,
+			stage: "DISQUALIFIED",
+			recommendedOffer: null,
+		};
+	}
 	return lead;
+}
+
+function hasCompleteExistingStack(description?: string | null) {
+	if (!description) return false;
+	const text = description
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, " ");
+	const hasWebsite =
+		/ya tiene|cuenta con|tiene una|sitio web|pagina web|ecommerce|tienda online/.test(
+			text,
+		);
+	const hasWhatsApp = /whatsapp|wa\.me/.test(text);
+	const hasAutomation =
+		/automatiz|carrito abandonado|chatbot|bot de whatsapp|respuestas automaticas/.test(
+			text,
+		);
+	return hasWebsite && hasWhatsApp && hasAutomation;
 }
 
 function isLowQualityCompanyName(name: string) {
