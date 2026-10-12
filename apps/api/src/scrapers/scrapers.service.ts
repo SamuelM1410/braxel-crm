@@ -11,7 +11,7 @@ import type { ScraperRunInput } from "./scrapers.contracts";
 type Candidate = Record<string, unknown>;
 
 const CURRENT_DISCOVERY_CAMPAIGN =
-	"Marcas de ropa de fútbol sin página web con WhatsApp en Colombia";
+	"Marcas de ropa de fútbol con una brecha comercial verificable en Colombia";
 const CURRENT_CAMPAIGN_INDUSTRY = "Ropa de fútbol";
 const LEGACY_DISCOVERY_QUERY =
 	"Agencias de marketing digital en Bogotá, Colombia";
@@ -161,6 +161,11 @@ export class ScrapersService {
 		const rows = Array.isArray(run.results) ? run.results : [];
 		const leads = rows.flatMap((row, index) => {
 			if (!isRecord(row)) return [];
+			// Runs created before the quality rules were tightened can still be
+			// imported. Re-apply the same commercial-fit gate at import time so a
+			// stale run cannot reintroduce a fully built competitor.
+			if (isFootballCampaign(run.query) && !isFootballApparelOpportunity(row))
+				return [];
 			const contact = nestedContact(row);
 			const companyName =
 				firstString(row, [
@@ -654,7 +659,10 @@ function isFootballCampaign(query: string) {
 	return (
 		/(futbol|camiseta|uniforme|ropa deportiva|tienda deportiva|soccer|jersey)/i.test(
 			normalized,
-		) && /\b(sin|no|sin pagina|sin web|sin sitio|no tienen)/i.test(normalized)
+		) &&
+		/\b(sin|no|sin pagina|sin web|sin sitio|no tienen|brecha|oportunidad)/i.test(
+			normalized,
+		)
 	);
 }
 
@@ -715,10 +723,9 @@ function isDiscoveryNoiseCandidate(candidate: Candidate) {
 }
 
 function isFootballApparelOpportunity(candidate: Candidate) {
-	// Do not make a Colombian phone a prerequisite for discovery. Google/Maps
-	// often returns a business with no phone even though its WhatsApp is only
-	// visible on Instagram, Facebook or after a human review. The campaign must
-	// surface those no-website candidates instead of returning an empty batch.
+	// The campaign is gap-based, not category-only. A famous club or a polished
+	// store can match every football keyword while being commercially useless to
+	// Braxel. Keep only companies for which at least one sellable gap is visible.
 	const website = firstUrl(candidate, [
 		"website",
 		"websiteUri",
@@ -726,7 +733,6 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 		"owned_website",
 	]);
 	const socialOnlyUrl = Boolean(website && isSocialOrMessagingUrl(website));
-	if (website && !socialOnlyUrl) return false;
 
 	const text = [
 		firstString(candidate, ["company_name", "name", "displayName"]),
@@ -744,20 +750,95 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 			text,
 		);
 	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;
-	const phone = normalizePhone(
-		firstString(candidate, [
-			"phone",
-			"contact_phone",
-			"phone_number",
-			"nationalPhoneNumber",
-			"internationalPhoneNumber",
-		]),
-	);
-	const colombianPhone = Boolean(phone && /^\+573\d{9}$/.test(phone));
 
-	// A missing phone is a review signal, not a reason to hide a real business,
-	// but campaign membership must still be supported by an industry signal.
-	return Boolean(!website || socialOnlyUrl || colombianPhone || footballSignal);
+	// A social profile or Maps listing is not an owned website. Those candidates
+	// remain useful, especially when they expose a WhatsApp link.
+	if (!website || socialOnlyUrl) return true;
+
+	const hasWhatsApp = hasExplicitWhatsAppEvidence(candidate);
+	const hasCommerce = hasCommerceEvidence(candidate);
+	const hasCheckout = hasCheckoutEvidence(candidate);
+	const hasAutomation = hasWhatsAppAutomationEvidence(candidate);
+
+	// Exclude the exact failure mode reported by the user (Pro Champions,
+	// Millonarios, etc.): owned site + real commerce/checkout + WhatsApp. There
+	// is no honest first offer for that lead in the current catalogue.
+	if (
+		hasWhatsApp &&
+		(hasCommerce || hasCheckout) &&
+		(hasAutomation || hasCheckout)
+	)
+		return false;
+
+	// A website is not automatically disqualifying. Keep a real gap for a CRO,
+	// ecommerce build, or WhatsApp/cart-recovery offer when one component is
+	// visibly missing.
+	return !hasCommerce || !hasWhatsApp || !hasCheckout || !hasAutomation;
+}
+
+function candidateEvidenceText(candidate: Candidate) {
+	const keys = [
+		"website_text",
+		"websiteText",
+		"description",
+		"company_description",
+		"research_summary",
+		"pain_hypothesis",
+		"evidence",
+		"technologies",
+		"technology_signals",
+		"ecommerce_platform",
+		"platform",
+		"features",
+		"services",
+		"whatsapp_links",
+		"social_links",
+		"public_links",
+	];
+	return keys
+		.map((key) => {
+			const value = candidate[key];
+			if (value == null) return "";
+			try {
+				return typeof value === "string" ? value : JSON.stringify(value);
+			} catch {
+				return "";
+			}
+		})
+		.join(" ")
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, " ");
+}
+
+function hasExplicitWhatsAppEvidence(candidate: Candidate) {
+	if (firstWhatsApp(candidate, nestedContact(candidate))) return true;
+	const text = candidateEvidenceText(candidate);
+	return /wa\.me|whatsapp\.com|whatsapp link|enlace de whatsapp/.test(text);
+}
+
+function hasCommerceEvidence(candidate: Candidate) {
+	const text = candidateEvidenceText(candidate);
+	return Boolean(
+		firstString(candidate, ["ecommerce_platform", "commerce_platform"]) ||
+			/e[ -]?commerce|tienda online|tienda en linea|catalogo|catalogo online|shopify|woocommerce|prestashop|productos en venta/.test(
+				text,
+			),
+	);
+}
+
+function hasCheckoutEvidence(candidate: Candidate) {
+	const text = candidateEvidenceText(candidate);
+	return /carrito|checkout|pagar|pago online|comprar ahora|add to cart|añadir al carrito|pasarela de pago|mercadopago|payu|wompi/.test(
+		text,
+	);
+}
+
+function hasWhatsAppAutomationEvidence(candidate: Candidate) {
+	const text = candidateEvidenceText(candidate);
+	return /carrito abandonado|recuperar carrito|abandoned cart|automatiz.*whatsapp|chatbot|bot de whatsapp|respuestas automaticas|remarketing.*whatsapp/.test(
+		text,
+	);
 }
 
 function isSocialOrMessagingUrl(value: string) {
