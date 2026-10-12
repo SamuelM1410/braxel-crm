@@ -178,11 +178,15 @@ export class CompaniesService {
 			this.facetCounts(input),
 		]);
 
-		const fitRows = rows.filter(
-			(row) =>
-				!isLowQualityCompanyName(row.name) &&
-				matchesLeadFit(leadOsListMeta(row.description, row.name), input.fit),
-		);
+		const fitRows = rows.filter((row) => {
+			if (isLowQualityCompanyName(row.name)) return false;
+			const lead = leadOsListMeta(row.description, row.name);
+			// Never show rejected/disqualified/stale scraper records in the default
+			// lead view. They remain auditable through the excluded facet instead of
+			// contaminating the outreach queue.
+			if (lead?.fit === "NO_FIT" && input.fit !== "excluded") return false;
+			return matchesLeadFit(lead, input.fit);
+		});
 		const orderedRows = prioritizedLeadView
 			? [...fitRows].sort((left, right) => {
 					const rightRank = companyPriorityRank(right);
@@ -982,6 +986,14 @@ function applyRecordExclusions(
 ) {
 	if (companyName && isLowQualityCompanyName(companyName)) {
 		return { ...lead, fit: "NO_FIT" as const };
+	}
+	if (description?.includes("Lead legado: pendiente de reprocesamiento")) {
+		return {
+			...lead,
+			fit: "NO_FIT" as const,
+			stage: "DISQUALIFIED",
+			recommendedOffer: null,
+		};
 	}
 	if (hasCompleteExistingStack(description)) {
 		return {
