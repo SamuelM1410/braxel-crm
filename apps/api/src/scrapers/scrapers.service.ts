@@ -82,7 +82,8 @@ export class ScrapersService {
 			},
 			data: {
 				status: "FAILED",
-				error: "La ejecución excedió el tiempo máximo y se detuvo sin importar datos.",
+				error:
+					"La ejecución excedió el tiempo máximo y se detuvo sin importar datos.",
 				finishedAt,
 			},
 		});
@@ -639,13 +640,19 @@ function firstString(row: Candidate, keys: string[]) {
 }
 
 function campaignIndustry(query: string) {
-	return query.trim() === CURRENT_DISCOVERY_CAMPAIGN
-		? CURRENT_CAMPAIGN_INDUSTRY
-		: null;
+	return isFootballCampaign(query) ? CURRENT_CAMPAIGN_INDUSTRY : null;
 }
 
 function isFootballCampaign(query: string) {
-	return query.trim() === CURRENT_DISCOVERY_CAMPAIGN;
+	const normalized = query
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+	return (
+		/(futbol|camiseta|uniforme|ropa deportiva|tienda deportiva|soccer|jersey)/i.test(
+			normalized,
+		) && /\b(sin|no|sin pagina|sin web|sin sitio|no tienen)/i.test(normalized)
+	);
 }
 
 function discoveryQueries(query: string) {
@@ -666,26 +673,54 @@ function sameCandidate(left: Candidate, right: Candidate) {
 	const rightName = firstString(right, ["company_name", "name"])?.toLowerCase();
 	const leftPhone = firstString(left, ["phone"]);
 	const rightPhone = firstString(right, ["phone"]);
-	return Boolean(leftName && leftName === rightName && leftPhone === rightPhone);
+	return Boolean(
+		leftName && leftName === rightName && leftPhone === rightPhone,
+	);
 }
 
 function isFootballApparelOpportunity(candidate: Candidate) {
-	const phone = normalizePhone(firstString(candidate, ["phone"]));
-	if (!phone || !/^\+573\d{9}$/.test(phone)) return false;
-	const website = firstUrl(candidate, ["website", "websiteUri", "website_url"]);
-	if (!website) return true;
-	try {
-		const hostname = new URL(website).hostname.toLowerCase();
-		return [
-			"facebook.com",
-			"instagram.com",
-			"tiktok.com",
-			"wa.me",
-			"whatsapp.com",
-		].some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
-	} catch {
-		return false;
-	}
+	// Do not make a Colombian phone a prerequisite for discovery. Google/Maps
+	// often returns a business with no phone even though its WhatsApp is only
+	// visible on Instagram, Facebook or after a human review. The campaign must
+	// surface those no-website candidates instead of returning an empty batch.
+	const website = firstUrl(candidate, [
+		"website",
+		"websiteUri",
+		"website_url",
+		"owned_website",
+	]);
+	const socialOnlyUrl = Boolean(website && isSocialOrMessagingUrl(website));
+	if (website && !socialOnlyUrl) return false;
+
+	const text = [
+		firstString(candidate, ["company_name", "name", "displayName"]),
+		firstString(candidate, ["category", "industry", "niche"]),
+		...(Array.isArray(candidate.categories)
+			? candidate.categories.filter(
+					(item): item is string => typeof item === "string",
+				)
+			: []),
+	]
+		.filter(Boolean)
+		.join(" ");
+	const footballSignal =
+		/f[uú]tbol|camiseta|uniforme|deportiv|soccer|jersey|tienda de ropa/i.test(
+			text,
+		);
+	const phone = normalizePhone(
+		firstString(candidate, [
+			"phone",
+			"contact_phone",
+			"phone_number",
+			"nationalPhoneNumber",
+			"internationalPhoneNumber",
+		]),
+	);
+	const colombianPhone = Boolean(phone && /^\+573\d{9}$/.test(phone));
+
+	// The discovery query is already campaign-scoped. A missing phone is a
+	// review signal, not a reason to hide the company from the user.
+	return Boolean(!website || socialOnlyUrl || footballSignal || colombianPhone);
 }
 
 function isSocialOrMessagingUrl(value: string) {
@@ -746,15 +781,23 @@ function normalizeDiscoveryCandidate(row: Candidate): Candidate {
 			]) ??
 			displayName ??
 			"Candidato sin nombre",
-		website: firstUrl(row, ["website", "websiteUri", "website_url", "url"]),
+		// `url` in Maps-like payloads is commonly the place/profile URL, not an
+		// owned website. Treat only explicit website fields as a domain signal.
+		website: firstUrl(row, ["website", "websiteUri", "website_url"]),
 		phone: normalizePhone(
 			firstString(row, [
 				"phone",
+				"contact_phone",
 				"phone_number",
 				"nationalPhoneNumber",
 				"internationalPhoneNumber",
 			]),
 		),
+		categories: Array.isArray(row.categories)
+			? row.categories
+			: Array.isArray(row.types)
+				? row.types
+				: [],
 		city: firstString(row, ["city", "formattedAddress", "address", "location"]),
 		source_url: firstUrl(row, [
 			"source_url",

@@ -7,14 +7,45 @@ import { Textarea } from "@crm/ui/components/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 
-function buildWhatsAppMessage(companyName: string): string {
-	return `Hola, ${companyName}. Soy Samuel, de Braxel 👋 Ayudamos a tiendas online a mejorar su página y recuperar ventas cuando un cliente deja el carrito, usando automatizaciones por WhatsApp. Una pregunta rápida: ¿ustedes venden online actualmente?`;
+function buildWhatsAppMessage({
+	companyName,
+	industry,
+	website,
+}: {
+	companyName: string;
+	industry: string | null;
+	website: string | null;
+}): string {
+	const sports = /f[uú]tbol|deport|camiseta|uniforme|soccer|sport/i.test(
+		`${industry ?? ""} ${companyName}`,
+	);
+	if (!website) {
+		return sports
+			? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando cómo aparece el negocio y no encontré una página web propia para mostrar el catálogo y recibir pedidos. Para una marca deportiva eso puede hacer que parte del interés se quede solo en WhatsApp o Instagram. ¿Hoy reciben los pedidos únicamente por esos canales?`
+			: `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia online del negocio y no encontré una página web propia donde explicar la oferta y recibir solicitudes. ¿Hoy los clientes llegan principalmente por WhatsApp, redes sociales o recomendaciones?`;
+	}
+	return `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé su presencia online y vi una oportunidad concreta para que la página convierta mejor las visitas en consultas o pedidos. Antes de compartirte una idea específica, ¿qué parte quieren mejorar primero: catálogo, solicitudes o ventas?`;
 }
 
-function buildEmail(companyName: string): { subject: string; body: string } {
+function buildEmail({
+	companyName,
+	industry,
+	website,
+}: {
+	companyName: string;
+	industry: string | null;
+	website: string | null;
+}): { subject: string; body: string } {
+	const noWebsite = !website;
+	const subject = noWebsite
+		? `Una idea para que ${companyName} reciba más pedidos online`
+		: `Una observación sobre la web de ${companyName}`;
+	const observation = noWebsite
+		? `Estuve revisando la presencia pública de ${companyName} y no encontré una página web propia. Para negocios${industry ? ` de ${industry.toLowerCase()}` : ""}, una página sencilla puede reunir catálogo, confianza y pedidos en un solo lugar.`
+		: `Estuve revisando la presencia pública de ${companyName} y vi una oportunidad concreta para mejorar el recorrido desde la visita hasta la consulta o el pedido.`;
 	return {
-		subject: `Una idea para recuperar ventas en ${companyName}`,
-		body: `Hola,\n\nSoy Samuel, de Braxel. Ayudamos a tiendas online a mejorar la página para convertir mejor y a recuperar ventas cuando alguien deja un carrito pendiente mediante automatizaciones por WhatsApp.\n\n¿Ustedes venden online actualmente? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
+		subject,
+		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\nNo quiero enviarte una propuesta genérica. ¿Hoy reciben pedidos principalmente por WhatsApp/redes, o ya tienen un canal web que quieran mejorar? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
 	};
 }
 
@@ -92,19 +123,23 @@ async function copyText(text: string, label: string): Promise<void> {
 
 export function OutreachCopyKit({
 	companyName,
+	industry,
+	website,
 	whatsappUrl,
 	phone,
 	email,
 }: {
 	companyName: string;
+	industry: string | null;
+	website: string | null;
 	whatsappUrl: string | null;
 	phone: string | null;
 	email: string | null;
 }) {
 	// Keep the copy-ready drafts visible as soon as a company is opened.
 	const [expanded, setExpanded] = useState(true);
-	const whatsapp = buildWhatsAppMessage(companyName);
-	const emailDraft = buildEmail(companyName);
+	const whatsapp = buildWhatsAppMessage({ companyName, industry, website });
+	const emailDraft = buildEmail({ companyName, industry, website });
 	const whatsappDestination = whatsappUrl?.trim() || phone?.trim() || "";
 	const whatsappHref = whatsappChatUrl(whatsappDestination, whatsapp);
 	const whatsappWebHref = whatsappWebUrl(whatsappDestination, whatsapp);

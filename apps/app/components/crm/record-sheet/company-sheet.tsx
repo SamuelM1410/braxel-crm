@@ -375,6 +375,8 @@ function CompanyOverview({ company }: { company: Company }) {
 					<DetailSheetSection title="Seguimiento comercial">
 						<OutreachCopyKit
 							companyName={company.name}
+							industry={company.industry}
+							website={company.website}
 							whatsappUrl={company.whatsappUrl}
 							phone={company.phone}
 							email={company.email ?? company.primaryContact?.email ?? null}

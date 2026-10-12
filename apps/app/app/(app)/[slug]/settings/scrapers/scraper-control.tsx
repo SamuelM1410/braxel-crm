@@ -262,6 +262,26 @@ function RunResult({
 	onImport: () => void;
 }) {
 	const rows = Array.isArray(run.results) ? run.results : [];
+	const links = rows
+		.flatMap((row) => {
+			if (!row || typeof row !== "object") return [];
+			const value = row as Record<string, unknown>;
+			return Object.entries(value)
+				.filter(
+					([key, item]) =>
+						/url|link|website|whatsapp|instagram|facebook|tiktok|linkedin/i.test(
+							key,
+						) &&
+						typeof item === "string" &&
+						/^https?:\/\//i.test(item),
+				)
+				.map(([key, item]) => ({ key, url: String(item) }));
+		})
+		.filter(
+			(item, index, all) =>
+				all.findIndex((candidate) => candidate.url === item.url) === index,
+		)
+		.slice(0, 40);
 	return (
 		<Card>
 			<CardHeader>
@@ -271,6 +291,24 @@ function RunResult({
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
+				{links.length ? (
+					<div className="rounded-md border p-3 text-sm">
+						<p className="mb-2 font-medium">Enlaces públicos encontrados</p>
+						<div className="grid gap-1 sm:grid-cols-2">
+							{links.map((item) => (
+								<a
+									key={item.url}
+									href={item.url}
+									target="_blank"
+									rel="noreferrer"
+									className="truncate text-primary underline underline-offset-2"
+								>
+									{item.key}: {item.url}
+								</a>
+							))}
+						</div>
+					</div>
+				) : null}
 				<div className="max-h-80 overflow-auto rounded-md border p-3 font-mono text-xs">
 					{rows.length ? (
 						rows.slice(0, 20).map((row) => (

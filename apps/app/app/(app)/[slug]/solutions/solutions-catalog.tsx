@@ -32,6 +32,36 @@ type Solution = {
 	complexity: "Sencillo" | "Intermedio";
 };
 
+const VIDEO_REFERENCES = [
+	{
+		title: "Funnel de +6 cifras",
+		url: "https://www.youtube.com/watch?v=0iJ8jOhJxnA&t=14s",
+		lesson: "Oferta concreta, etapas medibles y un cuello de botella por vez.",
+	},
+	{
+		title: "Empresa AI-first",
+		url: "https://www.youtube.com/watch?v=AL7KyOfq4MQ&t=2s",
+		lesson:
+			"Centralizar contexto y automatizar tareas repetitivas sin vender el CRM.",
+	},
+	{
+		title: "Vender webs sin llamar",
+		url: "https://www.youtube.com/watch?v=vGfIOPIkogg&t=23s",
+		lesson:
+			"Mostrar una evidencia específica antes de presentar una propuesta.",
+	},
+	{
+		title: "Hacer webs no es el negocio",
+		url: "https://www.youtube.com/watch?v=UXKXNQ3OBj8",
+		lesson: "Vender el problema resuelto: captación, reservas o conversión.",
+	},
+	{
+		title: "Oferta B2B high-ticket",
+		url: "https://www.youtube.com/watch?v=9_u1LNFsKv0",
+		lesson: "Conectar segmento, fuga, mecanismo y resultado verificable.",
+	},
+] as const;
+
 const SOLUTIONS: Solution[] = [
 	{
 		id: "websites",
@@ -214,6 +244,59 @@ export function SolutionsCatalog() {
 					</CardContent>
 				</Card>
 			) : null}
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Playbook aplicado: tiendas deportivas</CardTitle>
+					<CardDescription>
+						Campaña actual para marcas de camisetas y ropa deportiva sin web
+						propia. La propuesta se adapta a la evidencia del negocio; no se
+						envía nada desde esta pantalla.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+					<div className="space-y-2 text-sm">
+						<p className="font-medium">Implementación en Braxel</p>
+						<ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+							<li>
+								Priorizar marcas con WhatsApp público y sin dominio propio.
+							</li>
+							<li>
+								Guardar una evidencia concreta: catálogo, checkout, CTA o canal
+								de contacto.
+							</li>
+							<li>
+								Ofrecer primero una mejora web/ecommerce; mencionar recompra
+								solo si venden online.
+							</li>
+							<li>
+								Medir respuesta, diagnóstico, agenda, propuesta y cierre antes
+								de aumentar volumen.
+							</li>
+						</ul>
+					</div>
+					<div className="space-y-2 text-sm">
+						<p className="font-medium">Videos de referencia</p>
+						<div className="space-y-2">
+							{VIDEO_REFERENCES.map((video) => (
+								<div key={video.url} className="rounded-md border p-2">
+									<a
+										href={video.url}
+										target="_blank"
+										rel="noreferrer"
+										className="font-medium text-primary underline underline-offset-2"
+									>
+										{video.title}
+									</a>
+									<p className="mt-1 text-muted-foreground text-xs">
+										{video.lesson}
+									</p>
+								</div>
+							))}
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

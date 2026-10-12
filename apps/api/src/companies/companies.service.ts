@@ -363,6 +363,7 @@ export class CompaniesService {
 
 	/** Channel coverage for the workspace's company records. */
 	async coverage() {
+		const sanitized = await this.sanitizeStoredChannels();
 		const [
 			total,
 			phone,
@@ -391,6 +392,7 @@ export class CompaniesService {
 		const percentage = (count: number) =>
 			total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
 		return {
+			sanitized,
 			total,
 			phone: { count: phone, percentage: percentage(phone) },
 			whatsappUrl: { count: whatsappUrl, percentage: percentage(whatsappUrl) },
@@ -404,6 +406,64 @@ export class CompaniesService {
 			tiktok: { count: tiktok, percentage: percentage(tiktok) },
 			linkedin: { count: linkedin, percentage: percentage(linkedin) },
 		};
+	}
+
+	/**
+	 * Repair records imported before the phone validation gate existed. This is
+	 * deliberately idempotent and only clears invalid contact data; it never
+	 * deletes a company, contact, or any valid number.
+	 */
+	private async sanitizeStoredChannels() {
+		const [companies, contacts] = await Promise.all([
+			this.db.company.findMany({
+				where: {
+					OR: [{ phone: { not: null } }, { whatsappUrl: { not: null } }],
+				},
+				select: { id: true, phone: true, whatsappUrl: true },
+			}),
+			this.db.contact.findMany({
+				where: {
+					OR: [{ phone: { not: null } }, { whatsappUrl: { not: null } }],
+				},
+				select: { id: true, phone: true, whatsappUrl: true },
+			}),
+		]);
+
+		let companiesUpdated = 0;
+		let contactsUpdated = 0;
+		await this.db.$transaction(async (tx) => {
+			for (const company of companies) {
+				const phone = normalizePhone(company.phone);
+				const whatsappUrl = normalizeWhatsAppUrl(company.whatsappUrl);
+				if (phone === company.phone && whatsappUrl === company.whatsappUrl)
+					continue;
+				await tx.company.update({
+					where: { id: company.id },
+					data: { phone, whatsappUrl },
+				});
+				companiesUpdated += 1;
+			}
+			for (const contact of contacts) {
+				const phone = normalizePhone(contact.phone);
+				const whatsappUrl = normalizeWhatsAppUrl(contact.whatsappUrl);
+				if (phone === contact.phone && whatsappUrl === contact.whatsappUrl)
+					continue;
+				await tx.contact.update({
+					where: { id: contact.id },
+					data: { phone, whatsappUrl },
+				});
+				contactsUpdated += 1;
+			}
+		});
+
+		if (companiesUpdated || contactsUpdated) {
+			this.logger.log({
+				message: "Sanitized stored contact channels",
+				companiesUpdated,
+				contactsUpdated,
+			});
+		}
+		return { companiesUpdated, contactsUpdated };
 	}
 
 	async create(input: CompanyCreateInput) {
