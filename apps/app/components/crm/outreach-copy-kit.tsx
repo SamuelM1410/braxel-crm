@@ -168,11 +168,12 @@ export function OutreachCopyKit({
 		website,
 		description,
 	});
-	const whatsappDestination = whatsappUrl?.trim() || phone?.trim() || "";
+	// A phone-shaped value is not proof that the line is registered on
+	// WhatsApp. Only an explicit wa.me/WhatsApp URL enables WhatsApp actions.
+	const whatsappDestination = whatsappUrl?.trim() || "";
 	const whatsappHref = whatsappChatUrl(whatsappDestination, whatsapp);
 	const whatsappWebHref = whatsappWebUrl(whatsappDestination, whatsapp);
 	const hasWhatsApp = Boolean(whatsappHref);
-	const usingPhoneFallback = !whatsappUrl?.trim() && Boolean(phone?.trim());
 	const hasEmail = Boolean(email?.trim());
 	const gmailHref = hasEmail
 		? gmailComposeUrl(email?.trim() ?? "", emailDraft)
@@ -252,11 +253,9 @@ export function OutreachCopyKit({
 						<Textarea value={whatsapp} readOnly className="min-h-24 text-xs" />
 						{!hasWhatsApp ? (
 							<p className="mt-1 text-muted-foreground text-xs">
-								Añade el WhatsApp de la empresa para habilitar este botón.
-							</p>
-						) : usingPhoneFallback ? (
-							<p className="mt-1 text-muted-foreground text-xs">
-								Se usará el teléfono guardado con el código de país de Colombia.
+								{phone
+									? "Hay un teléfono para llamada, pero no un enlace WhatsApp verificado; no se tratará como WhatsApp."
+									: "No hay un enlace WhatsApp verificado para este lead."}
 							</p>
 						) : null}
 					</div>

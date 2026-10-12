@@ -974,7 +974,9 @@ function leadOsListMeta(
 function applyRecordExclusions(lead: LeadOsListMeta, companyName?: string) {
 	if (
 		companyName &&
-		/\b(?:prueba|test|demo|sandbox|no contactar)\b/i.test(companyName)
+		/\b(?:prueba|test|demo|sandbox|no contactar|tiktok|instagram|facebook|youtube|google maps|make your day)\b/i.test(
+			companyName,
+		)
 	) {
 		return { ...lead, fit: "NO_FIT" as const };
 	}

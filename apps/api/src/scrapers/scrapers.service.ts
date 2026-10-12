@@ -376,7 +376,9 @@ export class ScrapersService {
 		query: string,
 		limit: number,
 	): Promise<Candidate[]> {
-		const discovered = await this.discoverCandidates(query, limit);
+		const discovered = (await this.discoverCandidates(query, limit)).filter(
+			(candidate) => !isDiscoveryNoiseCandidate(candidate),
+		);
 		if (!discovered.length)
 			throw new Error(
 				`La fuente de descubrimiento no devolvió candidatos para “${query}”.`,
@@ -428,6 +430,7 @@ export class ScrapersService {
 				Math.min(20, remaining),
 			);
 			for (const candidate of discovered) {
+				if (isDiscoveryNoiseCandidate(candidate)) continue;
 				if (!candidates.some((item) => sameCandidate(item, candidate))) {
 					candidates.push(candidate);
 				}
@@ -669,12 +672,45 @@ function sameCandidate(left: Candidate, right: Candidate) {
 	const leftId = firstString(left, ["id"]);
 	const rightId = firstString(right, ["id"]);
 	if (leftId && rightId) return leftId === rightId;
-	const leftName = firstString(left, ["company_name", "name"])?.toLowerCase();
-	const rightName = firstString(right, ["company_name", "name"])?.toLowerCase();
+	const leftName = comparableName(firstString(left, ["company_name", "name"]));
+	const rightName = comparableName(
+		firstString(right, ["company_name", "name"]),
+	);
 	const leftPhone = firstString(left, ["phone"]);
 	const rightPhone = firstString(right, ["phone"]);
 	return Boolean(
 		leftName && leftName === rightName && leftPhone === rightPhone,
+	);
+}
+
+function comparableName(value: string | null) {
+	return value
+		?.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/\b(tiktok|instagram|facebook|youtube)\b.*$/i, "")
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim();
+}
+
+function isDiscoveryNoiseCandidate(candidate: Candidate) {
+	const name = firstString(candidate, [
+		"company_name",
+		"companyName",
+		"business_name",
+		"businessName",
+		"name",
+		"displayName",
+	]);
+	const category = firstString(candidate, ["category", "industry", "niche"]);
+	const text = `${name ?? ""} ${category ?? ""}`.toLowerCase();
+	return (
+		/\b(tiktok|instagram|facebook|youtube|google maps|make your day|official app|support center)\b/i.test(
+			text,
+		) ||
+		/^(sin nombre|candidato sin nombre|untitled|test|demo)$/i.test(
+			name?.trim() ?? "",
+		)
 	);
 }
 
@@ -707,6 +743,7 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 		/f[uú]tbol|camiseta|uniforme|deportiv|soccer|jersey|tienda de ropa/i.test(
 			text,
 		);
+	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;
 	const phone = normalizePhone(
 		firstString(candidate, [
 			"phone",
@@ -718,9 +755,9 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 	);
 	const colombianPhone = Boolean(phone && /^\+573\d{9}$/.test(phone));
 
-	// The discovery query is already campaign-scoped. A missing phone is a
-	// review signal, not a reason to hide the company from the user.
-	return Boolean(!website || socialOnlyUrl || footballSignal || colombianPhone);
+	// A missing phone is a review signal, not a reason to hide a real business,
+	// but campaign membership must still be supported by an industry signal.
+	return Boolean(!website || socialOnlyUrl || colombianPhone || footballSignal);
 }
 
 function isSocialOrMessagingUrl(value: string) {
@@ -853,20 +890,16 @@ function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 			"whatsapp",
 			"whatsapp_number",
 		]);
-	if (!value) return null;
-	if (/^https?:\/\//i.test(value)) {
-		try {
-			const url = new URL(value);
-			const host = url.hostname.toLowerCase();
-			return host === "wa.me" || host.endsWith(".whatsapp.com")
-				? url.toString()
-				: null;
-		} catch {
-			return null;
-		}
+	if (!value || !/^https?:\/\//i.test(value)) return null;
+	try {
+		const url = new URL(value);
+		const host = url.hostname.toLowerCase();
+		return host === "wa.me" || host.endsWith(".whatsapp.com")
+			? url.toString()
+			: null;
+	} catch {
+		return null;
 	}
-	const normalized = normalizePhone(value);
-	return normalized ? `https://wa.me/${normalized.replace(/\D/g, "")}` : null;
 }
 
 function firstEmail(row: Candidate, keys: string[]) {
