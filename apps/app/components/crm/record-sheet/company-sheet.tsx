@@ -377,6 +377,7 @@ function CompanyOverview({ company }: { company: Company }) {
 							companyName={company.name}
 							industry={company.industry}
 							website={company.website}
+							description={company.description}
 							whatsappUrl={company.whatsappUrl}
 							phone={company.phone}
 							email={company.email ?? company.primaryContact?.email ?? null}

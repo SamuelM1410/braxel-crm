@@ -11,42 +11,59 @@ function buildWhatsAppMessage({
 	companyName,
 	industry,
 	website,
+	description,
 }: {
 	companyName: string;
 	industry: string | null;
 	website: string | null;
+	description: string | null;
 }): string {
 	const sports = /f[uú]tbol|deport|camiseta|uniforme|soccer|sport/i.test(
 		`${industry ?? ""} ${companyName}`,
 	);
-	if (!website) {
-		return sports
-			? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando cómo aparece el negocio y no encontré una página web propia para mostrar el catálogo y recibir pedidos. Para una marca deportiva eso puede hacer que parte del interés se quede solo en WhatsApp o Instagram. ¿Hoy reciben los pedidos únicamente por esos canales?`
-			: `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia online del negocio y no encontré una página web propia donde explicar la oferta y recibir solicitudes. ¿Hoy los clientes llegan principalmente por WhatsApp, redes sociales o recomendaciones?`;
+	const websiteEvidence = hasWebsiteEvidence(website, description);
+	if (websiteEvidence) {
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen presencia web y no quiero ofrecerte algo que ya resolvieron. Trabajamos mejoras de conversión y una automatización de WhatsApp para recuperar carritos abandonados y volver a activar a quienes mostraron interés. ¿Hoy tienen identificado cuántas ventas se quedan a medias por carritos abandonados?`;
 	}
-	return `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé su presencia online y vi una oportunidad concreta para que la página convierta mejor las visitas en consultas o pedidos. Antes de compartirte una idea específica, ¿qué parte quieren mejorar primero: catálogo, solicitudes o ventas?`;
+	return sports
+		? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia pública de la marca, pero no quiero asumir que no tienen página: desde esta ficha no pude confirmar cuál es el sitio oficial. ¿Los pedidos los gestionan principalmente por WhatsApp/Instagram o tienen una tienda online que quieran hacer convertir mejor?`
+		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la presencia pública del negocio, pero no quiero asumir qué canal les conviene sin conocer el proceso actual. ¿Hoy reciben más solicitudes por WhatsApp, redes, email o por una página web?`;
 }
 
 function buildEmail({
 	companyName,
-	industry,
 	website,
+	description,
 }: {
 	companyName: string;
-	industry: string | null;
 	website: string | null;
+	description: string | null;
 }): { subject: string; body: string } {
-	const noWebsite = !website;
-	const subject = noWebsite
-		? `Una idea para que ${companyName} reciba más pedidos online`
-		: `Una observación sobre la web de ${companyName}`;
-	const observation = noWebsite
-		? `Estuve revisando la presencia pública de ${companyName} y no encontré una página web propia. Para negocios${industry ? ` de ${industry.toLowerCase()}` : ""}, una página sencilla puede reunir catálogo, confianza y pedidos en un solo lugar.`
-		: `Estuve revisando la presencia pública de ${companyName} y vi una oportunidad concreta para mejorar el recorrido desde la visita hasta la consulta o el pedido.`;
+	const websiteEvidence = hasWebsiteEvidence(website, description);
+	const subject = websiteEvidence
+		? `Una idea para recuperar carritos en ${companyName}`
+		: `Una pregunta sobre el canal de ventas de ${companyName}`;
+	const observation = websiteEvidence
+		? `Estuve revisando la presencia pública de ${companyName} y vi que ya cuentan con presencia web. Por eso no quiero proponerte una página nueva: la oportunidad podría estar en mejorar la conversión y recuperar carritos abandonados mediante WhatsApp.`
+		: `Estuve revisando la presencia pública de ${companyName}, pero no pude confirmar desde esta ficha cuál es el sitio oficial ni cómo está organizado el proceso de pedidos. No quiero enviarte una propuesta genérica.`;
 	return {
 		subject,
-		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\nNo quiero enviarte una propuesta genérica. ¿Hoy reciben pedidos principalmente por WhatsApp/redes, o ya tienen un canal web que quieran mejorar? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
+		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\n¿Hoy el principal reto está en atraer solicitudes, convertir mejor las visitas o recuperar personas que dejan el carrito a medias? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
 	};
+}
+
+function hasWebsiteEvidence(
+	website: string | null,
+	description: string | null,
+): boolean {
+	if (website?.trim()) return true;
+	const text = description ?? "";
+	// Intake stores the research dossier in the description. Treat an explicit
+	// owned website or a URL in that dossier as evidence; otherwise remain
+	// agnostic instead of making a false "no website" claim.
+	return /"owned_website"\s*:\s*true|"website_url"\s*:\s*"https?:\/\//i.test(
+		text,
+	);
 }
 
 function whatsappChatUrl(destination: string, message: string): string | null {
@@ -125,6 +142,7 @@ export function OutreachCopyKit({
 	companyName,
 	industry,
 	website,
+	description,
 	whatsappUrl,
 	phone,
 	email,
@@ -132,14 +150,24 @@ export function OutreachCopyKit({
 	companyName: string;
 	industry: string | null;
 	website: string | null;
+	description: string | null;
 	whatsappUrl: string | null;
 	phone: string | null;
 	email: string | null;
 }) {
 	// Keep the copy-ready drafts visible as soon as a company is opened.
 	const [expanded, setExpanded] = useState(true);
-	const whatsapp = buildWhatsAppMessage({ companyName, industry, website });
-	const emailDraft = buildEmail({ companyName, industry, website });
+	const whatsapp = buildWhatsAppMessage({
+		companyName,
+		industry,
+		website,
+		description,
+	});
+	const emailDraft = buildEmail({
+		companyName,
+		website,
+		description,
+	});
 	const whatsappDestination = whatsappUrl?.trim() || phone?.trim() || "";
 	const whatsappHref = whatsappChatUrl(whatsappDestination, whatsapp);
 	const whatsappWebHref = whatsappWebUrl(whatsappDestination, whatsapp);
