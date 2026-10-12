@@ -26,8 +26,8 @@ function buildWhatsAppMessage({
 		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen presencia web y no quiero ofrecerte algo que ya resolvieron. Trabajamos mejoras de conversión y una automatización de WhatsApp para recuperar carritos abandonados y volver a activar a quienes mostraron interés. ¿Hoy tienen identificado cuántas ventas se quedan a medias por carritos abandonados?`;
 	}
 	return sports
-		? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia pública de la marca, pero no quiero asumir que no tienen página: desde esta ficha no pude confirmar cuál es el sitio oficial. ¿Los pedidos los gestionan principalmente por WhatsApp/Instagram o tienen una tienda online que quieran hacer convertir mejor?`
-		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la presencia pública del negocio, pero no quiero asumir qué canal les conviene sin conocer el proceso actual. ¿Hoy reciben más solicitudes por WhatsApp, redes, email o por una página web?`;
+		? `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando la presencia online de la marca y vi una oportunidad para convertir mejor el interés en pedidos. Trabajamos optimización de tiendas y una automatización de WhatsApp para recuperar carritos abandonados. ¿Hoy tienen medido cuántas personas preguntan y luego no terminan comprando?`
+		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la presencia online del negocio y vi una oportunidad para mejorar el paso de interés a solicitud o compra. ¿Hoy el mayor reto está en atraer consultas, convertirlas o recuperar oportunidades que se quedan a medias?`;
 }
 
 function buildEmail({
@@ -45,7 +45,7 @@ function buildEmail({
 		: `Una pregunta sobre el canal de ventas de ${companyName}`;
 	const observation = websiteEvidence
 		? `Estuve revisando la presencia pública de ${companyName} y vi que ya cuentan con presencia web. Por eso no quiero proponerte una página nueva: la oportunidad podría estar en mejorar la conversión y recuperar carritos abandonados mediante WhatsApp.`
-		: `Estuve revisando la presencia pública de ${companyName}, pero no pude confirmar desde esta ficha cuál es el sitio oficial ni cómo está organizado el proceso de pedidos. No quiero enviarte una propuesta genérica.`;
+		: `Estuve revisando la presencia online de ${companyName} y vi una oportunidad para mejorar el paso de interés a pedido. No quiero enviarte una propuesta genérica: primero quiero entender dónde se quedan las oportunidades.`;
 	return {
 		subject,
 		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\n¿Hoy el principal reto está en atraer solicitudes, convertir mejor las visitas o recuperar personas que dejan el carrito a medias? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
