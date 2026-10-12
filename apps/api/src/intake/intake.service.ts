@@ -77,8 +77,11 @@ export class IntakeService {
 						select: { id: true },
 					})
 				: null;
-			const safeDomain =
-				domainOwner && domainOwner.id !== existing?.id ? null : domain;
+			const safeDomain = lead.sourceId.startsWith("scraper:")
+				? null
+				: domainOwner && domainOwner.id !== existing?.id
+					? null
+					: domain;
 
 			return existing
 				? tx.company.update({
@@ -88,7 +91,7 @@ export class IntakeService {
 				: tx.company.create({
 						data: {
 							name: lead.companyName,
-							domain,
+							domain: safeDomain,
 							website: clean(lead.websiteUrl),
 							city: clean(lead.city),
 							industry: clean(lead.niche),
