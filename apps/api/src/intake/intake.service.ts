@@ -67,7 +67,7 @@ export class IntakeService {
 						}));
 			const existing =
 				exactMatch ??
-				(!domain && lead.sourceId.startsWith("scraper:") && phone
+				(lead.sourceId.startsWith("scraper:") && phone
 					? await tx.company.findFirst({ where: { phone } })
 					: null);
 			if (!existing && lead.updateOnly) return null;
