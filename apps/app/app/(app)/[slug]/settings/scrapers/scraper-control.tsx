@@ -156,9 +156,10 @@ export function ScraperControl() {
 							</Button>
 						</form>
 						<p className="mt-3 text-muted-foreground text-xs">
-							Solo se priorizan marcas de ropa de fútbol sin página propia y con
-							WhatsApp comercial. Los demás candidatos quedan en revisión y con
-							“No contactar” activo.
+							Se priorizan marcas de ropa de fútbol con una brecha comprobable:
+							sin web, con ecommerce sin automatización de WhatsApp/carrito, o
+							con presencia solo en Instagram/TikTok. Los negocios que ya tienen
+							todo resuelto quedan fuera de la cola de contacto.
 						</p>
 					</CardContent>
 				</Card>
