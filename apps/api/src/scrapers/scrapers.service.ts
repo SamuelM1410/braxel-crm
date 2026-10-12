@@ -760,14 +760,11 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 	const hasCheckout = hasCheckoutEvidence(candidate);
 	const hasAutomation = hasWhatsAppAutomationEvidence(candidate);
 
-	// Exclude the exact failure mode reported by the user (Pro Champions,
-	// Millonarios, etc.): owned site + real commerce/checkout + WhatsApp. There
-	// is no honest first offer for that lead in the current catalogue.
-	if (
-		hasWhatsApp &&
-		(hasCommerce || hasCheckout) &&
-		(hasAutomation || hasCheckout)
-	)
+	// Exclude only the exact failure mode reported by the user (Pro Champions,
+	// Millonarios, etc.): owned site + real commerce/checkout + explicit evidence
+	// that WhatsApp/cart automation is already running. A store with ecommerce,
+	// WhatsApp and no automation evidence is still a valid cart-recovery lead.
+	if (hasWhatsApp && (hasCommerce || hasCheckout) && hasAutomation)
 		return false;
 
 	// A website is not automatically disqualifying. Keep a real gap for a CRO,
