@@ -678,10 +678,7 @@ function isFootballCampaign(query: string) {
 	return (
 		/(futbol|camiseta|uniforme|ropa deportiva|tienda deportiva|soccer|jersey)/i.test(
 			normalized,
-		) &&
-		/\b(sin|no|sin pagina|sin web|sin sitio|no tienen|brecha|oportunidad)/i.test(
-			normalized,
-		)
+		) && !/\b(agencia|marketing digital)\b/i.test(normalized)
 	);
 }
 
