@@ -59,7 +59,7 @@ function WhatsAppSentButton({ row }: { row: CompanyRow }) {
 	].includes(row.salesStage);
 
 	const onClick = async (event: MouseEvent<HTMLButtonElement>) => {
-		e.stopPropagation();
+		event.stopPropagation();
 		if (alreadySent || createActivity.isPending || updateCompany.isPending) return;
 		try {
 			await createActivity.mutateAsync({
