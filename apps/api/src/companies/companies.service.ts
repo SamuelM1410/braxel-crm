@@ -78,6 +78,7 @@ export type CompanyRow = {
 	contactCount: number;
 	openDealCount: number;
 	lastActivityAt: string | null;
+	salesStage: string;
 	createdAt: string;
 	fields: Record<string, string | number | boolean | null>;
 	leadOs: LeadOsListMeta | null;
@@ -171,6 +172,7 @@ export class CompaniesService {
 						},
 					},
 					lastActivityAt: true,
+					salesStage: true,
 					createdAt: true,
 				},
 			}),
@@ -179,6 +181,15 @@ export class CompaniesService {
 		]);
 
 		const fitRows = rows.filter((row) => {
+			// A manual WhatsApp send removes the company from the default
+			// "possible leads" queue. It remains visible through fit=all and
+			// keeps its follow-up stage for later work.
+			if (
+				input.fit === "strong" &&
+				["FOLLOW_UP_ACTIVE", "INTERESTED", "QUALIFIED", "PROPOSAL_SENT", "CLOSING_CALL_BOOKED", "PAYMENT_PENDING", "WON", "LOST", "PAUSED"].includes(row.salesStage)
+			) {
+				return false;
+			}
 			if (isLowQualityCompanyName(row.name)) return false;
 			const lead = leadOsListMeta(row.description, row.name);
 			// Never show rejected/disqualified/stale scraper records in the default
@@ -222,6 +233,7 @@ export class CompaniesService {
 				contactCount: row._count.contacts,
 				openDealCount: row._count.deals,
 				lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
+				salesStage: row.salesStage,
 				createdAt: row.createdAt.toISOString(),
 				fields: tableFields.get(row.id) ?? {},
 				leadOs: leadOsListMeta(row.description, row.name),

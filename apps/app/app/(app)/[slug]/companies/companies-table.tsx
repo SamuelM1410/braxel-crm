@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@crm/ui/components/badge";
+import { Button } from "@crm/ui/components/button";
 import { Card, CardContent } from "@crm/ui/components/card";
 import {
 	DataTable,
@@ -13,8 +14,9 @@ import {
 	type EntityLogoTone,
 } from "@crm/ui/components/entity-logo";
 import { useTableSelection } from "@crm/ui/hooks/use-table-selection";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { type MouseEvent, useMemo } from "react";
+import { toast } from "sonner";
 import { EnrichmentIndicator } from "@/components/crm/enrichment-status";
 import { useFieldColumns } from "@/components/crm/fields/field-columns";
 import { OwnerCell } from "@/components/crm/owner-cell";
@@ -29,6 +31,7 @@ import {
 	isEnriching,
 } from "@/lib/enrichment-status";
 import { useTRPC } from "@/lib/trpc/client";
+import { useCrmCache } from "@/lib/trpc/cache";
 import type { RouterOutputs } from "@/lib/trpc/types";
 import { CompaniesBulkActions } from "./companies-bulk-actions";
 import {
@@ -38,7 +41,65 @@ import {
 
 type CompanyRow = RouterOutputs["companies"]["list"]["rows"][number];
 
+function WhatsAppSentButton({ row }: { row: CompanyRow }) {
+	const trpc = useTRPC();
+	const cache = useCrmCache();
+	const createActivity = useMutation(trpc.activities.create.mutationOptions());
+	const updateCompany = useMutation(trpc.companies.update.mutationOptions());
+	const alreadySent = [
+		"FOLLOW_UP_ACTIVE",
+		"INTERESTED",
+		"QUALIFIED",
+		"PROPOSAL_SENT",
+		"CLOSING_CALL_BOOKED",
+		"PAYMENT_PENDING",
+		"WON",
+		"LOST",
+		"PAUSED",
+	].includes(row.salesStage);
+
+	const onClick = async (event: MouseEvent<HTMLButtonElement>) => {
+		e.stopPropagation();
+		if (alreadySent || createActivity.isPending || updateCompany.isPending) return;
+		try {
+			await createActivity.mutateAsync({
+				type: "NOTE",
+				companyId: row.id,
+				body: "WhatsApp enviado manualmente desde el CRM.",
+			});
+			await updateCompany.mutateAsync({
+				id: row.id,
+				data: { salesStage: "FOLLOW_UP_ACTIVE" },
+			});
+			await cache.company();
+			toast.success("Marcado: WhatsApp enviado");
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "No se pudo guardar el estado");
+		}
+	};
+
+	return (
+		<Button
+			type="button"
+			size="lg"
+			className="w-full min-w-32"
+			variant={alreadySent ? "secondary" : "default"}
+			disabled={alreadySent || createActivity.isPending || updateCompany.isPending}
+			onClick={onClick}
+		>
+			WhatsApp enviado
+		</Button>
+	);
+}
+
 const COLUMNS: DataTableColumn<CompanyRow>[] = [
+	{
+		id: "whatsapp-sent",
+		header: "WhatsApp",
+		label: "Marcar WhatsApp enviado",
+		width: "w-[14%]",
+		cell: (row) => <WhatsAppSentButton row={row} />,
+	},
 	{
 		id: "name",
 		header: "Company",
