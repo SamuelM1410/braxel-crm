@@ -863,8 +863,9 @@ function isHighQualityFootballLead(candidate: Candidate) {
 		);
 	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;
 	// The campaign is intended for actionable WhatsApp outreach. Keep only
-	// plausible Colombian mobile numbers or explicit WhatsApp links; fixed
-	// lines and malformed values are not useful contact records.
+	// Colombian mobile numbers or explicit WhatsApp links; fixed lines and
+	// malformed values are not useful contact records. A mobile number remains
+	// "WhatsApp por verificar" until an approved provider/API confirms it.
 	const phone = normalizePhone(
 		firstString(candidate, [
 			"phone",
@@ -878,12 +879,6 @@ function isHighQualityFootballLead(candidate: Candidate) {
 		firstWhatsApp(candidate, nestedContact(candidate)),
 	);
 	if (!hasMobile && !hasWhatsAppLink) return false;
-	// A mobile number is only a potential WhatsApp contact. For this campaign
-	// require public WhatsApp evidence as well, otherwise the lead remains out
-	// of the WhatsApp-first queue until it can be verified through an approved
-	// provider/API.
-	const hasWhatsApp = hasWhatsAppLink || hasExplicitWhatsAppEvidence(candidate);
-	if (!hasWhatsApp) return false;
 	const rating = candidate.rating;
 	if (typeof rating === "number" && rating < 3.5) return false;
 	const reviewCount = candidate.userRatingCount;
@@ -893,6 +888,7 @@ function isHighQualityFootballLead(candidate: Candidate) {
 	// remain useful, especially when they expose a WhatsApp link.
 	if (!website || socialOnlyUrl) return true;
 
+	const hasWhatsApp = hasExplicitWhatsAppEvidence(candidate);
 	const hasCommerce = hasCommerceEvidence(candidate);
 	const hasCheckout = hasCheckoutEvidence(candidate);
 	const hasAutomation = hasWhatsAppAutomationEvidence(candidate);
