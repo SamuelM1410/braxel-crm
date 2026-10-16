@@ -878,6 +878,12 @@ function isHighQualityFootballLead(candidate: Candidate) {
 		firstWhatsApp(candidate, nestedContact(candidate)),
 	);
 	if (!hasMobile && !hasWhatsAppLink) return false;
+	// A mobile number is only a potential WhatsApp contact. For this campaign
+	// require public WhatsApp evidence as well, otherwise the lead remains out
+	// of the WhatsApp-first queue until it can be verified through an approved
+	// provider/API.
+	const hasWhatsApp = hasWhatsAppLink || hasExplicitWhatsAppEvidence(candidate);
+	if (!hasWhatsApp) return false;
 	const rating = candidate.rating;
 	if (typeof rating === "number" && rating < 3.5) return false;
 	const reviewCount = candidate.userRatingCount;
@@ -887,7 +893,6 @@ function isHighQualityFootballLead(candidate: Candidate) {
 	// remain useful, especially when they expose a WhatsApp link.
 	if (!website || socialOnlyUrl) return true;
 
-	const hasWhatsApp = hasExplicitWhatsAppEvidence(candidate);
 	const hasCommerce = hasCommerceEvidence(candidate);
 	const hasCheckout = hasCheckoutEvidence(candidate);
 	const hasAutomation = hasWhatsAppAutomationEvidence(candidate);
