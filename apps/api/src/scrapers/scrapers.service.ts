@@ -551,7 +551,10 @@ export class ScrapersService {
 							regionCode: "CO",
 							pageSize: Math.min(limit, 20),
 						}),
-						signal: AbortSignal.timeout(30_000),
+						// A discovery request is only the first pass; do not let a single
+						// city block the whole campaign while later queries could return
+						// usable mobile contacts.
+						signal: AbortSignal.timeout(12_000),
 					},
 				);
 				if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -740,14 +743,11 @@ function discoveryQueries(query: string) {
 	// The default campaign may fan out across cities. An explicit query stays
 	// single-shot so one slow city cannot consume the whole five-minute run.
 	if (query !== CURRENT_DISCOVERY_CAMPAIGN) return [query];
+	// Start with dense, high-signal searches. `discoverCandidates` stops as
+	// soon as the requested batch is full, so one click remains interactive
+	// rather than serially waiting through every city in Colombia.
 	return [
-		query,
 		"camisetas de fútbol Bogotá Colombia",
-		"camisetas de fútbol Medellín Colombia",
-		"camisetas de fútbol Cali Colombia",
-		"camisetas de fútbol Barranquilla Colombia",
-		"camisetas de fútbol Cartagena Colombia",
-		"camisetas de fútbol Bucaramanga Colombia",
 		"uniformes de fútbol Colombia",
 		"tienda de ropa deportiva fútbol Colombia",
 	];
