@@ -683,7 +683,9 @@ function isFootballCampaign(query: string) {
 }
 
 function discoveryQueries(query: string) {
-	if (!isFootballCampaign(query)) return [query];
+	// The default campaign may fan out across cities. An explicit query stays
+	// single-shot so one slow city cannot consume the whole five-minute run.
+	if (query !== CURRENT_DISCOVERY_CAMPAIGN) return [query];
 	return [
 		query,
 		"camisetas de fútbol Bogotá Colombia",
