@@ -107,7 +107,10 @@ export class ScrapersService {
 			const candidates = isPublicUrl(requested)
 				? await this.runScrapeGraph(target, input.limit)
 				: await this.runDiscoveryPipeline(target, input.limit);
-			const safeCandidates = candidates.slice(0, input.limit);
+			// Do not show companies that are already in the CRM. Intake protects
+			// persistence too, but filtering here keeps the review queue useful.
+			const freshCandidates = await this.filterExistingCandidates(candidates);
+			const safeCandidates = freshCandidates.slice(0, input.limit);
 			const saved = await this.db.scraperRun.update({
 				where: { id: run.id },
 				data: {
@@ -142,6 +145,41 @@ export class ScrapersService {
 		}
 	}
 
+	private async filterExistingCandidates(candidates: Candidate[]) {
+		const existing = await this.db.company.findMany({
+			select: {
+				name: true,
+				domain: true,
+				phone: true,
+				instagramUrl: true,
+				facebookUrl: true,
+				tiktokUrl: true,
+				linkedinUrl: true,
+			},
+		});
+		const fresh: Candidate[] = [];
+		for (const candidate of candidates) {
+			const existingCandidate = existing.some((company) =>
+				sameCandidate(
+					{
+						company_name: company.name,
+						domain: company.domain,
+						phone: company.phone,
+						instagram_url: company.instagramUrl,
+						facebook_url: company.facebookUrl,
+						tiktok_url: company.tiktokUrl,
+						linkedin_url: company.linkedinUrl,
+					},
+					candidate,
+				),
+			);
+			if (existingCandidate) continue;
+			if (!fresh.some((item) => sameCandidate(item, candidate)))
+				fresh.push(candidate);
+		}
+		return fresh;
+	}
+
 	async importRun(id: string, userId: string) {
 		await this.access.assertMember(userId);
 		const run = await this.db.scraperRun.findFirst({
@@ -164,7 +202,7 @@ export class ScrapersService {
 			// Runs created before the quality rules were tightened can still be
 			// imported. Re-apply the same commercial-fit gate at import time so a
 			// stale run cannot reintroduce a fully built competitor.
-			if (isFootballCampaign(run.query) && !isFootballApparelOpportunity(row))
+			if (isFootballCampaign(run.query) && !isHighQualityFootballLead(row))
 				return [];
 			const contact = nestedContact(row);
 			const companyName =
@@ -418,7 +456,7 @@ export class ScrapersService {
 			enriched.push(...rows);
 		}
 		return isFootballCampaign(query)
-			? enriched.filter(isFootballApparelOpportunity)
+			? enriched.filter(isHighQualityFootballLead)
 			: enriched;
 	}
 
@@ -475,8 +513,7 @@ export class ScrapersService {
 						),
 					},
 				);
-				if (!response.ok)
-					throw new Error(`HTTP ${response.status}`);
+				if (!response.ok) throw new Error(`HTTP ${response.status}`);
 				const rows = await response.json();
 				if (Array.isArray(rows))
 					discovered.push(
@@ -484,7 +521,10 @@ export class ScrapersService {
 					);
 			} catch (error) {
 				failures.push(`Maps: ${safeError(error)}`);
-				this.logger.warn({ message: "Legacy Maps discovery unavailable", query });
+				this.logger.warn({
+					message: "Legacy Maps discovery unavailable",
+					query,
+				});
 			}
 		}
 
@@ -514,19 +554,21 @@ export class ScrapersService {
 				const payload: unknown = await response.json();
 				if (isRecord(payload) && Array.isArray(payload.places))
 					discovered.push(
-						...payload.places
-							.filter(isRecord)
-							.map(normalizeDiscoveryCandidate),
+						...payload.places.filter(isRecord).map(normalizeDiscoveryCandidate),
 					);
 			} catch (error) {
 				failures.push(`Places: ${safeError(error)}`);
-				this.logger.warn({ message: "Google Places discovery unavailable", query });
+				this.logger.warn({
+					message: "Google Places discovery unavailable",
+					query,
+				});
 			}
 		}
 
 		const uniqueCandidates = discovered.filter(
 			(candidate, index) =>
-				discovered.findIndex((item) => sameCandidate(item, candidate)) === index,
+				discovered.findIndex((item) => sameCandidate(item, candidate)) ===
+				index,
 		);
 		if (uniqueCandidates.length) return uniqueCandidates.slice(0, limit);
 		throw new Error(
@@ -709,16 +751,56 @@ function discoveryQueries(query: string) {
 function sameCandidate(left: Candidate, right: Candidate) {
 	const leftId = firstString(left, ["id"]);
 	const rightId = firstString(right, ["id"]);
-	if (leftId && rightId) return leftId === rightId;
+	if (leftId && rightId && leftId === rightId) return true;
+	const leftDomain = domainFromCandidate(left);
+	const rightDomain = domainFromCandidate(right);
+	if (leftDomain && rightDomain && leftDomain === rightDomain) return true;
+	const leftPhone = normalizePhone(
+		firstString(left, ["phone", "phone_number", "nationalPhoneNumber"]),
+	);
+	const rightPhone = normalizePhone(
+		firstString(right, ["phone", "phone_number", "nationalPhoneNumber"]),
+	);
+	if (leftPhone && rightPhone && leftPhone === rightPhone) return true;
+	for (const key of [
+		"instagram_url",
+		"instagramUrl",
+		"facebook_url",
+		"facebookUrl",
+		"tiktok_url",
+		"tiktokUrl",
+		"linkedin_url",
+		"linkedinUrl",
+	]) {
+		const leftUrl = firstUrl(left, [key]);
+		const rightUrl = firstUrl(right, [key]);
+		if (leftUrl && rightUrl && leftUrl === rightUrl) return true;
+	}
 	const leftName = comparableName(firstString(left, ["company_name", "name"]));
 	const rightName = comparableName(
 		firstString(right, ["company_name", "name"]),
 	);
-	const leftPhone = firstString(left, ["phone"]);
-	const rightPhone = firstString(right, ["phone"]);
-	return Boolean(
-		leftName && leftName === rightName && leftPhone === rightPhone,
-	);
+	if (!leftName || leftName !== rightName) return false;
+	const leftCity = comparableName(firstString(left, ["city", "address"]));
+	const rightCity = comparableName(firstString(right, ["city", "address"]));
+	return !leftCity || !rightCity || leftCity === rightCity;
+}
+
+function domainFromCandidate(candidate: Candidate) {
+	const raw = firstString(candidate, [
+		"domain",
+		"website",
+		"websiteUri",
+		"website_url",
+	]);
+	const value =
+		raw && /^https?:\/\//i.test(raw) ? raw : raw && `https://${raw}`;
+	if (!value) return null;
+	try {
+		return new URL(value).hostname.replace(/^www\./, "").toLowerCase();
+	} catch {
+		return null;
+	}
 }
 
 function comparableName(value: string | null) {
@@ -752,7 +834,7 @@ function isDiscoveryNoiseCandidate(candidate: Candidate) {
 	);
 }
 
-function isFootballApparelOpportunity(candidate: Candidate) {
+function isHighQualityFootballLead(candidate: Candidate) {
 	// The campaign is gap-based, not category-only. A famous club or a polished
 	// store can match every football keyword while being commercially useless to
 	// Braxel. Keep only companies for which at least one sellable gap is visible.
@@ -780,6 +862,26 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 			text,
 		);
 	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;
+	// The campaign is intended for actionable WhatsApp outreach. Keep only
+	// plausible Colombian mobile numbers or explicit WhatsApp links; fixed
+	// lines and malformed values are not useful contact records.
+	const phone = normalizePhone(
+		firstString(candidate, [
+			"phone",
+			"phone_number",
+			"nationalPhoneNumber",
+			"internationalPhoneNumber",
+		]) ?? firstString(nestedContact(candidate), ["phone", "phone_number"]),
+	);
+	const hasMobile = Boolean(phone?.startsWith("+573"));
+	const hasWhatsAppLink = Boolean(
+		firstWhatsApp(candidate, nestedContact(candidate)),
+	);
+	if (!hasMobile && !hasWhatsAppLink) return false;
+	const rating = candidate.rating;
+	if (typeof rating === "number" && rating < 3.5) return false;
+	const reviewCount = candidate.userRatingCount;
+	if (typeof reviewCount === "number" && reviewCount < 3) return false;
 
 	// A social profile or Maps listing is not an owned website. Those candidates
 	// remain useful, especially when they expose a WhatsApp link.

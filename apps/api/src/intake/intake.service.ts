@@ -1,4 +1,4 @@
-import { type Db, RecordSource } from "@crm/db";
+import { type Db, type Prisma, RecordSource } from "@crm/db";
 import { Injectable, Logger } from "@nestjs/common";
 import { normalizePhone, normalizeWhatsAppUrl } from "../crm/values";
 import { InjectDatabase } from "../database/database.constants";
@@ -55,21 +55,28 @@ export class IntakeService {
 			const imported = await tx.company.findFirst({
 				where: { description: { startsWith: sourceMarker(lead.sourceId) } },
 			});
-			const exactMatch =
-				imported ??
-				(domain
-					? await tx.company.findUnique({ where: { domain } })
-					: await tx.company.findFirst({
-							where: {
-								name: lead.companyName,
-								phone,
-							},
-						}));
-			const existing =
-				exactMatch ??
-				(lead.sourceId.startsWith("scraper:") && phone
-					? await tx.company.findFirst({ where: { phone } })
-					: null);
+			const identityFilters: Prisma.CompanyWhereInput[] = [];
+			if (phone) identityFilters.push({ phone });
+			if (domain) identityFilters.push({ domain });
+			for (const [field, value] of [
+				["instagramUrl", lead.instagramUrl],
+				["facebookUrl", lead.facebookUrl],
+				["tiktokUrl", lead.tiktokUrl],
+				["linkedinUrl", lead.linkedinUrl],
+			] as const) {
+				const normalized = clean(value);
+				if (normalized)
+					identityFilters.push({
+						[field]: normalized,
+					} as Prisma.CompanyWhereInput);
+			}
+			const identityMatch = identityFilters.length
+				? await tx.company.findFirst({ where: { OR: identityFilters } })
+				: null;
+			const nameMatch = await tx.company.findFirst({
+				where: { name: lead.companyName, ...(phone ? { phone } : {}) },
+			});
+			const existing = imported ?? identityMatch ?? nameMatch;
 			if (!existing && lead.updateOnly) return null;
 			const domainOwner = domain
 				? await tx.company.findUnique({
