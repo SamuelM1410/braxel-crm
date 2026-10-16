@@ -365,6 +365,7 @@ export class ScrapersService {
 	private async runScrapeGraph(
 		target: string,
 		limit: number,
+		timeoutMs = 30_000,
 	): Promise<Candidate[]> {
 		let response: Response;
 		try {
@@ -374,7 +375,7 @@ export class ScrapersService {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ url: target }),
-				signal: AbortSignal.timeout(30_000),
+				signal: AbortSignal.timeout(timeoutMs),
 			});
 		} catch (error) {
 			this.logger.warn({
@@ -382,13 +383,13 @@ export class ScrapersService {
 					"ScrapeGraphAI worker unavailable; using direct public-page fallback",
 				reason: safeError(error),
 			});
-			return this.runDirectResearch(target, limit);
+			return this.runDirectResearch(target, limit, timeoutMs);
 		}
 		if (!response.ok) {
 			this.logger.warn(
 				`ScrapeGraphAI devolvió HTTP ${response.status}; usando fallback de página pública.`,
 			);
-			return this.runDirectResearch(target, limit);
+			return this.runDirectResearch(target, limit, timeoutMs);
 		}
 		const payload: unknown = await response.json();
 		if (!isRecord(payload))
@@ -430,8 +431,8 @@ export class ScrapersService {
 		// Discovery supplies the batch; ScrapeGraph enriches each public website.
 		// A small concurrency cap avoids rate spikes and keeps the CRM responsive.
 		const enriched: Candidate[] = [];
-		for (let index = 0; index < discovered.length; index += 4) {
-			const batch = discovered.slice(index, index + 4);
+		for (let index = 0; index < discovered.length; index += 8) {
+			const batch = discovered.slice(index, index + 8);
 			const rows = await Promise.all(
 				batch.map(async (candidate) => {
 					const website = firstUrl(candidate, [
@@ -441,7 +442,10 @@ export class ScrapersService {
 					]);
 					if (!website || isSocialOrMessagingUrl(website)) return candidate;
 					try {
-						const research = await this.runScrapeGraph(website, 1);
+						// Discovery must not be held hostage by slow merchant sites. The
+						// Maps record is enough to screen a mobile WhatsApp candidate;
+						// enrichment is opportunistic and bounded per public website.
+						const research = await this.runScrapeGraph(website, 1, 7_000);
 						return mergeCandidate(candidate, research[0]);
 					} catch (error) {
 						this.logger.warn({
@@ -586,6 +590,7 @@ export class ScrapersService {
 	private async runDirectResearch(
 		target: string,
 		limit: number,
+		timeoutMs = 30_000,
 	): Promise<Candidate[]> {
 		const url = new URL(target);
 		if (!/^https?:$/.test(url.protocol))
@@ -594,7 +599,7 @@ export class ScrapersService {
 			);
 		const response = await fetch(url, {
 			headers: { Accept: "text/html,application/xhtml+xml" },
-			signal: AbortSignal.timeout(30_000),
+			signal: AbortSignal.timeout(timeoutMs),
 		});
 		if (!response.ok)
 			throw new Error(`La página pública devolvió HTTP ${response.status}.`);
