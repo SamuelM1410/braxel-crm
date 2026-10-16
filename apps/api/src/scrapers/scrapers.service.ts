@@ -466,7 +466,14 @@ export class ScrapersService {
 			try {
 				const response = await fetch(
 					`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
-					{ signal: AbortSignal.timeout(300_000) },
+					// A stalled legacy worker must not block Places for the full API
+					// request window. Local development keeps the generous timeout;
+					// production fails over quickly to the second discovery source.
+					{
+						signal: AbortSignal.timeout(
+							process.env.NODE_ENV === "production" ? 45_000 : 300_000,
+						),
+					},
 				);
 				if (!response.ok)
 					throw new Error(`HTTP ${response.status}`);
