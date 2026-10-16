@@ -468,22 +468,37 @@ export class ScrapersService {
 		query: string,
 		limit: number,
 	): Promise<Candidate[]> {
+		const footballCampaign = isFootballCampaign(query);
+		// Candidate discovery and commercial qualification are separate stages.
+		// Collect a larger pool of mobile football businesses first; otherwise a
+		// single city can fill the raw limit before the quality rules are applied.
+		const targetPool = footballCampaign ? Math.min(limit * 2, 60) : limit;
 		const candidates: Candidate[] = [];
-		for (const discoveryQuery of discoveryQueries(query)) {
-			const remaining = limit - candidates.length;
-			if (remaining <= 0) break;
-			const discovered = await this.discoverCandidatesForQuery(
-				discoveryQuery,
-				Math.min(20, remaining),
+		const queries = discoveryQueries(query);
+		for (let index = 0; index < queries.length; index += 3) {
+			const batch = queries.slice(index, index + 3);
+			const rows = await Promise.all(
+				batch.map((discoveryQuery) =>
+					this.discoverCandidatesForQuery(discoveryQuery, 20),
+				),
 			);
-			for (const candidate of discovered) {
-				if (isDiscoveryNoiseCandidate(candidate)) continue;
-				if (!candidates.some((item) => sameCandidate(item, candidate))) {
-					candidates.push(candidate);
+			for (const discovered of rows) {
+				for (const candidate of discovered) {
+					if (isDiscoveryNoiseCandidate(candidate)) continue;
+					if (!candidates.some((item) => sameCandidate(item, candidate))) {
+						candidates.push(candidate);
+					}
 				}
 			}
+			const usableCount = footballCampaign
+				? candidates.filter(isFootballMobileCandidate).length
+				: candidates.length;
+			if (usableCount >= targetPool) break;
 		}
-		return candidates.slice(0, limit);
+		const usable = footballCampaign
+			? candidates.filter(isFootballMobileCandidate)
+			: candidates;
+		return usable.slice(0, targetPool);
 	}
 
 	private async discoverCandidatesForQuery(
@@ -748,6 +763,11 @@ function discoveryQueries(query: string) {
 	// rather than serially waiting through every city in Colombia.
 	return [
 		"camisetas de fútbol Bogotá Colombia",
+		"camisetas de fútbol Medellín Colombia",
+		"camisetas de fútbol Cali Colombia",
+		"camisetas de fútbol Barranquilla Colombia",
+		"camisetas de fútbol Bucaramanga Colombia",
+		"camisetas de fútbol Pereira Colombia",
 		"uniformes de fútbol Colombia",
 		"tienda de ropa deportiva fútbol Colombia",
 	];
@@ -839,18 +859,7 @@ function isDiscoveryNoiseCandidate(candidate: Candidate) {
 	);
 }
 
-function isHighQualityFootballLead(candidate: Candidate) {
-	// The campaign is gap-based, not category-only. A famous club or a polished
-	// store can match every football keyword while being commercially useless to
-	// Braxel. Keep only companies for which at least one sellable gap is visible.
-	const website = firstUrl(candidate, [
-		"website",
-		"websiteUri",
-		"website_url",
-		"owned_website",
-	]);
-	const socialOnlyUrl = Boolean(website && isSocialOrMessagingUrl(website));
-
+function isFootballMobileCandidate(candidate: Candidate) {
 	const text = [
 		firstString(candidate, ["company_name", "name", "displayName"]),
 		firstString(candidate, ["category", "industry", "niche"]),
@@ -867,10 +876,6 @@ function isHighQualityFootballLead(candidate: Candidate) {
 			text,
 		);
 	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;
-	// The campaign is intended for actionable WhatsApp outreach. Keep only
-	// Colombian mobile numbers or explicit WhatsApp links; fixed lines and
-	// malformed values are not useful contact records. A mobile number remains
-	// "WhatsApp por verificar" until an approved provider/API confirms it.
 	const phone = normalizePhone(
 		firstString(candidate, [
 			"phone",
@@ -887,8 +892,26 @@ function isHighQualityFootballLead(candidate: Candidate) {
 	const rating = candidate.rating;
 	if (typeof rating === "number" && rating < 3.5) return false;
 	const reviewCount = candidate.userRatingCount;
-	if (typeof reviewCount === "number" && reviewCount < 3) return false;
+	return !(typeof reviewCount === "number" && reviewCount < 3);
+}
 
+function isHighQualityFootballLead(candidate: Candidate) {
+	// The campaign is gap-based, not category-only. A famous club or a polished
+	// store can match every football keyword while being commercially useless to
+	// Braxel. Keep only companies for which at least one sellable gap is visible.
+	const website = firstUrl(candidate, [
+		"website",
+		"websiteUri",
+		"website_url",
+		"owned_website",
+	]);
+	const socialOnlyUrl = Boolean(website && isSocialOrMessagingUrl(website));
+
+	if (!isFootballMobileCandidate(candidate)) return false;
+	// The campaign is intended for actionable WhatsApp outreach. Keep only
+	// Colombian mobile numbers or explicit WhatsApp links; fixed lines and
+	// malformed values are not useful contact records. A mobile number remains
+	// "WhatsApp por verificar" until an approved provider/API confirms it.
 	// A social profile or Maps listing is not an owned website. Those candidates
 	// remain useful, especially when they expose a WhatsApp link.
 	if (!website || socialOnlyUrl) return true;
