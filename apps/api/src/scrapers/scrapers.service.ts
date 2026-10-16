@@ -689,7 +689,12 @@ function discoveryQueries(query: string) {
 	if (!isFootballCampaign(query)) return [query];
 	return [
 		query,
-		"camisetas de fútbol Colombia",
+		"camisetas de fútbol Bogotá Colombia",
+		"camisetas de fútbol Medellín Colombia",
+		"camisetas de fútbol Cali Colombia",
+		"camisetas de fútbol Barranquilla Colombia",
+		"camisetas de fútbol Cartagena Colombia",
+		"camisetas de fútbol Bucaramanga Colombia",
 		"uniformes de fútbol Colombia",
 		"tienda de ropa deportiva fútbol Colombia",
 	];
