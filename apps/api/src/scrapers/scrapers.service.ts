@@ -456,57 +456,76 @@ export class ScrapersService {
 			(process.env.NODE_ENV !== "production"
 				? "http://127.0.0.1:8001"
 				: undefined);
+		// Run both discovery sources when they are available. The legacy Maps
+		// scraper is usually richer in phone/social evidence, while Places is a
+		// useful second index. We merge and deduplicate instead of choosing one,
+		// so a single provider outage no longer makes the campaign fail.
+		const discovered: Candidate[] = [];
+		const failures: string[] = [];
 		if (localBase) {
-			const response = await fetch(
-				`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
-				{ signal: AbortSignal.timeout(300_000) },
-			);
-			if (!response.ok)
-				throw new Error(
-					`El scraper anterior devolvió HTTP ${response.status}.`,
+			try {
+				const response = await fetch(
+					`${localBase}/scrape-get?query=${encodeURIComponent(query)}&max_places=${limit}&lang=es&headless=true&concurrency=3`,
+					{ signal: AbortSignal.timeout(300_000) },
 				);
-			const rows = await response.json();
-			return Array.isArray(rows)
-				? rows.filter(isRecord).map(normalizeDiscoveryCandidate).slice(0, limit)
-				: [];
+				if (!response.ok)
+					throw new Error(`HTTP ${response.status}`);
+				const rows = await response.json();
+				if (Array.isArray(rows))
+					discovered.push(
+						...rows.filter(isRecord).map(normalizeDiscoveryCandidate),
+					);
+			} catch (error) {
+				failures.push(`Maps: ${safeError(error)}`);
+				this.logger.warn({ message: "Legacy Maps discovery unavailable", query });
+			}
 		}
 
 		const placesKey = this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim();
 		if (placesKey) {
-			const response = await fetch(
-				"https://places.googleapis.com/v1/places:searchText",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-Goog-Api-Key": placesKey,
-						"X-Goog-FieldMask":
-							"places.id,places.displayName,places.formattedAddress,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.rating,places.userRatingCount",
+			try {
+				const response = await fetch(
+					"https://places.googleapis.com/v1/places:searchText",
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"X-Goog-Api-Key": placesKey,
+							"X-Goog-FieldMask":
+								"places.id,places.displayName,places.formattedAddress,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.googleMapsUri,places.rating,places.userRatingCount",
+						},
+						body: JSON.stringify({
+							textQuery: query,
+							languageCode: "es",
+							regionCode: "CO",
+							pageSize: Math.min(limit, 20),
+						}),
+						signal: AbortSignal.timeout(30_000),
 					},
-					body: JSON.stringify({
-						textQuery: query,
-						languageCode: "es",
-						regionCode: "CO",
-						pageSize: Math.min(limit, 20),
-					}),
-					signal: AbortSignal.timeout(30_000),
-				},
-			);
-			if (!response.ok)
-				throw new Error(`Google Places devolvió HTTP ${response.status}.`);
-			const payload: unknown = await response.json();
-			return isRecord(payload) && Array.isArray(payload.places)
-				? payload.places
-						.filter(isRecord)
-						.map(normalizeDiscoveryCandidate)
-						.slice(0, limit)
-				: [];
+				);
+				if (!response.ok) throw new Error(`HTTP ${response.status}`);
+				const payload: unknown = await response.json();
+				if (isRecord(payload) && Array.isArray(payload.places))
+					discovered.push(
+						...payload.places
+							.filter(isRecord)
+							.map(normalizeDiscoveryCandidate),
+					);
+			} catch (error) {
+				failures.push(`Places: ${safeError(error)}`);
+				this.logger.warn({ message: "Google Places discovery unavailable", query });
+			}
 		}
 
+		const uniqueCandidates = discovered.filter(
+			(candidate, index) =>
+				discovered.findIndex((item) => sameCandidate(item, candidate)) === index,
+		);
+		if (uniqueCandidates.length) return uniqueCandidates.slice(0, limit);
 		throw new Error(
-			process.env.NODE_ENV !== "production"
+			process.env.NODE_ENV !== "production" && !localBase && !placesKey
 				? "El scraper local no está disponible en http://127.0.0.1:8001. Inícialo con local-gmaps-scraper/main_api.py o define LOCAL_MAPS_SCRAPER_URL."
-				: "No hay fuente de descubrimiento configurada. Define LOCAL_MAPS_SCRAPER_URL o GOOGLE_MAPS_API_KEY.",
+				: `No hay candidatos de Maps/Places para “${query}”. ${failures.join("; ")}`,
 		);
 	}
 
@@ -746,7 +765,7 @@ function isFootballApparelOpportunity(candidate: Candidate) {
 		.filter(Boolean)
 		.join(" ");
 	const footballSignal =
-		/f[uú]tbol|camiseta|uniforme|deportiv|soccer|jersey|tienda de ropa/i.test(
+		/f[uú]tbol|camiseta|uniforme|deportiv|soccer|jersey|tienda de ropa|ropa deportiva|sports? store/i.test(
 			text,
 		);
 	if (isDiscoveryNoiseCandidate(candidate) || !footballSignal) return false;

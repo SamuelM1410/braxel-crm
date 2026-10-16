@@ -85,10 +85,10 @@ export function ScraperControl() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>ScrapeGraphAI</CardTitle>
+						<CardTitle>Descubrimiento combinado</CardTitle>
 						<CardDescription>
-							Descubrimiento por lote + enriquecimiento profundo con
-							ScrapeGraph.
+							Maps/Places para encontrar negocios + ScrapeGraphAI para investigar
+							cada web pública.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -104,8 +104,8 @@ export function ScraperControl() {
 								: "falta una fuente de lote"}
 							. Campaña actual:{" "}
 							<strong>{data.providers.discovery.query}</strong>. Sin URL, el
-							botón usa esta búsqueda y después enriquece cada web con
-							ScrapeGraph.
+							botón usa las fuentes disponibles, elimina duplicados y después
+							enriquece cada web con ScrapeGraph.
 						</p>
 					</CardContent>
 				</Card>
