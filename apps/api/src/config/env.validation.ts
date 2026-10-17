@@ -215,6 +215,10 @@ export class EnvironmentVariables {
 	GOOGLE_MAPS_API_KEY?: string;
 
 	@IsOptional()
+	@IsUrl({ require_tld: false, require_protocol: true })
+	SOCIAL_DISCOVERY_URL?: string;
+
+	@IsOptional()
 	@IsString()
 	@MinLength(32)
 	CRM_INTAKE_SECRET?: string;

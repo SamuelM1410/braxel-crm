@@ -72,7 +72,12 @@ left empty, the pipeline uses the configured discovery source (the legacy local
 Maps scraper or Google Places), then sends each public website through
 ScrapeGraph for enrichment. In local development, the old scraper is attempted
 automatically at `http://127.0.0.1:8001`; production requires a public
-`LOCAL_MAPS_SCRAPER_URL` or `GOOGLE_MAPS_API_KEY`. `SCRAPEGRAPH_DEFAULT_QUERY`
+`LOCAL_MAPS_SCRAPER_URL` or `GOOGLE_MAPS_API_KEY`. An optional
+`SOCIAL_DISCOVERY_URL` can add public Instagram/TikTok/Facebook/LinkedIn
+business records through a provider adapter (Mindcase, Apify, or another
+service) exposing `POST /discover` with `{ query, limit, industry }` and
+returning `{ rows: [...] }`. The adapter must use public data only; profile
+links are evidence, not consent or permission to message. `SCRAPEGRAPH_DEFAULT_QUERY`
 controls the default batch query. Results are stored in `scraperRun`; importing
 remains review-gated and no lead is contacted automatically.
 

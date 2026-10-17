@@ -102,10 +102,14 @@ export function ScraperControl() {
 							{data.providers.discovery.configured
 								? "sí"
 								: "falta una fuente de lote"}
+							. Fuente social pública:{" "}
+							{data.providers.discovery.providers.socialDiscovery
+								? "configurada"
+								: "opcional, no configurada"}
 							. Campaña actual:{" "}
 							<strong>{data.providers.discovery.query}</strong>. Sin URL, el
-							botón usa las fuentes disponibles, elimina duplicados y después
-							enriquece cada web con ScrapeGraph.
+							botón combina Maps/Places con la fuente social pública disponible,
+							elimina duplicados y después enriquece cada web con ScrapeGraph.
 						</p>
 					</CardContent>
 				</Card>

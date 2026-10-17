@@ -32,7 +32,7 @@ function buildWhatsAppMessage({
 			: tiktokUrl
 				? "TikTok"
 				: "sus canales sociales";
-		return `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando ${social} y la forma en que presentan sus productos. En la investigación no aparece un sitio web propio para centralizar el catálogo y los pedidos. Podemos construirles una tienda enfocada en camisetas y llevar el cierre a WhatsApp, sin reemplazar lo que ya les funciona en redes. ¿Hoy reciben los pedidos por mensajes o tienen un catálogo centralizado?`;
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando ${social} y la forma en que presentan sus productos. En las fuentes públicas que revisé no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). ¿Hoy reciben los pedidos por mensajes o tienen un catálogo centralizado?`;
 	}
 	if (research.hasCommerce && !research.hasAutomation) {
 		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen una tienda y un canal de WhatsApp para atender pedidos; no encontré evidencia pública de una automatización que recupere carritos o consultas que quedan a medias. ¿Hoy hacen ese seguimiento manualmente o ya tienen un flujo automático?`;
@@ -70,7 +70,7 @@ function buildEmail({
 			? "TikTok"
 			: "sus redes";
 	const observation = !research.ownedWebsite
-		? `Estuve revisando ${social} y la forma en que ${companyName} presenta sus productos. En la investigación pública no aparece un sitio web propio para centralizar catálogo y pedidos. Braxel puede construirles una tienda enfocada en conversión, conectada con WhatsApp y sin perder el tráfico que ya llega desde redes.`
+		? `Estuve revisando ${social} y la forma en que ${companyName} presenta sus productos. En las fuentes públicas que revisé no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). Braxel puede ayudar a convertir el tráfico de redes en pedidos sin perder lo que ya les funciona.`
 		: research.hasCommerce && !research.hasAutomation
 			? `Estuve revisando la tienda de ${companyName}. Ya tienen el canal de venta y WhatsApp, pero no encontré evidencia pública de recuperación automática de carritos o consultas. La oportunidad sería automatizar ese seguimiento, no reemplazar su web.`
 			: `Estuve revisando la oferta pública de ${companyName} y encontré una oportunidad concreta en el paso de interés a pedido. No quiero enviarte una propuesta genérica: primero quiero confirmar cómo están gestionando ese punto.`;

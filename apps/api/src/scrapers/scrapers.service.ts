@@ -250,19 +250,29 @@ export class ScrapersService {
 							"phone_number",
 							"nationalPhoneNumber",
 							"internationalPhoneNumber",
-						]) ?? firstString(contact, ["phone", "phone_number"]),
+						]) ??
+							firstString(contact, ["phone", "phone_number"]) ??
+							firstPublicContactValue(row, "phones"),
 					),
-					email: firstEmail(row, ["email"]) ?? firstEmail(contact, ["email"]),
+					email:
+						firstEmail(row, ["email"]) ??
+						firstEmail(contact, ["email"]) ??
+						firstPublicContactValue(row, "emails"),
 					instagramUrl:
 						firstUrl(row, ["instagram_url", "instagramUrl"]) ??
+						socialUrlFromEvidence(row, "instagram") ??
 						socialProfileUrl(discoveredUrl, "instagram.com"),
 					facebookUrl:
 						firstUrl(row, ["facebook_url", "facebookUrl"]) ??
+						socialUrlFromEvidence(row, "facebook") ??
 						socialProfileUrl(discoveredUrl, "facebook.com"),
 					tiktokUrl:
 						firstUrl(row, ["tiktok_url", "tiktokUrl"]) ??
+						socialUrlFromEvidence(row, "tiktok") ??
 						socialProfileUrl(discoveredUrl, "tiktok.com"),
-					linkedinUrl: firstUrl(row, ["linkedin_url", "linkedinUrl"]),
+					linkedinUrl:
+						firstUrl(row, ["linkedin_url", "linkedinUrl"]) ??
+						socialUrlFromEvidence(row, "linkedin"),
 					whatsappUrl: normalizeWhatsAppUrl(
 						firstWhatsApp(row, contact) ??
 							socialProfileUrl(discoveredUrl, "wa.me", "whatsapp.com"),
@@ -345,12 +355,16 @@ export class ScrapersService {
 		const googlePlaces = Boolean(
 			this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim(),
 		);
+		const socialDiscovery = Boolean(
+			this.config.get<string>("SOCIAL_DISCOVERY_URL")?.trim(),
+		);
 		return {
-			configured: localMaps || googlePlaces,
+			configured: localMaps || googlePlaces || socialDiscovery,
 			providers: {
 				localMaps,
 				localMapsFallback,
 				googlePlaces,
+				socialDiscovery,
 			},
 			query: this.discoveryQuery(),
 		};
@@ -533,6 +547,8 @@ export class ScrapersService {
 		// so a single provider outage no longer makes the campaign fail.
 		const discovered: Candidate[] = [];
 		const failures: string[] = [];
+		const socialRows = await this.discoverSocialCandidates(query, limit);
+		discovered.push(...socialRows);
 		if (localBase) {
 			try {
 				const response = await fetch(
@@ -612,6 +628,52 @@ export class ScrapersService {
 				? "El scraper local no está disponible en http://127.0.0.1:8001. Inícialo con local-gmaps-scraper/main_api.py o define LOCAL_MAPS_SCRAPER_URL."
 				: `No hay candidatos de Maps/Places para “${query}”. ${failures.join("; ")}`,
 		);
+	}
+
+	/**
+	 * Optional public-social discovery bridge. The bridge can be backed by
+	 * Mindcase, Apify or another provider, but it must return public business
+	 * records only. The CRM never logs in, sends messages or treats a profile
+	 * URL as consent. Expected response: { rows: [...] } (also accepts
+	 * candidates/results/data for simple adapters).
+	 */
+	private async discoverSocialCandidates(query: string, limit: number) {
+		const base = this.config
+			.get<string>("SOCIAL_DISCOVERY_URL")
+			?.trim()
+			.replace(/\/$/, "");
+		if (!base) return [];
+		try {
+			const response = await fetch(`${base}/discover`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					query,
+					limit: Math.min(limit, 100),
+					industry: campaignIndustry(query),
+				}),
+				signal: AbortSignal.timeout(8_000),
+			});
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			const payload: unknown = await response.json();
+			if (!isRecord(payload)) return [];
+			const rows = [
+				payload.rows,
+				payload.candidates,
+				payload.results,
+				payload.data,
+			].find((value) => Array.isArray(value)) as unknown[] | undefined;
+			return (rows ?? [])
+				.filter(isRecord)
+				.map(normalizeDiscoveryCandidate)
+				.filter((candidate) => !isDiscoveryNoiseCandidate(candidate));
+		} catch (error) {
+			this.logger.warn({
+				message: "Public social discovery bridge unavailable",
+				reason: safeError(error),
+			});
+			return [];
+		}
 	}
 
 	/**
@@ -1128,6 +1190,62 @@ function nestedContact(row: Candidate): Candidate {
 	return {};
 }
 
+function firstPublicContactValue(row: Candidate, key: "emails" | "phones") {
+	const publicContact = row.public_contact;
+	if (!isRecord(publicContact)) return null;
+	const values = publicContact[key];
+	const candidates = Array.isArray(values) ? values : [values];
+	for (const value of candidates) {
+		if (typeof value !== "string" || !value.trim()) continue;
+		const normalized = value.trim();
+		if (key === "emails" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized))
+			return normalized.toLowerCase();
+		if (key === "phones") return normalized;
+	}
+	return null;
+}
+
+function socialUrlFromEvidence(row: Candidate, network: string) {
+	const direct = firstUrl(row, [
+		`${network}_url`,
+		`${network}Url`,
+		`${network}_profile`,
+	]);
+	if (direct) return direct;
+
+	for (const key of [
+		"social_links",
+		"socialLinks",
+		"public_links",
+		"contact_channels",
+	]) {
+		const values = row[key];
+		if (!Array.isArray(values)) continue;
+		for (const item of values) {
+			if (!isRecord(item)) continue;
+			const label = firstString(item, [
+				"network",
+				"type",
+				"platform",
+			])?.toLowerCase();
+			const url = firstUrl(item, ["url", "value", "href", "link"]);
+			if (!url) continue;
+			try {
+				const host = new URL(url).hostname.toLowerCase();
+				if (
+					label?.includes(network) ||
+					host === `${network}.com` ||
+					host.endsWith(`.${network}.com`)
+				)
+					return url;
+			} catch {
+				// Ignore malformed evidence; it must never become a CRM link.
+			}
+		}
+	}
+	return null;
+}
+
 function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 	const value =
 		firstString(row, [
@@ -1142,7 +1260,8 @@ function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 			"whatsappUrl",
 			"whatsapp",
 			"whatsapp_number",
-		]);
+		]) ??
+		firstWhatsAppFromEvidence(row);
 	if (!value || !/^https?:\/\//i.test(value)) return null;
 	try {
 		const url = new URL(value);
@@ -1153,6 +1272,32 @@ function firstWhatsApp(row: Candidate, contact: Candidate = {}) {
 	} catch {
 		return null;
 	}
+}
+
+function firstWhatsAppFromEvidence(row: Candidate) {
+	const publicContact = row.public_contact;
+	if (isRecord(publicContact)) {
+		for (const key of ["whatsapp_urls", "whatsappUrls"]) {
+			const values = publicContact[key];
+			const first = Array.isArray(values) ? values[0] : values;
+			if (typeof first === "string" && first.trim()) return first.trim();
+		}
+	}
+	for (const key of ["contact_methods", "contactMethods", "contact_channels"]) {
+		const values = row[key];
+		if (!Array.isArray(values)) continue;
+		for (const item of values) {
+			if (!isRecord(item)) continue;
+			const type = firstString(item, [
+				"type",
+				"network",
+				"platform",
+			])?.toLowerCase();
+			const value = firstUrl(item, ["value", "url", "href", "link"]);
+			if (value && type?.includes("whatsapp")) return value;
+		}
+	}
+	return null;
 }
 
 function firstEmail(row: Candidate, keys: string[]) {
