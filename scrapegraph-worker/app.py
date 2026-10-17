@@ -65,6 +65,13 @@ class MindcaseIntakeRequest(MindcaseRequest):
     max_leads: int = Field(default=50, ge=1, le=50)
 
 
+class SocialDiscoveryRequest(BaseModel):
+    """Provider-neutral public social discovery request used by the CRM."""
+    query: str = Field(min_length=1, max_length=500)
+    limit: int = Field(default=30, ge=1, le=100)
+    industry: str | None = Field(default=None, max_length=120)
+
+
 class EvaluationResult(BaseModel):
     status: Literal["REVIEW_REQUIRED", "NURTURE", "EXCLUDE"]
     evidence_quality: int = Field(ge=0, le=100)
@@ -150,6 +157,60 @@ def run_mindcase(request: MindcaseRequest):
         "count": len(rows),
         "source": "public_social_data",
         "contact_channels": normalize_contact_channels({"result": rows}, "mindcase://" + request.agent),
+    }
+
+
+@app.post("/discover")
+def discover_public_social(request: SocialDiscoveryRequest):
+    """Return public social candidates for the CRM's combined discovery run.
+
+    The adapter is deliberately narrow: it reads public profiles only and
+    returns raw candidates for the CRM's own deduplication/evidence gate. It
+    never sends messages or treats a profile as consent. Configure the agents
+    with a comma-separated MINDCASE_DISCOVERY_AGENTS value; the defaults are
+    the three broadest business-profile sources.
+    """
+    api_key = os.getenv("MINDCASE_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="MINDCASE_API_KEY is not configured")
+
+    configured = os.getenv(
+        "MINDCASE_DISCOVERY_AGENTS",
+        "instagram/profiles,tiktok/profiles,facebook/pages",
+    )
+    agents = [agent.strip() for agent in configured.split(",") if agent.strip()]
+    rows: list[Any] = []
+    errors: list[str] = []
+    params = {
+        "query": request.query,
+        "limit": request.limit,
+        "industry": request.industry,
+    }
+    for agent in agents:
+        try:
+            response = httpx.post(
+                f"https://api.mindcase.co/v1/data/{agent}/run?wait=true",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"params": params},
+                timeout=60,
+            )
+            response.raise_for_status()
+            data = response.json()
+            values = data.get("data") if isinstance(data, dict) else data
+            if isinstance(values, list):
+                rows.extend(values)
+            elif values:
+                rows.append(values)
+        except (httpx.HTTPError, ValueError) as error:
+            errors.append(f"{agent}: {type(error).__name__}")
+
+    return {
+        "provider": "mindcase",
+        "rows": rows[: request.limit],
+        "count": min(len(rows), request.limit),
+        "source": "public_social_data",
+        "agents": agents,
+        "errors": errors,
     }
 
 
