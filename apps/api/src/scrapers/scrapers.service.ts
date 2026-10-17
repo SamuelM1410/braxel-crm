@@ -499,7 +499,10 @@ export class ScrapersService {
 		// Collect a larger pool of mobile football businesses first; otherwise a
 		// single city can fill the raw limit before the quality rules are applied.
 		const targetPool = footballCampaign ? Math.min(limit * 2, 60) : limit;
-		const candidates: Candidate[] = [];
+		const candidates: Candidate[] = await this.discoverSocialCandidates(
+			query,
+			targetPool,
+		);
 		const queries = discoveryQueries(query);
 		for (let index = 0; index < queries.length; index += 3) {
 			const batch = queries.slice(index, index + 3);
@@ -545,8 +548,6 @@ export class ScrapersService {
 		// so a single provider outage no longer makes the campaign fail.
 		const discovered: Candidate[] = [];
 		const failures: string[] = [];
-		const socialRows = await this.discoverSocialCandidates(query, limit);
-		discovered.push(...socialRows);
 		if (localBase) {
 			try {
 				const response = await fetch(
