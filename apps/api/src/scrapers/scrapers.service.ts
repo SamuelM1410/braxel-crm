@@ -121,13 +121,27 @@ export class ScrapersService {
 				},
 				select: RUN_SELECT,
 			});
+			// Keep discovery and CRM intake as one safe operation. Imported rows
+			// remain REVIEW_REQUIRED + doNotContact, so automation never sends
+			// outreach merely because a scraper run finished.
+			let autoImport: Awaited<ReturnType<ScrapersService["importRun"]>> | null =
+				null;
+			try {
+				autoImport = await this.importRun(run.id, userId);
+			} catch (importError) {
+				this.logger.warn({
+					message: "Scraper results saved but automatic CRM import failed",
+					runId: run.id,
+					reason: safeError(importError),
+				});
+			}
 			this.logger.log({
 				message: "Scraper run completed",
 				runId: run.id,
 				provider: input.provider,
 				resultCount: safeCandidates.length,
 			});
-			return serializeRun(saved);
+			return { ...serializeRun(saved), autoImport };
 		} catch (error) {
 			const reason = safeError(error);
 			const failed = await this.db.scraperRun.update({

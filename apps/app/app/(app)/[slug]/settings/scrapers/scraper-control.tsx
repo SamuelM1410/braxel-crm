@@ -87,8 +87,8 @@ export function ScraperControl() {
 					<CardHeader>
 						<CardTitle>Descubrimiento combinado</CardTitle>
 						<CardDescription>
-							Maps/Places para encontrar negocios + ScrapeGraphAI para investigar
-							cada web pública.
+							Maps/Places para encontrar negocios + ScrapeGraphAI para
+							investigar cada web pública.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -115,8 +115,9 @@ export function ScraperControl() {
 						<CardTitle>Ejecutar scraper</CardTitle>
 						<CardDescription>
 							Deja la URL vacía para ejecutar descubrimiento + ScrapeGraph. Una
-							URL sirve para investigar una empresa puntual. Nada se contacta
-							automáticamente.
+							URL sirve para investigar una empresa puntual. Los resultados se
+							importan automáticamente como “Revisar antes”; nunca se contacta a
+							nadie desde el scraper.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -152,7 +153,7 @@ export function ScraperControl() {
 								) : (
 									<Renew data-icon="inline-start" />
 								)}
-								{run.isPending ? "Ejecutando…" : "Ejecutar"}
+								{run.isPending ? "Ejecutando…" : "Ejecutar e importar"}
 							</Button>
 						</form>
 						<p className="mt-3 text-muted-foreground text-xs">
@@ -288,7 +289,8 @@ function RunResult({
 			<CardHeader>
 				<CardTitle>Resultado · {run.resultCount} candidatos</CardTitle>
 				<CardDescription>
-					{run.error ?? "Revisa la evidencia antes de importar."}
+					{run.error ??
+						"Importado automáticamente como Revisa antes; valida la evidencia antes de contactar."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
@@ -326,7 +328,7 @@ function RunResult({
 				</div>
 				{run.status === "SUCCEEDED" && rows.length ? (
 					<Button variant="outline" disabled={importing} onClick={onImport}>
-						{importing ? <Spinner data-icon="inline-start" /> : null}Importar
+						{importing ? <Spinner data-icon="inline-start" /> : null}Reimportar
 						para revisión
 					</Button>
 				) : null}
