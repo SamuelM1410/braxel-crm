@@ -24,6 +24,7 @@ Braxel es un CRM en producción que investiga leads con IA y exige una decisión
 - Probabilidad de equilibrio de un contacto: **P\* = C ÷ V**. Si P supera P\*, el contacto se paga solo en valor esperado.
 - Leads para equilibrio: **techo(costo mensual de plataforma ÷ VE promedio)**.
 - Escenarios: multiplican P (con tope de 100 %) y V. El costo por contacto no cambia.
+- **Un lead rechazado no suma.** Nunca se va a contactar, así que su valor esperado es 0. Aparece en la tabla con "No suma: rechazado" y queda fuera de los totales, los escenarios y el punto de equilibrio.
 
 Ejemplo verificable con los valores iniciales (oportunidad 74, prioridad 88, V = COP 3.000.000, C = COP 25.000):
 
@@ -32,7 +33,7 @@ Ejemplo verificable con los valores iniciales (oportunidad 74, prioridad 88, V =
 - P\* = 25.000 ÷ 3.000.000 = **0,83 %**
 - En USD con tasa 4.000: VE = **USD 590,75**, que es 2.363.000 ÷ 4.000.
 
-La lógica vive en `packages/validation/src/lead-finance.ts` como funciones puras, con 34 pruebas en `packages/validation/test/lead-finance.spec.ts` que comprueban la aritmética, la conversión de moneda, los topes y los casos límite (valor de cierre cero, portafolio vacío, leads que pierden dinero). La API solo entrega los puntajes guardados: no calcula nada, así que el cálculo es el mismo en la ficha y en el portafolio.
+La lógica vive en `packages/validation/src/lead-finance.ts` como funciones puras, con 18 pruebas en `packages/validation/test/lead-finance.spec.ts` que comprueban la aritmética, la conversión de moneda, los topes y los casos límite (valor de cierre cero, portafolio vacío, leads que pierden dinero). La API solo entrega los puntajes guardados: no calcula nada, así que el cálculo es el mismo en la ficha y en el portafolio.
 
 ## Cambia los supuestos antes de grabar
 
@@ -60,7 +61,7 @@ Es nuevo en esta entrega:
 5. **Rechazo de enlaces que el navegador ejecutaría**, que llegaban desde páginas web.
 6. **Un límite de confianza explícito para el agente.**
 7. **Una prueba de extremo a extremo** del recorrido completo.
-8. **La suite en verde**: 1117 pruebas, 0 fallas.
+8. **La suite en verde**: 1128 pruebas, 0 fallas.
 
 ## Cómo correrlo en la máquina que ya tiene el CRM local
 
@@ -109,13 +110,13 @@ bun run build
 
 ## Estado de la validación
 
-Corrido en esta máquina, sobre esta rama, con Postgres local:
+Corrido en local con Postgres:
 
 | Comprobación | Resultado |
 | --- | --- |
 | `bun run check-types` | 13 de 13 tareas |
 | `bun run lint` | 9 de 9 tareas |
-| `bun run test` | **1117 pruebas, 0 fallas** |
+| `bun run test` | **1128 pruebas, 0 fallas** |
 | `bun run build` | 4 de 4 tareas |
 
 Las cinco pruebas que los paquetes anteriores reportaban como fallando ya no fallan. Cuatro describían una página que Braxel retiró y se eliminaron con su motivo escrito en `docs/api.md`; la quinta era un defecto real y está corregida. El detalle está en la sección de límites.

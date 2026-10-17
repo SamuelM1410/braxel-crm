@@ -5,16 +5,18 @@ const SYNTHETIC_TLD = "invalid";
 const REVIEWER_ID = "seed-hackathon-demo-reviewer";
 const REVIEWER_NAME = "Revisor Demo (sintético)";
 const REVIEW_SUBJECT_PREFIX = "Lead review:";
-const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
 
 type Decision = {
 	status: "APPROVED" | "REJECTED";
 	reason: string;
-	daysAgo: number;
+	minutesToDecide: number;
 };
 
 type Spec = {
 	sourceId: string;
+	arrivedHoursAgo: number;
 	name: string;
 	slug: string;
 	city: string;
@@ -46,6 +48,7 @@ type Spec = {
 const SPECS: Spec[] = [
 	{
 		sourceId: "hackathon-demo-1",
+		arrivedHoursAgo: 3,
 		name: "Panadería Sol y Trigo",
 		slug: "sol-y-trigo",
 		city: "Bogotá",
@@ -100,6 +103,7 @@ const SPECS: Spec[] = [
 	},
 	{
 		sourceId: "hackathon-demo-2",
+		arrivedHoursAgo: 6,
 		name: "Clínica Dental Sonrisa Norte",
 		slug: "sonrisa-norte",
 		city: "Medellín",
@@ -145,6 +149,7 @@ const SPECS: Spec[] = [
 	},
 	{
 		sourceId: "hackathon-demo-3",
+		arrivedHoursAgo: 26,
 		name: "Ferretería Los Andes",
 		slug: "ferreteria-los-andes",
 		city: "Barranquilla",
@@ -187,6 +192,7 @@ const SPECS: Spec[] = [
 	},
 	{
 		sourceId: "hackathon-demo-4",
+		arrivedHoursAgo: 50,
 		name: "Taller Motos El Rayo",
 		slug: "motos-el-rayo",
 		city: "Cali",
@@ -232,11 +238,12 @@ const SPECS: Spec[] = [
 			status: "APPROVED",
 			reason:
 				"La evidencia es sólida y el problema es concreto: clientela recurrente sin historial. Vale la pena una primera conversación.",
-			daysAgo: 2,
+			minutesToDecide: 18,
 		},
 	},
 	{
 		sourceId: "hackathon-demo-5",
+		arrivedHoursAgo: 30,
 		name: "Gimnasio Fuerza Andina",
 		slug: "fuerza-andina",
 		city: "Bucaramanga",
@@ -273,7 +280,7 @@ const SPECS: Spec[] = [
 			status: "REJECTED",
 			reason:
 				"Parece una sede de cadena sin autonomía de compra. Contactarla arriesga la reputación sin probabilidad real de cierre.",
-			daysAgo: 1,
+			minutesToDecide: 41,
 		},
 	},
 ];
@@ -406,17 +413,19 @@ async function seedCompany(spec: Spec, ownerId: string, reviewerId: string) {
 		description,
 	};
 
+	const arrivedAt = new Date(Date.now() - spec.arrivedHoursAgo * HOUR_MS);
 	const company = await db.company.upsert({
 		where: { domain },
 		create: {
 			...fields,
+			createdAt: arrivedAt,
 			domain,
 			website: null,
 			source: RecordSource.IMPORT,
 			enrichmentStatus: "SKIPPED",
 			ownerId,
 		},
-		update: fields,
+		update: { ...fields, createdAt: arrivedAt },
 		select: { id: true },
 	});
 
@@ -452,7 +461,9 @@ async function seedCompany(spec: Spec, ownerId: string, reviewerId: string) {
 		},
 	});
 	if (spec.decision) {
-		const at = new Date(Date.now() - spec.decision.daysAgo * DAY_MS);
+		const at = new Date(
+			arrivedAt.getTime() + spec.decision.minutesToDecide * MINUTE_MS,
+		);
 		await db.activity.create({
 			data: {
 				type: ActivityType.NOTE,
@@ -461,6 +472,7 @@ async function seedCompany(spec: Spec, ownerId: string, reviewerId: string) {
 				companyId: company.id,
 				createdById: reviewerId,
 				occurredAt: at,
+				createdAt: at,
 				meta: {
 					leadReviewDecision: spec.decision.status,
 					reviewer: REVIEWER_NAME,

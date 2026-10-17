@@ -13,7 +13,7 @@ Braxel es un CRM en producción que usa un agente de IA (Eve) para investigar le
 | Evidencia | "9. Evidencia verificable", con fuente y fuerza por afirmación, y "7. Información que falta confirmar". |
 | Puntajes | Evidence, Opportunity y Priority, de 0 a 100, con su fuente en el dossier. |
 | Oferta | Oferta recomendada, rango de precio, apertura sugerida, preguntas y objeciones. |
-| Decisión humana | Botones Approve lead y Reject lead. El motivo es obligatorio: con menos de 10 caracteres el botón sigue deshabilitado. |
+| Decisión humana | Botones Aprobar lead y Rechazar lead. El motivo es obligatorio: con menos de 10 caracteres el botón sigue deshabilitado. |
 | Historial de quién aprobó y por qué | Bloque "Decisión humana" en el panel, y la nota en la pestaña Activity con el nombre, la hora y el motivo. |
 
 El recorrido completo (lead → investigación → bloqueo → aprobación → contacto autorizado → historial) está cubierto por una prueba automática: `apps/api/test/lead-lifecycle.e2e.spec.ts`.
@@ -31,7 +31,7 @@ Es nuevo en esta entrega:
 5. **El agente sabe qué es una página web**: sus instrucciones ahora dicen que el contenido que lee es evidencia, no una orden, y que ninguna página puede aprobar un lead ni levantar un No contactar.
 6. **Un modo demo** (`HACKATHON_DEMO_MODE`) que no llama a n8n y no abre ninguna ruta pública.
 7. **Datos sintéticos seguros**: 5 empresas en el dominio reservado `.invalid`, con aviso visible en la ficha.
-8. **La suite quedó en verde**: 1117 pruebas, 0 fallas, incluidas las cinco que antes fallaban.
+8. **La suite quedó en verde**: 1128 pruebas, 0 fallas, incluidas las cinco que antes fallaban.
 
 ## Por qué esto y no un CRM nuevo
 
@@ -84,13 +84,13 @@ bun run build
 
 ## Estado de la validación
 
-Corrido en esta máquina, sobre esta rama, con Postgres local:
+Corrido en local con Postgres:
 
 | Comprobación | Resultado |
 | --- | --- |
 | `bun run check-types` | 13 de 13 tareas |
 | `bun run lint` | 9 de 9 tareas |
-| `bun run test` | **1117 pruebas, 0 fallas** |
+| `bun run test` | **1128 pruebas, 0 fallas** |
 | `bun run build` | 4 de 4 tareas |
 
 Las cinco pruebas que los paquetes anteriores reportaban como fallando ya no fallan. Cuatro describían una página que Braxel retiró y se eliminaron con su motivo escrito en `docs/api.md`; la quinta era un defecto real y está corregida. El detalle está en la sección de límites.
@@ -110,8 +110,8 @@ Además se instaló desde cero (`bun install --frozen-lockfile`) en una carpeta 
 
 1. **0:00–0:45 — El problema.** Quien prospecta en frío contacta a ciegas o investiga a mano. Braxel investiga con IA y nunca contacta sin aprobación humana.
 2. **0:45–2:00 — El dossier.** Abre "Panadería Sol y Trigo (sintético)". Señala el aviso de datos sintéticos, los tres puntajes, la evidencia con fuente y la oferta. Di que esto ya corría en producción.
-3. **2:00–2:40 — El bloqueo.** Señala que "Abrir WhatsApp" está deshabilitado y lee el motivo en pantalla: nadie puede contactar hasta que una persona apruebe.
-4. **2:40–4:00 — La decisión.** Pulsa Approve lead. Escribe un motivo corto y muestra que el botón sigue deshabilitado y el texto dice cuántos caracteres faltan. Completa el motivo y confirma. Muestra el bloque "Decisión humana" con tu nombre y el canal ya desbloqueado. Abre Activity y señala la nota.
+3. **2:00–2:40 — El bloqueo.** Señala el bloque "Decisión humana" y los botones de WhatsApp, Instagram y Facebook deshabilitados en "Links", con su motivo: nadie puede contactar hasta que una persona apruebe. Abre el contacto (Camila) y muestra que tampoco tiene email ni teléfono clicables.
+4. **2:40–4:00 — La decisión.** Pulsa Aprobar lead. Escribe un motivo corto y muestra que el botón sigue deshabilitado y el texto dice cuántos caracteres faltan. Completa el motivo y confirma. Muestra el bloque "Decisión humana" con tu nombre y el canal ya desbloqueado. Abre Activity y señala la nota.
 5. **4:00–4:40 — La otra mitad.** Abre "Gimnasio Fuerza Andina (sintético)", rechazado: su canal sigue bloqueado y el motivo explica por qué se descartó antes de contactar.
 6. **4:40–5:00 — Cierre.** Cada decisión humana queda registrada y consultable, y sin decisión no hay contacto. Nombra el repositorio y el equipo.
 

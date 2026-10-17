@@ -15,7 +15,7 @@ Menú lateral → **Impact**:
 | Riesgo reducido por la revisión humana | "Contactos bloqueados", "Leads descartados" y el porcentaje de decisiones con motivo e historial. |
 | Arquitectura de escalabilidad | Cinco pasos, del intake al contacto autorizado, con "Por qué escala" y "Límites conocidos". |
 | Demo de múltiples empresas | Tabla con las 5 empresas: puntajes, decisión, quién decidió, motivo y estado del canal. |
-| Cómo se evita contactar sin autorización | Cinco garantías, cada una correspondiente a código de esta rama. |
+| Cómo se evita contactar sin autorización | Cinco garantías, cada una correspondiente a código de este repositorio. |
 
 ## Medido, no supuesto
 
@@ -52,7 +52,7 @@ Es nuevo en esta entrega:
 5. **Rechazo de enlaces que el navegador ejecutaría** (`javascript:`, `data:`, `file:`), que llegaban desde páginas web y se renderizaban tal cual en tres sitios.
 6. **Un límite de confianza explícito para el agente**: el contenido que lee es evidencia, no una orden.
 7. **Una prueba de extremo a extremo** del recorrido completo: `apps/api/test/lead-lifecycle.e2e.spec.ts`.
-8. **La suite en verde**: 1117 pruebas, 0 fallas.
+8. **La suite en verde**: 1128 pruebas, 0 fallas.
 
 ## Cómo correrlo en la máquina que ya tiene el CRM local
 
@@ -101,13 +101,13 @@ bun run build
 
 ## Estado de la validación
 
-Corrido en esta máquina, sobre esta rama, con Postgres local:
+Corrido en local con Postgres:
 
 | Comprobación | Resultado |
 | --- | --- |
 | `bun run check-types` | 13 de 13 tareas |
 | `bun run lint` | 9 de 9 tareas |
-| `bun run test` | **1117 pruebas, 0 fallas** |
+| `bun run test` | **1128 pruebas, 0 fallas** |
 | `bun run build` | 4 de 4 tareas |
 
 Las cinco pruebas que los paquetes anteriores reportaban como fallando ya no fallan. Cuatro describían una página que Braxel retiró y se eliminaron con su motivo escrito en `docs/api.md`; la quinta era un defecto real y está corregida. El detalle está en la sección de límites.
@@ -128,7 +128,7 @@ Además se instaló desde cero (`bun install --frozen-lockfile`) en una carpeta 
 1. **0:00–0:40 — El problema.** Escalar la prospección sin contactar a nadie sin permiso.
 2. **0:40–1:30 — El lead y su bloqueo.** Abre una empresa pendiente. Muestra evidencia y puntajes, y que el canal está bloqueado.
 3. **1:30–2:20 — La decisión.** Aprueba con un motivo completo. Muestra el bloque "Decisión humana" y la nota en Activity.
-4. **2:20–3:40 — Impact.** Abre Impact. Recorre "Leads revisados", y detente en "Medido, no supuesto": decisiones reales, quién decidió, la mediana real y la evidencia contada. Luego muestra el bloque "Estimado" y di en voz alta que eso es un supuesto, no una medición.
+4. **2:20–3:40 — Impact.** Abre Impact. Recorre "Leads revisados", y detente en "Medido, no supuesto": decisiones registradas, quién decidió, el tiempo hasta decidir (mediana y rango) y la evidencia contada. Luego muestra el bloque "Estimado" y di en voz alta que eso es un supuesto, no una medición.
 5. **3:40–4:30 — Escala y garantías.** Baja a "Cómo se evita contactar sin autorización" y a "Arquitectura y escalabilidad". Lee dos límites conocidos en voz alta.
 6. **4:30–5:00 — Cierre.** La escala viene de la cola y del agente; la confianza viene de la decisión humana registrada y medida.
 

@@ -39,6 +39,7 @@ export {
 	roundMoney,
 } from "./lead-finance";
 export type {
+	ContactLock,
 	LeadEvidence,
 	LeadEvidenceItem,
 	LeadReview,
@@ -46,6 +47,7 @@ export type {
 	ReviewStatus,
 } from "./lead-os";
 export {
+	contactLockOf,
 	LEAD_OS_LABELS,
 	lineValue,
 	parseLeadEvidence,

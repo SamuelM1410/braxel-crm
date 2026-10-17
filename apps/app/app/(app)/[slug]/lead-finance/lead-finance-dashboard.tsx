@@ -95,7 +95,9 @@ export function LeadFinanceDashboard() {
 	const currency = assumptions.currency;
 	const money = (amount: number) => formatMoney(amount, currency);
 	const valid = isValidAssumptions(assumptions);
-	const scores = portfolio.leads.map((lead) => lead.scores);
+	const counted = portfolio.leads.filter((lead) => lead.status !== "REJECTED");
+	const rejected = portfolio.leads.length - counted.length;
+	const scores = counted.map((lead) => lead.scores);
 	const base = valid ? projectPortfolio(scores, assumptions) : null;
 	const sustainable =
 		base !== null &&
@@ -127,12 +129,19 @@ export function LeadFinanceDashboard() {
 				<>
 					<StatGroup>
 						<StatCard
-							label="Leads con dossier"
+							label="Leads que cuentan"
 							value={base.leads}
 							description={
-								portfolio.leadsWithoutScores > 0
-									? `${portfolio.leadsWithoutScores} más tienen un dossier sin puntajes válidos y no se cuentan.`
-									: undefined
+								[
+									rejected > 0
+										? `${rejected} rechazado${rejected === 1 ? "" : "s"} por una persona: nunca se contactará, así que su valor esperado es 0 y no suma.`
+										: null,
+									portfolio.leadsWithoutScores > 0
+										? `${portfolio.leadsWithoutScores} más tienen un dossier sin puntajes válidos y no se cuentan.`
+										: null,
+								]
+									.filter(Boolean)
+									.join(" ") || undefined
 							}
 						/>
 						<StatCard
@@ -271,7 +280,7 @@ export function LeadFinanceDashboard() {
 							<CardDescription>
 								{portfolio.truncated
 									? "Se muestran los leads más recientes; la lista está limitada."
-									: "Todos los leads con dossier válido."}
+									: "Todos los leads con dossier válido. Un lead rechazado aparece, pero no suma al portafolio."}
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -305,7 +314,9 @@ export function LeadFinanceDashboard() {
 													{formatPercent(projection.closeProbability)}
 												</TableCell>
 												<TableCell className="tabular-nums">
-													{money(projection.expectedValue)}
+													{lead.status === "REJECTED"
+														? "No suma: rechazado"
+														: money(projection.expectedValue)}
 												</TableCell>
 												<TableCell>
 													<Badge

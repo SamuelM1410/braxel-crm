@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	contactLockOf,
 	LEAD_REVIEW,
 	parseLeadReview,
 	parseLeadScores,
@@ -117,5 +118,33 @@ describe("review reason", () => {
 	it("refuses a reason over the maximum length", () => {
 		const text = "a".repeat(LEAD_REVIEW.reason.maxLength + 1);
 		expect(schemas.leadReview.reason.safeParse(text).success).toBe(false);
+	});
+});
+
+describe("contactLockOf", () => {
+	it("locks a lead nobody has decided yet", () => {
+		expect(contactLockOf(pending)).toBe("pending");
+		expect(contactLockOf(pending.replace("Revisión: PENDING\n", ""))).toBe(
+			"pending",
+		);
+	});
+
+	it("unlocks only an approved lead that is off do-not-contact", () => {
+		expect(contactLockOf(approved)).toBeNull();
+	});
+
+	it("keeps a rejected lead, or an approved one still on do-not-contact, locked", () => {
+		const rejected = approved
+			.replace("APPROVED", "REJECTED")
+			.replace("No contactar: no", "No contactar: sí");
+		expect(contactLockOf(rejected)).toBe("doNotContact");
+		expect(
+			contactLockOf(approved.replace("No contactar: no", "No contactar: sí")),
+		).toBe("doNotContact");
+	});
+
+	it("never locks a company that is not a Lead OS lead", () => {
+		expect(contactLockOf("A customer we already sell to")).toBeNull();
+		expect(contactLockOf(null)).toBeNull();
 	});
 });
