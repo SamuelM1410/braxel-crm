@@ -26,23 +26,26 @@ function buildWhatsAppMessage({
 		`${industry ?? ""} ${companyName}`,
 	);
 	const research = researchSummary(website, description);
+	const hypothesis = research.problem
+		? `La oportunidad que veo (a confirmar) es: ${research.problem}.`
+		: null;
 	if (!research.ownedWebsite) {
 		const social = instagramUrl
 			? "Instagram"
 			: tiktokUrl
 				? "TikTok"
 				: "sus canales sociales";
-		return `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando ${social} y la forma en que presentan sus productos. En las fuentes públicas que revisé no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). ¿Hoy reciben los pedidos por mensajes o tienen un catálogo centralizado?`;
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Estuve revisando ${social} y la forma en que presentan sus productos. En las fuentes públicas no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). ${hypothesis ?? "Me quedó una pregunta sobre cómo convierten hoy el interés de redes en pedidos."} ¿Hoy reciben los pedidos por mensajes o tienen un catálogo centralizado? Si te sirve, puedo preparar un boceto breve para que veas la idea antes de decidir.`;
 	}
 	if (research.hasCommerce && !research.hasAutomation) {
-		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen una tienda y un canal de WhatsApp para atender pedidos; no encontré evidencia pública de una automatización que recupere carritos o consultas que quedan a medias. ¿Hoy hacen ese seguimiento manualmente o ya tienen un flujo automático?`;
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Vi que ya tienen una tienda y un canal de WhatsApp para atender pedidos; no encontré evidencia pública de una automatización que recupere carritos o consultas que quedan a medias. ${hypothesis ?? "La oportunidad que veo (a confirmar) está en el seguimiento después del interés."} ¿Hoy hacen ese seguimiento manualmente o ya tienen un flujo automático?`;
 	}
 	if (research.hasCommerce) {
-		return `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé cómo presentan sus productos y vi una oportunidad concreta para mejorar el paso de visita a compra. No quiero ofrecerles una tienda que ya tienen: me interesa entender dónde se pierden pedidos o consultas. ¿El reto hoy está en conversión, seguimiento por WhatsApp o carritos abandonados?`;
+		return `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé cómo presentan sus productos y vi una oportunidad concreta para mejorar el paso de visita a compra. ${hypothesis ?? "No quiero ofrecerles una tienda que ya tienen: me interesa entender dónde se pierden pedidos o consultas."} ¿El reto hoy está en conversión, seguimiento por WhatsApp o carritos abandonados?`;
 	}
 	return sports
-		? `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta de ${companyName} y confirmé que ya tienen un sitio; la oportunidad parece estar en convertir mejor el interés por sus camisetas en pedidos. ¿Hoy reciben las consultas desde la web, WhatsApp o redes, y en qué punto suelen perderse?`
-		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta pública de ${companyName} y encontré una oportunidad concreta para convertir mejor las consultas en solicitudes o compras. ¿Hoy el mayor reto está en atraer clientes, convertirlos o hacer seguimiento?`;
+		? `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta de ${companyName} y confirmé que ya tienen un sitio; ${hypothesis ?? "la oportunidad parece estar en convertir mejor el interés por sus camisetas en pedidos."} ¿Hoy reciben las consultas desde la web, WhatsApp o redes, y en qué punto suelen perderse?`
+		: `Hola, ${companyName}. Soy Samuel, de Braxel. Revisé la oferta pública de ${companyName}. ${hypothesis ?? "Me quedó una hipótesis concreta sobre dónde podría estar perdiéndose una oportunidad comercial."} ¿Hoy el mayor reto está en atraer clientes, convertirlos o hacer seguimiento?`;
 }
 
 function buildEmail({
@@ -70,10 +73,10 @@ function buildEmail({
 			? "TikTok"
 			: "sus redes";
 	const observation = !research.ownedWebsite
-		? `Estuve revisando ${social} y la forma en que ${companyName} presenta sus productos. En las fuentes públicas que revisé no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). Braxel puede ayudar a convertir el tráfico de redes en pedidos sin perder lo que ya les funciona.`
+		? `Estuve revisando ${social} y la forma en que ${companyName} presenta sus productos. En las fuentes públicas no pude confirmar un sitio web propio para centralizar catálogo y pedidos (si ya lo tienen, corrígeme). ${research.problem ? `La hipótesis que quiero validar es: ${research.problem}.` : "Quiero validar cómo convierten hoy el interés de redes en pedidos."} Braxel puede ayudar a convertir ese tráfico sin perder lo que ya les funciona.`
 		: research.hasCommerce && !research.hasAutomation
-			? `Estuve revisando la tienda de ${companyName}. Ya tienen el canal de venta y WhatsApp, pero no encontré evidencia pública de recuperación automática de carritos o consultas. La oportunidad sería automatizar ese seguimiento, no reemplazar su web.`
-			: `Estuve revisando la oferta pública de ${companyName} y encontré una oportunidad concreta en el paso de interés a pedido. No quiero enviarte una propuesta genérica: primero quiero confirmar cómo están gestionando ese punto.`;
+			? `Estuve revisando la tienda de ${companyName}. Ya tienen el canal de venta y WhatsApp, pero no encontré evidencia pública de recuperación automática de carritos o consultas. ${research.problem ? `La hipótesis que quiero validar es: ${research.problem}.` : "La oportunidad sería automatizar ese seguimiento, no reemplazar su web."}`
+			: `Estuve revisando la oferta pública de ${companyName} y encontré una oportunidad concreta en el paso de interés a pedido. ${research.problem ? `La hipótesis que quiero validar es: ${research.problem}.` : "No quiero enviarte una propuesta genérica: primero quiero confirmar cómo están gestionando ese punto."}`;
 	return {
 		subject,
 		body: `Hola,\n\nSoy Samuel, de Braxel. ${observation}\n\n¿Hoy el principal reto está en atraer solicitudes, convertir mejor las visitas o recuperar personas que dejan el carrito a medias? Si no es el momento, respóndeme “no” y no volveré a escribirte.\n\nUn saludo,\nSamuel\nBraxel`,
@@ -84,6 +87,7 @@ type ResearchSummary = {
 	ownedWebsite: boolean;
 	hasCommerce: boolean;
 	hasAutomation: boolean;
+	problem: string | null;
 };
 
 function researchSummary(
@@ -107,12 +111,16 @@ function researchSummary(
 		/carrito abandonado|recuperar carrito|automatiz.*whatsapp|chatbot|bot de whatsapp|respuestas automaticas/.test(
 			text,
 		);
-	return { ownedWebsite, hasCommerce, hasAutomation };
+	const problem = dossier?.commercial_assessment?.problem ?? null;
+	return { ownedWebsite, hasCommerce, hasAutomation, problem };
 }
 
 function parseDossier(description: string | null): {
 	digital_presence?: { owned_website?: boolean };
-	commercial_assessment?: { recommended_offer?: string };
+	commercial_assessment?: {
+		recommended_offer?: string;
+		problem?: string;
+	};
 } | null {
 	const line = description
 		?.split("\n")
@@ -121,7 +129,10 @@ function parseDossier(description: string | null): {
 	try {
 		return JSON.parse(line.slice("Dossier Lead OS: ".length)) as {
 			digital_presence?: { owned_website?: boolean };
-			commercial_assessment?: { recommended_offer?: string };
+			commercial_assessment?: {
+				recommended_offer?: string;
+				problem?: string;
+			};
 		};
 	} catch {
 		return null;
