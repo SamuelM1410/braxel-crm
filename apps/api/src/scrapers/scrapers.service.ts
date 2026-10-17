@@ -355,9 +355,7 @@ export class ScrapersService {
 		const googlePlaces = Boolean(
 			this.config.get<string>("GOOGLE_MAPS_API_KEY")?.trim(),
 		);
-		const socialDiscovery = Boolean(
-			this.config.get<string>("SOCIAL_DISCOVERY_URL")?.trim(),
-		);
+		const socialDiscovery = Boolean(this.socialDiscoveryUrl());
 		return {
 			configured: localMaps || googlePlaces || socialDiscovery,
 			providers: {
@@ -638,10 +636,7 @@ export class ScrapersService {
 	 * candidates/results/data for simple adapters).
 	 */
 	private async discoverSocialCandidates(query: string, limit: number) {
-		const base = this.config
-			.get<string>("SOCIAL_DISCOVERY_URL")
-			?.trim()
-			.replace(/\/$/, "");
+		const base = this.socialDiscoveryUrl();
 		if (!base) return [];
 		try {
 			const response = await fetch(`${base}/discover`, {
@@ -674,6 +669,13 @@ export class ScrapersService {
 			});
 			return [];
 		}
+	}
+
+	private socialDiscoveryUrl() {
+		const configured =
+			this.config.get<string>("SOCIAL_DISCOVERY_URL")?.trim() ||
+			this.config.get<string>("SCRAPEGRAPH_URL")?.trim();
+		return configured?.replace(/\/$/, "") || null;
 	}
 
 	/**
